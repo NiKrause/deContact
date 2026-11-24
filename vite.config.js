@@ -18,6 +18,6 @@ export default defineConfig({
 		// 	srcDir: 'src'})
 	],
 	test: {
-		include: ['src/**/*.{test,spec}.{js,ts}']
+		include: ['src/**/*.{test,spec}.{js,ts}', 'packages/*/**/*.{test,spec}.{js,ts}']
 	}
 });

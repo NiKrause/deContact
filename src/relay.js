@@ -14,7 +14,7 @@
 import 'dotenv/config'
 import { useAccessController } from '@orbitdb/core'
 import { startRelay } from 'orbitdb-relay'
-import AddressBookAccessController from './lib/network/address-book-access-controller.js'
+import AddressBookAccessController from '@le-space/orbitdb-access-controller-decontact'
 
 // The relay opens an address book from its manifest and checks every entry with the
 // database's access controller, so it has to know deContact's: the owner writes
@@ -22,8 +22,8 @@ import AddressBookAccessController from './lib/network/address-book-access-contr
 // RELAY_ACCESS_CONTROLLERS can load the same module from there instead.)
 useAccessController(AddressBookAccessController)
 
-// pubsub peer discovery: the topics the app announces itself on (VITE_P2P_PUPSUB(_DEV))
-process.env.PUBSUB_TOPICS ??= 'dcontact._peer-discovery._p2p._pubsub,dev-dcontact._peer-discovery._p2p._pubsub'
+// pubsub peer discovery: the app announces itself on orbitdb-relay's default topic
+// (todo._peer-discovery._p2p._pubsub), like on Le Space's relays; PUBSUB_TOPICS overrides it
 // orbitdb-relay can hand attestations to a local attest bridge; deContact has none
 process.env.RELAY_ATTEST_BRIDGE ??= 'off'
 

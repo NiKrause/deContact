@@ -11,8 +11,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: pnpm/action-setup@v4
-      with:
-        version: 10
     - uses: actions/setup-node@v4
       with:
         node-version: 22
@@ -47,13 +45,11 @@ jobs:
       name: dcontact
       url: ${{ steps.deployment.outputs.page_url }}
     env:
+      # relays dialled besides those found on Aleph; the discovery topic is the relays' default
       VITE_SEED_NODES: ${{ secrets.VITE_SEED_NODES }}
-      VITE_P2P_PUPSUB: ${{ secrets.VITE_P2P_PUPSUB }}
     steps:
     - uses: actions/checkout@v4
     - uses: pnpm/action-setup@v4
-      with:
-        version: 10
     - uses: actions/setup-node@v4
       with:
         node-version: 22

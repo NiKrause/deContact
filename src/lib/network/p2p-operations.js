@@ -6,7 +6,8 @@ import { useAccessController} from '@orbitdb/core';
 import { LevelBlockstore } from "blockstore-level"
 import { LevelDatastore } from "datastore-level";
 import { get } from 'svelte/store';
-import { createLibp2pConfig, seedNodes } from "../../config.js";
+import { alephRelayDiscovery, createLibp2pConfig, seedNodes } from "../../config.js";
+import { peerIdsOf, selectSeedNodes } from "./seed-nodes.js";
 import { startPeerConnectivity } from "./peer-connectivity.js";
 
 import {
@@ -26,7 +27,7 @@ import {
 import { confirm } from "../components/addressModal.js"
 import { notify, sha256, convertTo32BitSeed } from "../../utils/utils.js";
 import { getIdentityAndCreateOrbitDB } from "$lib/network/getIdendityAndCreateOrbitDB.js";
-import AddressBookAccessController, { contactKey, createInvitation } from './address-book-access-controller.js';
+import AddressBookAccessController, { contactKey, createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 
 let blockstore = new LevelBlockstore("./helia-blocks")
 let datastore = new LevelDatastore("./helia-data")
@@ -64,10 +65,11 @@ export async function startNetwork() {
     // Two browsers often reach each other only through the relay (WebRTC may fail behind NAT),
     // so bitswap, like gossipsub, also runs on the limited relayed connection.
     const webRTCEnabled = get(useWebRTC)
+    const relays = await selectSeedNodes({ configured: seedNodes, enabled: alephRelayDiscovery })
     _helia = await withBitswap(
         withLibp2pLight(
             createHeliaLight({ blockstore, datastore, codecs: [dagCbor] }),
-            createLibp2pConfig({ webRTC: webRTCEnabled })
+            createLibp2pConfig({ webRTC: webRTCEnabled, relays })
         ),
         { runOnLimitedConnections: true }
     ).start();
@@ -91,8 +93,7 @@ export async function startNetwork() {
         countPeers()
     });
 
-    const seedPeerIds = seedNodes.map((addr) => addr.split('/p2p/').at(-1))
-    startPeerConnectivity(_libp2p, { webRTC: webRTCEnabled, seedPeerIds })
+    startPeerConnectivity(_libp2p, { webRTC: webRTCEnabled, seedPeerIds: peerIdsOf(relays) })
 
     _orbitdb = await getIdentityAndCreateOrbitDB('ed25519',_masterSeed,_helia)
     orbitdb.set(_orbitdb)
