@@ -6,14 +6,12 @@
         masterSeed,
         orbitdb, seedPhrase,
         dbMyAddressBook, selectedAddr, selectedTab,
-        useWebRTC,
-        useWebSocket 
+        useWebRTC
     } from "../../stores.js"
 
     $:window.localStorage.setItem('seed', $masterSeed);
     $:window.localStorage.setItem('seedPhrase', $seedPhrase);
     $:window.localStorage.setItem('useWebRTC', $useWebRTC.toString());
-    $:window.localStorage.setItem('useWebSocket', $useWebSocket.toString());
 
   console.log("useWebRTC",$useWebRTC)
   </script>
@@ -39,7 +37,7 @@
         <Column sm={3}><TextInput labelText="PeerId (LibP2P)"
                                   helperText="Every device has a unique peer id independent from your seed phrase"
                                   readonly size="sm"
-                                  value={$libp2p?.peerId?.string} /></Column>
+                                  value={$libp2p?.peerId?.toString()} /></Column>
     </Row>
 
     <Row class="custom-row">
@@ -51,11 +49,8 @@
     </Row>
     <Row>
         <Column sm={3}>
-            <Toggle id="webrtc-toggle" labelText="WebRTC" bind:toggled={$useWebRTC} /></Column>
-    </Row>
-    <Row>
-        <Column sm={3}>
-            <Toggle id="websocket-toggle" labelText="WebSocket" bind:toggled={$useWebSocket} /></Column>
+            <!-- off: other browsers are reached only through the relay; read when the network starts -->
+            <Toggle id="webrtc-toggle" labelText="WebRTC (applies after reload)" bind:toggled={$useWebRTC} /></Column>
     </Row>
     <Row class="custom-row">
         <Column sm={1}><Button data-cy="DropFollowerDBs" size="sm" on:click={async () => {
