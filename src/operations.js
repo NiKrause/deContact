@@ -1,4 +1,5 @@
 import {notify, sha256} from "./utils/utils.js";
+import { writeMyCardIntoFollowedBooks } from "./lib/network/p2p-operations.js";
 import {
     myAddressBook,
     selectedAddr,
@@ -7,7 +8,7 @@ import {
     qrCodeOpen,
     orbitdb,
     myDal,
-    dbMyAddressBook, followList
+    dbMyAddressBook
 } from "./stores.js";
 
 /**
@@ -65,12 +66,7 @@ export async function updateContact(isOnBoarding) {
     myAddressBook.set(newAddrBook)
     notify(`Contact updated successfully - informing our followers! ${_myAddressBook.firstName} ${_myAddressBook.lastName}`)
     if(_selectedAddr.owner === _orbitdb?.identity?.id){ //only send update requests if my own address was changed
-        for (const s in  _followList) {
-            console.log("updating address in ",_followList[s].db.address)
-            if(_selectedAddr._id){
-                _followList[s].db.put(_selectedAddr)
-            }
-        }
+        await writeMyCardIntoFollowedBooks(_selectedAddr)
     }
     selectedAddr.set({})
     selectedTab.set(0)
@@ -110,10 +106,6 @@ myAddressBook.subscribe((value) => {
     _myAddressBook = value
 })
 
-let _followList
-followList.subscribe((val) => {
-    _followList = val
-});
 
 let _myDal;
 myDal.subscribe((value) => {
