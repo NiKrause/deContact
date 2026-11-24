@@ -12,6 +12,10 @@ const config = {
 		}),
 		serviceWorker: {
 			register: true
+		},
+		// GitHub Pages serves the app below /deContact (BASE_PATH=/deContact in CI)
+		paths: {
+			base: process.env.BASE_PATH ?? ''
 		}
 	}
 }

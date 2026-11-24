@@ -59,12 +59,12 @@ jobs:
         node-version: 22
         cache: pnpm
     - name: Build for GitHub Pages
+      # Pages serves the app below /deContact; SvelteKit takes care of every path
+      env:
+        BASE_PATH: /deContact
       run: |
         pnpm install --frozen-lockfile
-        pnpm run build:fixed
-        sed -i 's|/service-worker.js|./service-worker.js|g' build/index.html
-        sed -i 's|"/"|"./deContact/"|g' build/_app/immutable/entry/app.*.js
-        sed -i 's|/_app/version.json|./_app/version.json|g' build/_app/immutable/chunks/entry.*.js
+        pnpm run build
     - uses: actions/upload-pages-artifact@v3
       with:
         path: ./build
