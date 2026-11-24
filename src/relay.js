@@ -14,10 +14,12 @@
 import 'dotenv/config'
 import { useAccessController } from '@orbitdb/core'
 import { startRelay } from 'orbitdb-relay'
-import AddressBookAccessController from './lib/network/AddressBookAccessController.js'
+import AddressBookAccessController from './lib/network/address-book-access-controller.js'
 
 // The relay opens an address book from its manifest and checks every entry with the
-// database's access controller, so it has to know deContact's.
+// database's access controller, so it has to know deContact's: the owner writes
+// anything, an invited contact only their own card. (An orbitdb-relay that supports
+// RELAY_ACCESS_CONTROLLERS can load the same module from there instead.)
 useAccessController(AddressBookAccessController)
 
 // pubsub peer discovery: the topics the app announces itself on (VITE_P2P_PUPSUB(_DEV))

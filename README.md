@@ -30,6 +30,11 @@ A peer-to-peer address book in Svelte with local first protocol built on libp2p,
 ## Relay
 `src/relay.js` is [orbitdb-relay](https://www.npmjs.com/package/orbitdb-relay) with deContact's access controller: a circuit relay through which browsers find each other, and a replica of every address book a browser opens. Contact data therefore arrives directly over WebRTC when two browsers can reach each other, and through the relay when they can't or aren't online at the same time.
 
+### Who may write into an address book
+Address books use the access controller `decontact-address-book` (`src/lib/network/address-book-access-controller.js`), which the app and the relay both register:
+- the owner (every device with the owner's DID) may write anything;
+- anybody else may write only their own contact card (key `contact:<their DID>`), and only with an invitation the owner signed with their did:key. A request for contact data carries that invitation.
+
 It is configured through orbitdb-relay's environment variables, e.g. `RELAY_PRIV_KEY` (hex protobuf private key for a stable peer id), `RELAY_WS_PORT`, `DATASTORE_PATH`.
 
 ## Building

@@ -24,9 +24,9 @@ import {
 } from "../../stores.js";
 
 import { confirm } from "../components/addressModal.js"
-import { notify, sha256 } from "../../utils/utils.js";
+import { notify, sha256, convertTo32BitSeed } from "../../utils/utils.js";
 import { getIdentityAndCreateOrbitDB } from "$lib/network/getIdendityAndCreateOrbitDB.js";
-import AddressBookAccessController from '$lib/network/AddressBookAccessController.js';
+import AddressBookAccessController, { contactKey, createInvitation } from './address-book-access-controller.js';
 
 let blockstore = new LevelBlockstore("./helia-blocks")
 let datastore = new LevelDatastore("./helia-data")
@@ -118,7 +118,7 @@ export async function startNetwork() {
     _dbMyAddressBook = await _orbitdb.open(myDBName, {
         type: 'documents',
         sync: true,
-        AccessController: AddressBookAccessController({identity:_orbitdb.identity.id, myDBName: myDBName} )
+        AccessController: AddressBookAccessController()
     })
 
     logSyncErrors(_dbMyAddressBook)
@@ -190,12 +190,8 @@ async function processMessageQueue() {
                 case REQUEST_ADDRESS:
                     data = JSON.parse(messageObj.data);
 
-                    requesterDB = await _orbitdb.open(data.sharedAddress, {
-                        type: 'documents',
-                        sync: true,
-                        AccessController: AddressBookAccessController({identity:_orbitdb.identity.id})
-                        // AccessController: AddressBookAccessController({ identity:_orbitdb.identity.id } )
-                    })
+                    // opened by address: its manifest names the access controller
+                    requesterDB = await _orbitdb.open(data.sharedAddress, { type: 'documents', sync: true })
                     logSyncErrors(requesterDB)
 
                     if(messageObj.onBoardingToken!==undefined){
@@ -204,7 +200,7 @@ async function processMessageQueue() {
 
                         console.log("onBoardingSignatureValid",onBoardingSignatureValid)
                         if(onBoardingSignatureValid){
-                            await writeMyAddressIntoRequesterDB(requesterDB);
+                            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation);
                             await requestAddress( messageObj.sender,true ) //we request the address //TODO we should do that only when the checkbox is enabled in the onboardingtoken
                             initReplicationBackup( _orbitdb.identity.id ) //init replication of all subscriber ids
                             delete messageQueue[sender];
@@ -228,27 +224,22 @@ async function processMessageQueue() {
                             const subscriber  = { sharedAddress: data.sharedAddress, owner:messageObj.sender, subscriber:true }
                             subscriber._id = await sha256(JSON.stringify(subscriber));
                             await _dbMyAddressBook.put(subscriber)
-                            await writeMyAddressIntoRequesterDB(requesterDB); //Bob writes his address into Alice address book
+                            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation); //Bob writes his address into Alice address book
                         }
                         else {
-                            await writeMyAddressIntoRequesterDB(requesterDB);
+                            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation);
                             await requestAddress( messageObj.sender,true )
                         }
                         initReplicationBackup( _orbitdb.identity.id ) //init replication of all subscriber ids
 
                     } else{
                         try {
-                            const all = await requesterDB.all()
-                            const foundDummy = all.filter((it) => {
-                                return it.value.owner === _orbitdb?.identity?.id
-                            })
-
-                            for (const foundDummyKey in foundDummy) {
-                                foundDummy[foundDummyKey].value.firstName="request canceled";
-                                const hash = await requesterDB.put(foundDummy[foundDummyKey]);
+                            // the placeholder the requester wrote for us is the only document we may change
+                            const placeholder = await requesterDB.get(contactKey(_orbitdb.identity.id))
+                            if (placeholder && data.invitation) {
+                                const hash = await requesterDB.put({ ...placeholder.value, firstName: "request canceled", invitation: data.invitation })
                                 notify(`wrote canceled request with hash ${hash}`);
                             }
-
                         } catch (error) {
                             console.error('Error in writeMyAddressIntoRequesterDB:', error);
                         }
@@ -318,8 +309,7 @@ async function initReplicationBackup(ourDID) {
     for (const s in _followList) {
         const dbAddress = _followList[s].value.sharedAddress
         try {
-            _followList[s].db = await _orbitdb.open(dbAddress, {type: 'documents',sync: true,
-                AccessController: AddressBookAccessController({ identity:_orbitdb.identity.id } )})
+            _followList[s].db = await _orbitdb.open(dbAddress, { type: 'documents', sync: true })
             logSyncErrors(_followList[s].db)
             _followList[s].db.all().then((records)=> { //replicate the addresses of Bob, Peter etc.
                 console.log(`we follow and backup dbAddress: ${dbAddress} records`,records)
@@ -366,27 +356,23 @@ export const requestAddress = async (_scannedAddress,nopingpong, onBoardingToken
 
     try {
         console.log("request requestAddress from", _scannedAddress);
-        const data = { sharedAddress:_dbMyAddressBook.address }
+        // the invitation lets the recipient write their card into our address book
+        const data = { sharedAddress:_dbMyAddressBook.address, invitation: await invite(scannedAddress) }
         const msg = await createMessage(REQUEST_ADDRESS, scannedAddress,data);
         if(onBoardingToken!==undefined) msg.onBoardingToken = onBoardingToken
         if(nopingpong===true) msg.nopingpong = true
 
-        //look if a dummy is inside
-        const all = await _dbMyAddressBook.all()
-
-        const foundDummy = all.filter((it) => { return it.value.owner === scannedAddress })
-        if(foundDummy.length>0) await _dbMyAddressBook.del(foundDummy[0].key)
-        // if(foundDummy.length===0){
-        const dummyContact  = {
-            owner: scannedAddress,
-            firstName: 'invited',
-            lastName: scannedAddress
+        // a placeholder under the key their card will have; keep a card we already have
+        if (!(await _dbMyAddressBook.get(contactKey(scannedAddress)))) {
+            const dummyContact = {
+                _id: contactKey(scannedAddress),
+                owner: scannedAddress,
+                firstName: 'invited',
+                lastName: scannedAddress
+            }
+            if(onBoardingToken!==undefined) dummyContact.onBoardingToken = onBoardingToken
+            await _dbMyAddressBook.put(dummyContact)
         }
-        if(onBoardingToken!==undefined) dummyContact.onBoardingToken = onBoardingToken
-
-        dummyContact._id = await sha256(JSON.stringify(dummyContact));
-        await _dbMyAddressBook.put(dummyContact)
-        // }
 
         //TODO when publishing, sign and encrypt message
         await _libp2p.services.pubsub.publish(CONTENT_TOPIC+"/"+scannedAddress, new TextEncoder().encode(JSON.stringify(msg)))
@@ -417,7 +403,7 @@ function startInvitationCheckWorker() {
         }
 
         for (const contact of invitedContacts) {
-            const data = { sharedAddress: _dbMyAddressBook.address };
+            const data = { sharedAddress: _dbMyAddressBook.address, invitation: await invite(contact.value.owner) };
             const msg = await createMessage(REQUEST_ADDRESS, contact.value.owner, data);
 
             if(contact?.value?.onBoardingToken) msg.onBoardingToken = contact.value.onBoardingToken;
@@ -453,7 +439,10 @@ const SYNC_WAIT_MS = 30_000
  * has - from her directly or from the relay's replica - or give up after SYNC_WAIT_MS.
  */
 async function waitForOurEntries(requesterDB, timeoutMs = SYNC_WAIT_MS) {
-    const ours = async () => (await requesterDB.all()).filter((it) => it.value.owner === _orbitdb?.identity?.id)
+    const ours = async () => {
+        const entry = await requesterDB.get(contactKey(_orbitdb?.identity?.id))
+        return entry ? [entry] : []
+    }
     let found = await ours()
     if (found.length > 0) return found
     await new Promise((resolve) => {
@@ -474,31 +463,59 @@ async function waitForOurEntries(requesterDB, timeoutMs = SYNC_WAIT_MS) {
     return ours()
 }
 
-export async function writeMyAddressIntoRequesterDB(requesterDB) {
+export async function writeMyAddressIntoRequesterDB(requesterDB, invitation) {
     try {
-
-        //1. Take out our address (the one where is the owner like our identity)
-        const writeFirstOfOurAddresses = _myAddressBook.filter((it) => {
-            return it.owner === _orbitdb?.identity?.id
-        })[0]
-        delete writeFirstOfOurAddresses.own;
-
-        //find our dummy which Alice added for it (the one with our id again)
-        const foundDummy = await waitForOurEntries(requesterDB)
-        if (foundDummy.length === 0) console.log(`no entry for us in ${requesterDB.address} yet - nothing written`)
-
-        //now overwrite the dummy with new data (but take our id)
-        for (const foundDummyKey in foundDummy) {
-            delete writeFirstOfOurAddresses.id //delete an id if it should contain one
-            writeFirstOfOurAddresses._id = foundDummy[foundDummyKey].value._id
-            await requesterDB.del(foundDummy[foundDummyKey].key)
-            const hash = await requesterDB.put(writeFirstOfOurAddresses);
-            notify(`wrote my address into requesters db with hash ${hash}`);
+        const me = _orbitdb?.identity?.id
+        const ownCard = _myAddressBook?.find((it) => it.owner === me)
+        if (!ownCard) {
+            console.log("no contact card of our own yet - nothing written")
+            return
         }
-
+        if (!invitation) {
+            console.log(`no invitation into ${requesterDB.address} - nothing written`)
+            return
+        }
+        // write after the requester's placeholder, so our card replaces it
+        const placeholder = await waitForOurEntries(requesterDB)
+        if (placeholder.length === 0) console.log(`no placeholder for us in ${requesterDB.address} yet - writing our card anyway`)
+        const hash = await requesterDB.put(cardFor(ownCard, invitation))
+        notify(`wrote my address into requesters db with hash ${hash}`);
     } catch (error) {
         console.error('Error in writeMyAddressIntoRequesterDB:', error);
     }
+}
+
+/**
+ * Our contact data changed: replace our card in every address book we were invited into.
+ * @param ownCard our card as shown in our own address book
+ */
+export async function writeMyCardIntoFollowedBooks(ownCard) {
+    const me = _orbitdb?.identity?.id
+    for (const followed of _followList ?? []) {
+        if (!followed.db) continue
+        try {
+            const ours = await followed.db.get(contactKey(me))
+            const invitation = ours?.value?.invitation
+            if (!invitation) continue // never invited into this book
+            await followed.db.put(cardFor(ownCard, invitation))
+            console.log("updated our card in", followed.db.address)
+        } catch (error) {
+            console.log(`could not update our card in ${followed.db.address}:`, error?.message)
+        }
+    }
+}
+
+/** our card as we write it into somebody else's address book */
+function cardFor(ownCard, invitation) {
+    const me = _orbitdb?.identity?.id
+    // eslint-disable-next-line no-unused-vars
+    const { own, id, ...card } = ownCard
+    return { ...card, _id: contactKey(me), owner: me, invitation }
+}
+
+/** an invitation for `did` to write their card into our address book */
+async function invite(did) {
+    return createInvitation(convertTo32BitSeed(_masterSeed), _orbitdb.identity.id, did)
 }
 
 
