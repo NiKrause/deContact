@@ -23,8 +23,14 @@ A peer-to-peer address book in Svelte with local first protocol built on libp2p,
 
 ## Developing
 1. Clone this repository
-2. npm i 
-3. npm run dev
+2. npm i
+3. `npm run relay` starts a local relay (`src/relay.js`, see below); put its WebSocket address into `VITE_SEED_NODES_DEV` in `.env` (see `.env.example`)
+4. npm run dev
+
+## Relay
+`src/relay.js` is [orbitdb-relay](https://www.npmjs.com/package/orbitdb-relay) with deContact's access controller: a circuit relay through which browsers find each other, and a replica of every address book a browser opens. Contact data therefore arrives directly over WebRTC when two browsers can reach each other, and through the relay when they can't or aren't online at the same time.
+
+It is configured through orbitdb-relay's environment variables, e.g. `RELAY_PRIV_KEY` (hex protobuf private key for a stable peer id), `RELAY_WS_PORT`, `DATASTORE_PATH`.
 
 ## Building
 
@@ -38,6 +44,8 @@ You can preview the production build with `npm run preview`.
 
 ## Tests
 ```bash
-npm run test:e2e   #headless
-npm run test:e2e:manual 
+npm test                 # unit tests, then the end-to-end tests
+npm run test:e2e         # headless; starts its own relay and a production build
+npm run test:e2e:manual  # headed, with the Playwright inspector
 ```
+`tests/AddressArrives.spec.js` checks that both addresses really arrive, once with WebRTC allowed and once relay-only, and logs which way they travelled.

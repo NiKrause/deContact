@@ -1,9 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { chromium } from 'playwright';
-
-const browser = await chromium.launch({	
-	headless: process.env.HEADLESS==="true"?process.env.HEADLES==="true":true
-});
 
 const users = [ //TODO can we put this into assets?
 	{
@@ -13,7 +8,8 @@ const users = [ //TODO can we put this into assets?
 		street: 'Schulgasse 5',
 		zipcode: '84444',
 		did: '',
-		seed: process.env.SEED_TEST,
+		// the BIP39 test vector unless the run brings its own
+		seed: process.env.SEED_TEST || 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
 		city: 'Berlin',
 		country: 'Germany'
 	}
@@ -28,7 +24,7 @@ test.describe('Devices auto synchronization', () => {
 		page = await initializeNewPage(browser, users[0]);		
 	});
 
-	test('checkDeviceSync', async () => {
+	test('checkDeviceSync', async ({ browser }) => {
 		test.setTimeout(150000);
 
 		const context = await browser.newContext();

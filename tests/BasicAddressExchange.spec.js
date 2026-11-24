@@ -1,20 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { chromium } from 'playwright';
-
-const browser = await chromium.launch({
-	headless: process.env.HEADLESS==="true"?process.env.HEADLES==="true":true
-});
 test.describe('Simple exchange of address between Alice and Bob', async () => {
 	let pageAlice, pageBob;
 
 	test.beforeAll(async ({ browser }) => {
-		test.setTimeout(10000);
+		// two pages, each waiting until OrbitDB shows its DID
+		test.setTimeout(60000);
 		pageAlice = await initializeNewPage(browser, users[0]);
 		pageBob = await initializeNewPage(browser, users[1]);
 	});
 
 	test('Alice and Bob can exchange addresses', async () => {
-		test.setTimeout(50000); 
+		// libp2p 2+ dials discovered peers only when pubsub peer discovery announces them
+		// (every 10 s), and the address request is resent after 10 s, 20 s, ...
+		test.setTimeout(120000);
 
 		const connect =  pageAlice.getByRole('img', { name: 'Swarm connected' })
 		await expect(connect, 'connection Alice').toBeEnabled({ timeout: 15000 });
@@ -29,11 +27,11 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 
 
 		const button = pageAlice.getByRole('button', { name: 'Send My Contact Data' })
-		await expect(button, "Exchange of Alice's contact information was successful").toBeEnabled(); //TODO what is that?
+		await expect(button, "Exchange of Alice's contact information was successful").toBeEnabled({ timeout: 60000 }); //TODO what is that?
 		await button.click();
 
 		const button2 = pageBob.getByRole('button', { name: 'Send My Contact Data' })
-		await expect(button2, "Exchange of Bobs's contact information was successful").toBeEnabled();
+		await expect(button2, "Exchange of Bobs's contact information was successful").toBeEnabled({ timeout: 60000 });
 		await button2.click();
 
 
@@ -121,6 +119,8 @@ async function initializeNewPage(browser, user) {
 		await page.getByRole('button', { name: 'Generate New' }).click();
 		await page.getByRole('tab', { name: 'Settings' }).click();
 		await page.getByLabel('DID', { exact: true }).click();
+		// the DID appears once OrbitDB has started
+		await expect(page.getByLabel('DID', { exact: true })).not.toHaveValue('', { timeout: 30000 });
 		user.did = await page.getByLabel('DID', { exact: true }).inputValue();
 		await page.getByRole('tab', { name: 'My Address' }).click();
 		await fillForm(page, user);

@@ -1,46 +1,72 @@
-name: Basic Tests
+name: Tests
 on:
   push:
-    branches: [ develop, main, githubCI ]
+    branches: [ develop, main ]
   pull_request:
     branches: [ develop, main ]
 jobs:
-  build-deploy-test:
-    timeout-minutes: 60
+  test:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    - name: Install Playwright Chromium
+      run: pnpm exec playwright install --with-deps chromium
+    # unit tests, then the end-to-end tests against their own relay and build
+    - name: Test
+      run: pnpm test
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-report
+        path: |
+          playwright-report
+          test-results/relay.log
+        retention-days: 7
 
+  # Pages only gets a build whose tests passed, and only from main
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
     permissions:
       pages: write      # to deploy to Pages
       id-token: write   # to verify the deployment originates from an appropriate source
       actions: read
     environment:
-      name: dcontact #github-pages
-      url: ${{ steps.deployment.outputs.page_url }} 
+      name: dcontact
+      url: ${{ steps.deployment.outputs.page_url }}
     env:
-      VITE_SEED_NODES:  ${{ secrets.VITE_SEED_NODES }} 
-      VITE_P2P_PUPSUB: ${{ secrets.VITE_P2P_PUPSUB }} 
-      PAGE_URL: ${{ secrets.PAGE_URL }} 
-      SEED_TEST: ${{ secrets.SEED_TEST }}
+      VITE_SEED_NODES: ${{ secrets.VITE_SEED_NODES }}
+      VITE_P2P_PUPSUB: ${{ secrets.VITE_P2P_PUPSUB }}
     steps:
     - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10
     - uses: actions/setup-node@v4
       with:
-        node-version: 20  
-    - name: Install dependencies
+        node-version: 22
+        cache: pnpm
+    - name: Build for GitHub Pages
       run: |
-        npm install
-        npm run build:fixed      
-        sed -i 's|/service-worker.js|./service-worker.js|g' build/index.html    
+        pnpm install --frozen-lockfile
+        pnpm run build:fixed
+        sed -i 's|/service-worker.js|./service-worker.js|g' build/index.html
         sed -i 's|"/"|"./deContact/"|g' build/_app/immutable/entry/app.*.js
         sed -i 's|/_app/version.json|./_app/version.json|g' build/_app/immutable/chunks/entry.*.js
-    - uses: actions/upload-pages-artifact@v3 
+    - uses: actions/upload-pages-artifact@v3
       with:
         path: ./build
-    - uses: actions/deploy-pages@v4
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps  
-    - name: Start test BasicAddressExchange.spec.js
-      run: npx playwright test BasicAddressExchange.spec.js
-    - name: Start test MyDevicesAutoSync.spec.js 
-      run: npx playwright test MyDevicesAutoSync.spec.js 
-
+    - id: deployment
+      uses: actions/deploy-pages@v4

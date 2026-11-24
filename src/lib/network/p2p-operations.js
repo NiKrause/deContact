@@ -1,12 +1,13 @@
-import { createLibp2p } from 'libp2p'
-import { createHelia } from "helia";
+import { createHeliaLight } from "helia";
+import { withLibp2pLight } from "@helia/libp2p";
+import { withBitswap } from "@helia/bitswap";
+import * as dagCbor from "@ipld/dag-cbor";
 import { useAccessController} from '@orbitdb/core';
 import { LevelBlockstore } from "blockstore-level"
 import { LevelDatastore } from "datastore-level";
-import { config } from "../../config.js";
-import { webSockets } from "@libp2p/websockets";
-import * as filters from "@libp2p/websockets/filters";
-import { webRTC, webRTCDirect } from "@libp2p/webrtc";
+import { get } from 'svelte/store';
+import { createLibp2pConfig, seedNodes } from "../../config.js";
+import { startPeerConnectivity } from "./peer-connectivity.js";
 
 import {
     libp2p,
@@ -18,10 +19,10 @@ import {
     dbMyAddressBook,
     subscription,
     connectedPeers,
-    followList, dbMessages, selectedTab, syncedDevices
+    followList, dbMessages, selectedTab, syncedDevices,
+    useWebRTC
 } from "../../stores.js";
 
-// import { get } from 'svelte/store';
 import { confirm } from "../components/addressModal.js"
 import { notify, sha256 } from "../../utils/utils.js";
 import { getIdentityAndCreateOrbitDB } from "$lib/network/getIdendityAndCreateOrbitDB.js";
@@ -55,32 +56,47 @@ const CANCEL_REQUEST = 'CANCEL_REQUEST';
  */
 export async function startNetwork() {
 
-    _libp2p =  await createLibp2p(config)
+    // Helia 7 is composed: blocks come only from peers via bitswap, never from
+    // public HTTP gateways (createHelia's default would ask them for every CID).
+    // OrbitDB stores entries, heads and manifests as dag-cbor.
+    // withLibp2pLight creates libp2p from our config on start, without the
+    // defaults withLibp2p would add (public bootstrap nodes, DHT, delegated routing).
+    // Two browsers often reach each other only through the relay (WebRTC may fail behind NAT),
+    // so bitswap, like gossipsub, also runs on the limited relayed connection.
+    const webRTCEnabled = get(useWebRTC)
+    _helia = await withBitswap(
+        withLibp2pLight(
+            createHeliaLight({ blockstore, datastore, codecs: [dagCbor] }),
+            createLibp2pConfig({ webRTC: webRTCEnabled })
+        ),
+        { runOnLimitedConnections: true }
+    ).start();
+    _libp2p = _helia.libp2p
     libp2p.set(_libp2p)
-
-    _helia = await createHelia({
-        libp2p: _libp2p,
-        blockstore,
-        datastore,
-    });
     helia.set(_helia)
     window.helia = _helia
 
+    // the header shows peers, not connections: "Swarm connected" means a peer besides the relay
+    const countPeers = () => connectedPeers.set(_libp2p.getPeers().length)
+    countPeers() // libp2p already dialled the seed nodes while Helia started
+    _libp2p.addEventListener('peer:disconnect', countPeers);
     _libp2p.addEventListener('connection:open',  async (c) => {
         console.log("connection:open",c.detail.remoteAddr.toString())
-        connectedPeers.update(n => n + 1);
-
+        countPeers()
         if(_connectedPeers>1)
             await getAddressRecords();
     });
-
     _libp2p.addEventListener('connection:close', (c) => {
-        console.log("connection:close",c);
-        connectedPeers.update(n => n - 1);
+        console.log("connection:close",c.detail.remoteAddr.toString());
+        countPeers()
     });
+
+    const seedPeerIds = seedNodes.map((addr) => addr.split('/p2p/').at(-1))
+    startPeerConnectivity(_libp2p, { webRTC: webRTCEnabled, seedPeerIds })
 
     _orbitdb = await getIdentityAndCreateOrbitDB('ed25519',_masterSeed,_helia)
     orbitdb.set(_orbitdb)
+    window.orbitdb = _orbitdb
 
     await _libp2p.services.pubsub.subscribe(CONTENT_TOPIC+"/"+_orbitdb.identity.id)
 
@@ -91,9 +107,6 @@ export async function startNetwork() {
         console.log(`Message received on topic '${topic}': ${message}`)
         handleMessage(message)
     })
-
-    _orbitdb = await getIdentityAndCreateOrbitDB('ed25519',_masterSeed,_helia)
-    orbitdb.set(_orbitdb)
 
     /**
      * My Address Book (with own contact data and contact data of others
@@ -108,6 +121,7 @@ export async function startNetwork() {
         AccessController: AddressBookAccessController({identity:_orbitdb.identity.id, myDBName: myDBName} )
     })
 
+    logSyncErrors(_dbMyAddressBook)
     dbMyAddressBook.set(_dbMyAddressBook)
     window.mydb = _dbMyAddressBook
     await getAddressRecords()
@@ -127,6 +141,17 @@ export async function startNetwork() {
     })
 }
 
+/**
+ * OrbitDB reports sync errors (e.g. a peer we reach only through the relay, where the
+ * head exchange can't open a stream) as 'error' events; an EventEmitter throws an
+ * 'error' nobody listens to.
+ */
+function logSyncErrors(db) {
+    if (db.events.listenerCount('error') === 0) {
+        db.events.on('error', (e) => console.log(`sync error on ${db.address}:`, e?.message))
+    }
+}
+
 export async function close() {
     await _orbitdb?.stop()
     await _helia?.stop();
@@ -142,40 +167,6 @@ async function handleMessage(dContactMessage) {
 
     // Process the queued messages
     await processMessageQueue();
-}
-
-
-async function restartLibp2p() {
-    // const webRTCEnabled = get(useWebRTC);
-    // const webSocketEnabled = get(useWebSocket);
-
-    if (_libp2p) {
-        await _libp2p.stop();
-    }
-
-    config.transports = [];
-
-    if (webRTCEnabled) {
-        const webRTCConfig = webRTC({
-            rtcConfiguration: {
-                iceServers: [{
-                    urls: [
-                        'stun:stun.l.google.com:19302',
-                        'stun:global.stun.twilio.com:3478'
-                    ]
-                }]
-            }
-        });
-        config.transports.push(webRTCConfig, webRTCDirect());
-    }
-
-    if (webSocketEnabled) {
-        const webSocketConfig = webSockets({filter: filters.all});
-        config.transports.push(webSocketConfig);
-    }
-    console.log("restarting libp2p with config",config)
-    _libp2p =  await createLibp2p(config)
-  
 }
 
 
@@ -205,6 +196,7 @@ async function processMessageQueue() {
                         AccessController: AddressBookAccessController({identity:_orbitdb.identity.id})
                         // AccessController: AddressBookAccessController({ identity:_orbitdb.identity.id } )
                     })
+                    logSyncErrors(requesterDB)
 
                     if(messageObj.onBoardingToken!==undefined){
                         //TODO "mytoken" should be a unique sessionId
@@ -328,6 +320,7 @@ async function initReplicationBackup(ourDID) {
         try {
             _followList[s].db = await _orbitdb.open(dbAddress, {type: 'documents',sync: true,
                 AccessController: AddressBookAccessController({ identity:_orbitdb.identity.id } )})
+            logSyncErrors(_followList[s].db)
             _followList[s].db.all().then((records)=> { //replicate the addresses of Bob, Peter etc.
                 console.log(`we follow and backup dbAddress: ${dbAddress} records`,records)
             })
@@ -452,6 +445,35 @@ function startInvitationCheckWorker() {
  * @param data
  * @returns {Promise<void>}
  */
+const SYNC_WAIT_MS = 30_000
+
+/**
+ * The requester wrote a placeholder for us into her address book just before she asked
+ * us; our copy of her book (just opened) usually hasn't received it yet. Wait until it
+ * has - from her directly or from the relay's replica - or give up after SYNC_WAIT_MS.
+ */
+async function waitForOurEntries(requesterDB, timeoutMs = SYNC_WAIT_MS) {
+    const ours = async () => (await requesterDB.all()).filter((it) => it.value.owner === _orbitdb?.identity?.id)
+    let found = await ours()
+    if (found.length > 0) return found
+    await new Promise((resolve) => {
+        const check = async () => {
+            if ((await ours()).length > 0) finish()
+        }
+        const finish = () => {
+            clearTimeout(timer)
+            requesterDB.events.off('update', check)
+            requesterDB.events.off('join', check)
+            resolve()
+        }
+        const timer = setTimeout(finish, timeoutMs)
+        requesterDB.events.on('update', check)
+        requesterDB.events.on('join', check)
+        void check() // it may have arrived between the first look and subscribing
+    })
+    return ours()
+}
+
 export async function writeMyAddressIntoRequesterDB(requesterDB) {
     try {
 
@@ -462,10 +484,8 @@ export async function writeMyAddressIntoRequesterDB(requesterDB) {
         delete writeFirstOfOurAddresses.own;
 
         //find our dummy which Alice added for it (the one with our id again)
-        const all = await requesterDB.all()
-        const foundDummy = all.filter((it) => {
-            return it.value.owner === _orbitdb?.identity?.id
-        })
+        const foundDummy = await waitForOurEntries(requesterDB)
+        if (foundDummy.length === 0) console.log(`no entry for us in ${requesterDB.address} yet - nothing written`)
 
         //now overwrite the dummy with new data (but take our id)
         for (const foundDummyKey in foundDummy) {
