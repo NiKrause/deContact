@@ -16,7 +16,8 @@ const relayPorts = {
 	ws: process.env.E2E_RELAY_WS_PORT || '49302',
 	webrtc: process.env.E2E_RELAY_WEBRTC_PORT || '49303'
 };
-const discoveryTopic = 'dcontact._peer-discovery._p2p._pubsub';
+// the topic Le Space's orbitdb-relays forward, as in production
+const discoveryTopic = 'todo._peer-discovery._p2p._pubsub';
 const relayDatastorePath = path.join(rootDir, 'test-results', 'e2e-relay-datastore');
 const relayLogPath = path.join(rootDir, 'test-results', 'relay.log');
 
@@ -78,7 +79,9 @@ const env = {
 	VITE_SEED_NODES: relayMultiaddr,
 	VITE_SEED_NODES_DEV: relayMultiaddr,
 	VITE_P2P_PUPSUB: discoveryTopic,
-	VITE_P2P_PUPSUB_DEV: discoveryTopic
+	VITE_P2P_PUPSUB_DEV: discoveryTopic,
+	// only the local relay: the tests must not depend on Aleph or reach real relays
+	VITE_ALEPH_RELAY_DISCOVERY: 'false'
 };
 await run('pnpm', ['exec', 'vite', 'build'], env);
 previewProcess = spawn(

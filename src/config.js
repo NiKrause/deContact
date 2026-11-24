@@ -19,8 +19,18 @@ const development = import.meta.env.MODE === 'development'
 /** the relays (src/relay.js) the browser dials first */
 export const seedNodes = list(development ? import.meta.env.VITE_SEED_NODES_DEV : import.meta.env.VITE_SEED_NODES)
 
-/** topics on which browsers announce their addresses to each other */
-export const pubSubPeerDiscoveryTopics = list(development ? import.meta.env.VITE_P2P_PUPSUB_DEV : import.meta.env.VITE_P2P_PUPSUB)
+/** whether to look for more relays on Aleph (VITE_ALEPH_RELAY_DISCOVERY=false turns it off) */
+export const alephRelayDiscovery = import.meta.env.VITE_ALEPH_RELAY_DISCOVERY !== 'false'
+
+/**
+ * Topics on which browsers announce their addresses to each other. Defaults to the topic
+ * Le Space's orbitdb-relays forward (orbitdb-relay's own default), so deContact finds other
+ * browsers through them without changes on the relays. Other apps' browsers on those relays
+ * announce themselves there too.
+ */
+export const ORBITDB_RELAY_DISCOVERY_TOPIC = 'todo._peer-discovery._p2p._pubsub'
+const configuredTopics = list(development ? import.meta.env.VITE_P2P_PUPSUB_DEV : import.meta.env.VITE_P2P_PUPSUB)
+export const pubSubPeerDiscoveryTopics = configuredTopics.length > 0 ? configuredTopics : [ORBITDB_RELAY_DISCOVERY_TOPIC]
 
 /**
  * The relay announces one /orbitdb/heads/<address> protocol per address book it holds.
@@ -35,9 +45,10 @@ const iceServers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:global.stun.t
 /**
  * libp2p configuration for the browser.
  *
- * @param {{ webRTC?: boolean }} options webRTC false: reach other browsers only through the relay
+ * @param {{ webRTC?: boolean, relays?: string[] }} options webRTC false: reach other browsers only
+ * through the relay; relays: the relays to dial first (default: VITE_SEED_NODES)
  */
-export function createLibp2pConfig({ webRTC: webRTCEnabled = true } = {}) {
+export function createLibp2pConfig({ webRTC: webRTCEnabled = true, relays = seedNodes } = {}) {
     return {
         addresses: {
             // a browser can't listen on /ws or /wss; it is reachable through a relay
@@ -60,7 +71,7 @@ export function createLibp2pConfig({ webRTC: webRTCEnabled = true } = {}) {
             denyDialMultiaddr: (ma) => isInsecureWebSocketDial(ma)
         },
         peerDiscovery: [
-            bootstrap({ list: seedNodes }),
+            bootstrap({ list: relays }),
             pubsubPeerDiscovery({
                 interval: 5000,
                 topics: pubSubPeerDiscoveryTopics,

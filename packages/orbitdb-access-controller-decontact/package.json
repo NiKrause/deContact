@@ -1,0 +1,35 @@
+{
+	"name": "@le-space/orbitdb-access-controller-decontact",
+	"version": "0.1.0",
+	"description": "OrbitDB access controller for deContact address books: the owner writes anything, an invited contact only their own card.",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": "./index.js"
+	},
+	"files": [
+		"index.js",
+		"README.md"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/NiKrause/deContact.git",
+		"directory": "packages/orbitdb-access-controller-decontact"
+	},
+	"keywords": [
+		"orbitdb",
+		"access-controller",
+		"decontact"
+	],
+	"engines": {
+		"node": ">=22"
+	},
+	"peerDependencies": {
+		"@orbitdb/core": "^4.0.0"
+	},
+	"dependencies": {
+		"@ipld/dag-cbor": "^9.2.5",
+		"@libp2p/crypto": "^5.2.0",
+		"multiformats": "^14.0.7"
+	}
+}

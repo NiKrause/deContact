@@ -30,8 +30,17 @@ A peer-to-peer address book in Svelte with local first protocol built on libp2p,
 ## Relay
 `src/relay.js` is [orbitdb-relay](https://www.npmjs.com/package/orbitdb-relay) with deContact's access controller: a circuit relay through which browsers find each other, and a replica of every address book a browser opens. Contact data therefore arrives directly over WebRTC when two browsers can reach each other, and through the relay when they can't or aren't online at the same time.
 
+### Relays on Aleph
+Besides the relays in `VITE_SEED_NODES`, the app looks up the orbitdb-relays that Le Space has registered on Aleph (`@le-space/aleph-bootstrap`, profile `orbitdb-relay`).
+- It asks `https://api.aleph.im` for the registrations.
+- It then dials the relays' WebSocket addresses (`*.2n6.me`, `*.libp2p.direct`).
+- If Aleph doesn't answer within 8 s, only `VITE_SEED_NODES` is used.
+- `VITE_ALEPH_RELAY_DISCOVERY=false` turns the lookup off; the tests do this.
+
+Browsers find each other on the relays' discovery topic, `todo._peer-discovery._p2p._pubsub`. Other apps' browsers on those relays use the same topic.
+
 ### Who may write into an address book
-Address books use the access controller `decontact-address-book` (`src/lib/network/address-book-access-controller.js`), which the app and the relay both register:
+Address books use the access controller `decontact-address-book` (package `@le-space/orbitdb-access-controller-decontact` in `packages/orbitdb-access-controller-decontact`), which the app and the relay both register:
 - the owner (every device with the owner's DID) may write anything;
 - anybody else may write only their own contact card (key `contact:<their DID>`), and only with an invitation the owner signed with their did:key. A request for contact data carries that invitation.
 

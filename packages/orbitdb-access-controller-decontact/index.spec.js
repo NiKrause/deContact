@@ -8,7 +8,7 @@ import AddressBookAccessController, {
 	publicKeyFromDid,
 	type,
 	verifyInvitation
-} from './address-book-access-controller.js';
+} from './index.js';
 
 const seedOf = (n) => new Uint8Array(32).fill(n);
 async function didOf(seed) {
