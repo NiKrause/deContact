@@ -32,21 +32,11 @@ jobs:
         retention-days: 7
 
   # Pages only gets a build whose tests passed, and only from main
-  deploy:
+  build-pages:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     timeout-minutes: 20
     runs-on: ubuntu-latest
-    permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
-      actions: read
-    environment:
-      name: dcontact
-      url: ${{ steps.deployment.outputs.page_url }}
-    env:
-      # relays dialled besides those found on Aleph; the discovery topic is the relays' default
-      VITE_SEED_NODES: ${{ secrets.VITE_SEED_NODES }}
     steps:
     - uses: actions/checkout@v4
     - uses: pnpm/action-setup@v4
@@ -55,14 +45,43 @@ jobs:
         node-version: 22
         cache: pnpm
     - name: Build for GitHub Pages
-      # Pages serves the app below /deContact; SvelteKit takes care of every path
+      # Pages serves the app below /deContact; SvelteKit takes care of every path.
+      # The app finds its relays on Aleph, so the build needs no relay addresses.
       env:
         BASE_PATH: /deContact
       run: |
         pnpm install --frozen-lockfile
         pnpm run build
-    - uses: actions/upload-pages-artifact@v3
+    - uses: actions/upload-pages-artifact@v5
       with:
         path: ./build
+
+  # Deploys in a job of its own, as GitHub's Pages starter workflows do. Right after an
+  # upload, the run's artifact list can still lack it for seconds (actions/deploy-pages#451):
+  # deploy-pages then fails with 'No artifacts named "github-pages" were found'. A separate
+  # job starts later, tries once more after a pause, and "Re-run failed jobs" deploys the
+  # same artifact again instead of uploading a second one.
+  deploy:
+    needs: build-pages
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+      actions: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment-retry.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
     - id: deployment
-      uses: actions/deploy-pages@v4
+      uses: actions/deploy-pages@v5
+      continue-on-error: true
+    - name: Wait before deploying again
+      if: steps.deployment.outcome == 'failure'
+      run: sleep 60
+    - id: deployment-retry
+      if: steps.deployment.outcome == 'failure'
+      uses: actions/deploy-pages@v5

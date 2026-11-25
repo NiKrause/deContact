@@ -27,7 +27,11 @@ useAccessController(AddressBookAccessController)
 // orbitdb-relay can hand attestations to a local attest bridge; deContact has none
 process.env.RELAY_ATTEST_BRIDGE ??= 'off'
 
+// a relay that hangs on its way up says how far it got
+const uptime = () => `${process.uptime().toFixed(1)} s`
+console.log(`relay: modules loaded after ${uptime()}, starting`)
 const relay = await startRelay({ testMode: process.argv.includes('--test') })
+console.log(`relay: started after ${uptime()}`)
 
 let stopping = false
 const stop = async () => {

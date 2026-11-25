@@ -3,19 +3,24 @@
 // then a production build of the app pointed at that relay, served by vite preview.
 // Playwright's webServer runs this and waits for the preview port.
 import { spawn } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import process from 'node:process';
 
 const rootDir = process.cwd();
 const previewPort = process.env.E2E_PREVIEW_PORT || '4431';
+// Below 32768, outside the ports the OS hands out to outgoing connections (Linux:
+// 32768-60999, macOS and Windows: 49152-65535). In that range any connection on the
+// machine can be holding the relay's port at the moment it starts; orbitdb-relay then
+// moves its HTTP server to a random port without a word, and nothing answers here.
 const relayPorts = {
-	http: process.env.E2E_RELAY_HTTP_PORT || '49300',
-	tcp: process.env.E2E_RELAY_TCP_PORT || '49301',
-	ws: process.env.E2E_RELAY_WS_PORT || '49302',
-	webrtc: process.env.E2E_RELAY_WEBRTC_PORT || '49303'
+	http: process.env.E2E_RELAY_HTTP_PORT || '29300',
+	tcp: process.env.E2E_RELAY_TCP_PORT || '29301',
+	ws: process.env.E2E_RELAY_WS_PORT || '29302',
+	webrtc: process.env.E2E_RELAY_WEBRTC_PORT || '29303'
 };
+const relayStartTimeoutMs = 60_000;
 // the topic Le Space's orbitdb-relays forward, as in production
 const discoveryTopic = 'todo._peer-discovery._p2p._pubsub';
 const relayDatastorePath = path.join(rootDir, 'test-results', 'e2e-relay-datastore');
@@ -57,22 +62,40 @@ relayProcess = spawn('node', [path.join(rootDir, 'src', 'relay.js'), '--test'], 
 		RELAY_DISABLE_AUTONAT: 'true',
 		disableAutoTLS: 'true',
 		STRUCTURED_LOGS: 'false',
+		// peer id, addresses, and whether the HTTP port was taken; plain text with timestamps
+		ENABLE_GENERAL_LOGS: 'true',
+		DEBUG_COLORS: 'false',
 		ENABLE_SYNC_LOGS: 'true'
 	},
 	stdio: ['ignore', 'pipe', 'pipe']
 });
 for (const out of [relayProcess.stdout, relayProcess.stderr]) {
-	out.on('data', (data) => writeFileSync(relayLogPath, data, { flag: 'a' }));
+	out.on('data', (data) => {
+		writeFileSync(relayLogPath, data, { flag: 'a' });
+		if (String(data).includes(`Metrics port ${relayPorts.http} in use`)) {
+			fail(
+				`Port ${relayPorts.http} is taken, so the relay serves HTTP on a random port. ` +
+					'Choose another one with E2E_RELAY_HTTP_PORT.'
+			);
+		}
+	});
 }
 relayProcess.on('exit', (code, signal) => {
-	if (!stopping) {
-		console.error(`Relay exited (${signal ?? code}); see ${relayLogPath}`);
-		stop(code ?? 1);
-	}
+	fail(`Relay exited (${signal ?? code}) before the tests ended.`, code || 1);
 });
 
-const relayMultiaddr = await waitForRelayMultiaddr();
-console.log(`E2E relay ready: ${relayMultiaddr}`);
+const startedAt = Date.now();
+let relayMultiaddr;
+try {
+	relayMultiaddr = await waitForRelayMultiaddr();
+} catch (error) {
+	fail(
+		`The relay did not report a WebSocket address within ${relayStartTimeoutMs / 1000} s ` +
+			`on http://127.0.0.1:${relayPorts.http}/multiaddrs (${error.message}).`
+	);
+	await new Promise(() => {}); // fail() exits
+}
+console.log(`E2E relay ready after ${Date.now() - startedAt} ms: ${relayMultiaddr}`);
 
 const env = {
 	...process.env,
@@ -94,9 +117,9 @@ previewProcess.on('exit', (code) => {
 });
 
 async function waitForRelayMultiaddr() {
-	const deadline = Date.now() + 60_000;
+	const deadline = Date.now() + relayStartTimeoutMs;
 	let lastError;
-	while (Date.now() < deadline) {
+	while (Date.now() < deadline && !stopping) {
 		try {
 			const payload = await getJson(`http://127.0.0.1:${relayPorts.http}/multiaddrs`);
 			const ws =
@@ -108,7 +131,23 @@ async function waitForRelayMultiaddr() {
 		}
 		await new Promise((resolve) => setTimeout(resolve, 500));
 	}
-	throw new Error(`relay did not report a WebSocket address: ${String(lastError)}`);
+	throw new Error(String(lastError ?? 'no answer'));
+}
+
+// Ends the run with the reason and the relay's last log lines in the test output,
+// so a failed CI run explains itself without downloading test-results/relay.log
+function fail(message, code = 1) {
+	if (stopping) return;
+	let log = '';
+	try {
+		log = readFileSync(relayLogPath, 'utf8').trimEnd().split('\n').slice(-40).join('\n');
+	} catch {
+		// no log yet
+	}
+	console.error(
+		`${message}\nLast lines of ${relayLogPath}:\n${log || '(empty: the relay printed nothing)'}`
+	);
+	stop(code);
 }
 
 function getJson(url) {
