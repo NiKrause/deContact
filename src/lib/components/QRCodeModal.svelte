@@ -3,27 +3,30 @@
     import { Column, Modal, Toggle, Grid, Row, Checkbox } from 'carbon-components-svelte';
     import QrCode from "svelte-qrcode"
     const dispatch = createEventDispatcher();
-    import { connectedPeers, libp2p, orbitdb } from "../../stores.js";
+    import { orbitdb } from "../../stores.js";
     import { notify } from "../../utils/utils.js";
+    import { issueOnboardingToken } from "$lib/network/p2p-operations.js";
 
     const page_url = import.meta.env.VITE_PAGE_URL?import.meta.env.VITE_PAGE_URL+'/#':'https://deContact.xyz/#';
 
     export let qrCodeData
     export let qrCodeOpen
 
-    let multiaddrs
-    $:($connectedPeers>1)?multiaddrs = $libp2p.getMultiaddrs().map((ma) => ma.toString()):''
-
     let onBoardingToken
     let requestAddress = true
-    let linkUrl = qrCodeData //`${page_url}/onboarding/${qrCodeData || '' }`
     let fullDeContactUrl = true
-    $: $orbitdb!==undefined?$orbitdb.identity.sign($orbitdb.identity,"mytoken").then( (sig) => {
-        onBoardingToken = sig
-        console.log("signature created on onboardingToken",onBoardingToken)
-    }):null;
-   // $: linkUrl = (fullDeContactUrl && $connectedPeers>1)?`${page_url}/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}&multiaddr=${encodeURI(JSON.stringify(multiaddrs)) || '' }`:qrCodeData
-    $: linkUrl = (fullDeContactUrl && $connectedPeers>1)?`${page_url}/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}&requestAddress=${requestAddress}`:qrCodeData
+
+    // a new one-time token each time the dialog opens or the checkbox changes (it is signed in)
+    let issuing = 0
+    $: if (qrCodeOpen && $orbitdb) issueToken(requestAddress)
+    function issueToken(requestAddress) {
+        const issue = ++issuing
+        onBoardingToken = undefined
+        issueOnboardingToken({ requestAddress })
+            .then((token) => { if (issue === issuing) onBoardingToken = token })
+            .catch((error) => console.log("could not create an invitation link:", error?.message))
+    }
+    $: linkUrl = (fullDeContactUrl && onBoardingToken)?`${page_url}/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}`:qrCodeData
 </script>
 
     <Modal bind:open={ qrCodeOpen }
@@ -36,13 +39,11 @@
     <Grid>
         <Row>
             <Column>
-                {#if multiaddrs && multiaddrs.length>0}
-                    <Toggle
-                        labelText="Scan DID or URL?"
-                        labelA="DID only"
-                        labelB="URL"
-                        bind:toggled={fullDeContactUrl}/>
-                {/if}
+                <Toggle
+                    labelText="Scan DID or URL?"
+                    labelA="DID only"
+                    labelB="URL"
+                    bind:toggled={fullDeContactUrl}/>
             </Column>
             <Column>
                 <Checkbox labelText="Request address from peer"  bind:checked={requestAddress} />
