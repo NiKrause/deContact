@@ -6,9 +6,7 @@ import { useAccessController} from '@orbitdb/core';
 import { LevelBlockstore } from "blockstore-level"
 import { LevelDatastore } from "datastore-level";
 import { get } from 'svelte/store';
-import { alephRelayDiscovery, createLibp2pConfig, seedNodes } from "../../config.js";
-import { groupByPeer, peerIdsOf, selectSeedNodes } from "./seed-nodes.js";
-import { multiaddr } from "@multiformats/multiaddr";
+import { createLibp2pConfig, RELAY_TAGS } from "../../config.js";
 import { startPeerConnectivity } from "./peer-connectivity.js";
 
 import {
@@ -65,12 +63,13 @@ export async function startNetwork() {
     // defaults withLibp2p would add (public bootstrap nodes, DHT, delegated routing).
     // Two browsers often reach each other only through the relay (WebRTC may fail behind NAT),
     // so bitswap, like gossipsub, also runs on the limited relayed connection.
+    // Relays: the configured ones (VITE_SEED_NODES) and Le Space's on Aleph, which libp2p
+    // dials by itself once started; the app does not wait for Aleph to answer.
     const webRTCEnabled = get(useWebRTC)
-    const { relays, later: relaysFoundLater } = await selectSeedNodes({ configured: seedNodes, enabled: alephRelayDiscovery })
     _helia = await withBitswap(
         withLibp2pLight(
             createHeliaLight({ blockstore, datastore, codecs: [dagCbor] }),
-            createLibp2pConfig({ webRTC: webRTCEnabled, relays })
+            createLibp2pConfig({ webRTC: webRTCEnabled })
         ),
         { runOnLimitedConnections: true }
     ).start();
@@ -94,9 +93,9 @@ export async function startNetwork() {
         countPeers()
     });
 
-    startPeerConnectivity(_libp2p, { webRTC: webRTCEnabled, seedPeerIds: peerIdsOf(relays) })
-    // Aleph answered after the start: dial its relays now, once per relay with all its addresses
-    relaysFoundLater?.then((found) => dialRelays(found))
+    startPeerConnectivity(_libp2p, { webRTC: webRTCEnabled, relayTags: RELAY_TAGS })
+    _libp2p.services.alephRelays?.addEventListener('peer', (event) =>
+        console.log(`relay from Aleph: ${event.detail.id} (${event.detail.multiaddrs.length} addresses)`))
 
     _orbitdb = await getIdentityAndCreateOrbitDB('ed25519',_masterSeed,_helia)
     orbitdb.set(_orbitdb)
@@ -143,15 +142,6 @@ export async function startNetwork() {
         console.log("someone updated my address book",entry) //TODO
         getAddressRecords()
     })
-}
-
-async function dialRelays(found) {
-    for (const [peerId, addrs] of groupByPeer(found)) {
-        if (_libp2p.getConnections().some((c) => c.remotePeer.toString() === peerId)) continue
-        _libp2p.dial(addrs.map((addr) => multiaddr(addr)))
-            .then((c) => console.log(`connected to relay ${c.remoteAddr}`))
-            .catch((e) => console.log(`dialling relay ${peerId} failed:`, e?.message))
-    }
 }
 
 /**

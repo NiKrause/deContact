@@ -11,6 +11,7 @@ import { gossipsub } from "@libp2p/gossipsub";
 import { ping } from '@libp2p/ping'
 import { dcutr } from '@libp2p/dcutr'
 import { FaultTolerance } from '@libp2p/interface'
+import { alephBootstrapDiscovery } from '@le-space/aleph-bootstrap'
 import { isInsecureWebSocketDial } from './lib/network/dial-policy.js'
 
 const list = (value) => (value ?? '').split(',').map((entry) => entry.trim()).filter(Boolean)
@@ -21,6 +22,21 @@ export const seedNodes = list(development ? import.meta.env.VITE_SEED_NODES_DEV 
 
 /** whether to look for more relays on Aleph (VITE_ALEPH_RELAY_DISCOVERY=false turns it off) */
 export const alephRelayDiscovery = import.meta.env.VITE_ALEPH_RELAY_DISCOVERY !== 'false'
+
+/**
+ * Le Space's production orbitdb-relays on Aleph. A deployed relay registers as
+ * `relay:<profile>:<name>:<instance hash>`; the name finds it on whatever instance it runs
+ * and keeps out other relay kinds and the throwaway relays smoke and E2E runs register in
+ * the same channel (`relay:orbitdb-relay:smoke-…`), whose addresses are dead.
+ */
+export const ALEPH_RELAY_PROFILE = 'orbitdb-relay'
+export const ALEPH_RELAY_REGISTRATION = 'relay:orbitdb-relay:orbitdb-relay'
+
+/**
+ * Peer store tags of the relays libp2p dials by itself: the configured ones (@libp2p/bootstrap)
+ * and the ones found on Aleph (@le-space/aleph-bootstrap). Both tag a relay before announcing it.
+ */
+export const RELAY_TAGS = ['bootstrap', 'aleph-bootstrap']
 
 /**
  * Topics on which browsers announce their addresses to each other. Defaults to the topic
@@ -45,10 +61,11 @@ const iceServers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:global.stun.t
 /**
  * libp2p configuration for the browser.
  *
- * @param {{ webRTC?: boolean, relays?: string[] }} options webRTC false: reach other browsers only
- * through the relay; relays: the relays to dial first (default: VITE_SEED_NODES)
+ * @param {{ webRTC?: boolean, relays?: string[], alephRelays?: boolean }} options webRTC false: reach
+ * other browsers only through the relay; relays: the relays to dial first (default: VITE_SEED_NODES);
+ * alephRelays: also dial Le Space's relays found on Aleph (default: VITE_ALEPH_RELAY_DISCOVERY)
  */
-export function createLibp2pConfig({ webRTC: webRTCEnabled = true, relays = seedNodes } = {}) {
+export function createLibp2pConfig({ webRTC: webRTCEnabled = true, relays = seedNodes, alephRelays = alephRelayDiscovery } = {}) {
     return {
         addresses: {
             // a browser can't listen on /ws or /wss; it is reachable through a relay
@@ -71,7 +88,7 @@ export function createLibp2pConfig({ webRTC: webRTCEnabled = true, relays = seed
             denyDialMultiaddr: (ma) => isInsecureWebSocketDial(ma)
         },
         peerDiscovery: [
-            // @libp2p/bootstrap refuses an empty list; relays found later are dialled directly
+            // @libp2p/bootstrap refuses an empty list
             ...(relays.length > 0 ? [bootstrap({ list: relays })] : []),
             pubsubPeerDiscovery({
                 interval: 5000,
@@ -87,7 +104,15 @@ export function createLibp2pConfig({ webRTC: webRTCEnabled = true, relays = seed
             ...(webRTCEnabled ? { dcutr: dcutr() } : {}),
             // runOnLimitedConnection: two browsers often only share a relayed connection,
             // and OrbitDB announces new heads over gossipsub
-            pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true, runOnLimitedConnection: true })
+            pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true, runOnLimitedConnection: true }),
+            // Le Space's relays on Aleph: the ones found on an earlier start are dialled at once
+            // (kept in localStorage as the signed registrations, verified again on load); Aleph
+            // is asked behind them when that list is empty or six hours old, or when none of
+            // them answers within 10 s. A service, not a peerDiscovery entry, so the app can
+            // listen to what it finds.
+            ...(alephRelays
+                ? { alephRelays: alephBootstrapDiscovery({ profile: ALEPH_RELAY_PROFILE, registrationId: ALEPH_RELAY_REGISTRATION }) }
+                : {})
         }
     }
 }

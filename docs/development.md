@@ -54,9 +54,8 @@ src/
 ├── lib/network/
 │   ├── p2p-operations.js        start-up, the request/answer protocol, card updates
 │   ├── peer-connectivity.js     dialling discovered peers, WebRTC upgrade, relay reservation
-│   ├── seed-nodes.js            relays from Aleph + configured ones
 │   └── getIdendityAndCreateOrbitDB.js, identityProvider.js   did:key identity → OrbitDB
-├── config.js                    libp2p configuration
+├── config.js                    libp2p configuration, relays from Aleph and configured ones
 └── relay.js                     the relay (orbitdb-relay + deContact's access controller)
 packages/
 └── orbitdb-access-controller-decontact/   the access controller, published to npm

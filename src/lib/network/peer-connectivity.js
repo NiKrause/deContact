@@ -49,13 +49,26 @@ function withPeerId(ma, peerId) {
 }
 
 /**
+ * Whether the peer store tags a peer as a relay another discovery dials.
+ *
+ * @param {{ get(peerId: any): Promise<{ tags?: Map<string, unknown> }> }} peerStore
+ * @param {any} peerId
+ * @param {string[]} relayTags
+ */
+export async function isTaggedRelay(peerStore, peerId, relayTags) {
+    if (relayTags.length === 0) return false
+    const peer = await peerStore.get(peerId).catch(() => null)
+    return relayTags.some((tag) => peer?.tags?.has(tag) ?? false)
+}
+
+/**
  * @param {import('libp2p').Libp2p} libp2p
- * @param {{ webRTC?: boolean, seedPeerIds?: string[] }} options seedPeerIds: dialled by bootstrap, not here
+ * @param {{ webRTC?: boolean, relayTags?: string[] }} options relayTags: peer store tags of relays
+ *   that bootstrap or Aleph discovery dial themselves; such peers are not dialled here
  * @returns {() => void} stop
  */
-export function startPeerConnectivity(libp2p, { webRTC = true, seedPeerIds = [] } = {}) {
+export function startPeerConnectivity(libp2p, { webRTC = true, relayTags = [] } = {}) {
     const ownId = libp2p.peerId.toString()
-    const seeds = new Set(seedPeerIds)
     /** @type {Map<string, { peer: any, multiaddrs: any[], dialing: boolean, lastAttempt: number, lastSeen: number }>} */
     const discovered = new Map()
     /** @type {Map<string, Promise<boolean>>} */
@@ -94,10 +107,11 @@ export function startPeerConnectivity(libp2p, { webRTC = true, seedPeerIds = [] 
         }
     }
 
-    const onDiscovery = (event) => {
+    const onDiscovery = async (event) => {
         const { id, multiaddrs } = event.detail
         const peerId = id.toString()
-        if (peerId === ownId || seeds.has(peerId)) return
+        // a relay is tagged before it is announced, so the tag is there by now
+        if (peerId === ownId || await isTaggedRelay(libp2p.peerStore, id, relayTags)) return
         const info = discovered.get(peerId) ?? { peer: id, multiaddrs: [], dialing: false, lastAttempt: 0, lastSeen: 0 }
         const known = new Map(info.multiaddrs.map((ma) => [ma.toString(), ma]))
         for (const ma of multiaddrs.filter(isBrowserDialable)) {

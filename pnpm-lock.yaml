@@ -24,8 +24,8 @@ importers:
         specifier: 9.2.5
         version: 9.2.5
       '@le-space/aleph-bootstrap':
-        specifier: 0.12.13
-        version: 0.12.13(typescript@5.7.3)
+        specifier: 0.12.15
+        version: 0.12.15(typescript@5.7.3)
       '@le-space/orbitdb-access-controller-decontact':
         specifier: workspace:*
         version: link:packages/orbitdb-access-controller-decontact
@@ -1370,8 +1370,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@le-space/aleph-bootstrap@0.12.13':
-    resolution: {integrity: sha512-HGsIRoOxggs1ZoBTyvaEc0BhuHVRF2Cytmo/7TJ6H4Xu2qzUGMaUB/kpdZUFxivSKhFRYofOXInWw1qFlrGO2A==}
+  '@le-space/aleph-bootstrap@0.12.15':
+    resolution: {integrity: sha512-0wYJMB5g4VSyfk1ie7cuIn3sW0TCPinXM8tWQp9bMaWha5EMVJIultnNcFCRz5L+ixij65YeG54KLe0ux96kcg==}
 
   '@le-space/iso-base@4.3.0':
     resolution: {integrity: sha512-aZerTomLgkGAAh6zAa8PWQu2rfMzrA5tiBIe4PWI8LDBJHwlgFwRsiDpdM/3eRjE7ocHi4rrPXdVfy+FH7knFA==}
@@ -7104,9 +7104,11 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@le-space/aleph-bootstrap@0.12.13(typescript@5.7.3)':
+  '@le-space/aleph-bootstrap@0.12.15(typescript@5.7.3)':
     dependencies:
       '@libp2p/bootstrap': 11.0.47
+      '@libp2p/peer-id': 6.0.18
+      '@multiformats/multiaddr': 13.0.3
       viem: 2.58.6(typescript@5.7.3)
     transitivePeerDependencies:
       - bufferutil
