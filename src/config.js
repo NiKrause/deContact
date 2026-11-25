@@ -71,7 +71,8 @@ export function createLibp2pConfig({ webRTC: webRTCEnabled = true, relays = seed
             denyDialMultiaddr: (ma) => isInsecureWebSocketDial(ma)
         },
         peerDiscovery: [
-            bootstrap({ list: relays }),
+            // @libp2p/bootstrap refuses an empty list; relays found later are dialled directly
+            ...(relays.length > 0 ? [bootstrap({ list: relays })] : []),
             pubsubPeerDiscovery({
                 interval: 5000,
                 topics: pubSubPeerDiscoveryTopics,
