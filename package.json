@@ -45,7 +45,7 @@
 		"@helia/bitswap": "4.0.20",
 		"@helia/libp2p": "2.1.5",
 		"@ipld/dag-cbor": "9.2.5",
-		"@le-space/aleph-bootstrap": "0.12.14",
+		"@le-space/aleph-bootstrap": "0.12.15",
 		"@le-space/orbitdb-access-controller-decontact": "workspace:*",
 		"@libp2p/autonat": "3.0.33",
 		"@libp2p/bootstrap": "12.0.37",
