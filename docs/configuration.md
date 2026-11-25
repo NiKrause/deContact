@@ -9,7 +9,7 @@ Set at build time through Vite (see [`.env.example`](../.env.example)):
 | Variable | Default | Meaning |
 |---|---|---|
 | `VITE_SEED_NODES` / `VITE_SEED_NODES_DEV` | *(empty)* | Comma-separated relay multiaddrs dialled first, in production / in `pnpm dev` |
-| `VITE_ALEPH_RELAY_DISCOVERY` | `true` | Also look up Le Space's relays on Aleph. If there's no answer within 20 s, the app starts with the seed nodes and dials the Aleph relays once they are found |
+| `VITE_ALEPH_RELAY_DISCOVERY` | `true` | Also dial Le Space's relays on Aleph: the ones from the last start at once, new ones as soon as Aleph names them ([Finding the relays](relays.md#finding-the-relays)) |
 | `VITE_P2P_PUPSUB` / `VITE_P2P_PUPSUB_DEV` | `todo._peer-discovery._p2p._pubsub` | Comma-separated pubsub peer-discovery topics |
 | `BASE_PATH` | *(empty)* | Base path of the build, e.g. `/deContact` |
 

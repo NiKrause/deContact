@@ -4,9 +4,18 @@
 
 Relays let browsers find each other, carry a connection when WebRTC can't, and keep a replica of the address books for people who are offline. They can't change what's in a book: every entry is checked with the [access controller](how-it-works.md#who-may-write-into-an-address-book).
 
-- **Le Space's relays on Aleph.** At start the app looks up the `orbitdb-relay` instances registered on [Aleph](https://aleph.cloud) (via `api.aleph.im`, [`@le-space/aleph-bootstrap`](https://www.npmjs.com/package/@le-space/aleph-bootstrap)) and dials their secure WebSocket addresses. Browsers find each other on the relays' discovery topic, `todo._peer-discovery._p2p._pubsub`.
+- **Le Space's relays on Aleph.** The app dials the `orbitdb-relay` instances registered on [Aleph](https://aleph.cloud) under `relay:orbitdb-relay:orbitdb-relay`, over their secure WebSocket addresses. Browsers find each other on the relays' discovery topic, `todo._peer-discovery._p2p._pubsub`. See [Finding the relays](#finding-the-relays).
 - **Your own relay.** `src/relay.js` is [orbitdb-relay](https://github.com/NiKrause/orbitdb-relay) with deContact's access controller. Run it yourself and put its address into `VITE_SEED_NODES`.
 - **When the relay keeps replicas.** It replicates address books only if it knows the access controller: deContact's own relay always does, and Le Space's relays from orbitdb-relay 0.11.0 on (via `RELAY_ACCESS_CONTROLLERS`). Without that, contact data arrives only over a direct WebRTC connection between the browsers.
+
+## Finding the relays
+
+The app finds Le Space's relays with the libp2p discovery service of [`@le-space/aleph-bootstrap`](https://www.npmjs.com/package/@le-space/aleph-bootstrap):
+
+- **First start.** The app asks Aleph (`api.aleph.im`) and dials the relays it lists. The app does not wait for the answer: it starts at once, and the relays connect when Aleph has answered.
+- **Every later start.** The app dials the relays it found last time at once. It asks Aleph again only when that list is older than six hours, or when none of those relays answers within 10 s. New relays are dialled as soon as Aleph names them.
+- **What is kept.** The browser keeps the relays' signed registrations in `localStorage`, under a key starting with `le-space:aleph-bootstrap:relays:v1:`. Each one is verified again when it is loaded. A registration older than 24 h is not dialled, and neither is a relay that failed three dials in a row.
+- **Redeployed relays.** A deployed relay registers as `relay:orbitdb-relay:orbitdb-relay:<instance hash>`. The app matches the name, so it still finds the relay after a redeploy brings a new instance. Smoke-test and E2E relays in the same channel have other names and are left out.
 
 ## Run your own relay
 
