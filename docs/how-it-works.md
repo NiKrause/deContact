@@ -59,7 +59,7 @@ sequenceDiagram
 
     Bob->>BB: scan / paste Alice's DID
     BB->>BB: write placeholder contact:did(Alice) into Bob's book
-    BB->>AB: REQUEST_ADDRESS {Bob's book address, invitation for Alice}<br/>gossipsub topic /dContact/3/message/proto/did(Alice)
+    BB->>AB: REQUEST_ADDRESS {Bob's book address, invitation for Alice},<br/>signed with Bob's did:key<br/>gossipsub topic /dContact/3/message/proto/did(Alice)
 
     AB->>R: open Bob's book by its address
     R-->>AB: manifest + entries (from the relay's replica or from Bob)
@@ -76,6 +76,23 @@ sequenceDiagram
 
     Note over AB,BB: Later: Bob changes his address → BB rewrites contact:did(Bob)<br/>in every book he was invited into, using the stored invitation
 ```
+
+### Requests
+
+Every request is signed with the sender's `did:key`. The signature covers the sender, the recipient, the time, a random nonce, the sender's book address and the invitation ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
+
+- anything that does not have the shape of a request;
+- a request whose signature does not belong to the DID it names as sender;
+- a request for somebody else, older or newer than 10 minutes, or seen before;
+- a request whose book is not the sender's own (the owner in the book's manifest) or whose invitation is not the sender's.
+
+From each sender only the newest request waits for an answer.
+
+Requests are not encrypted yet: who asks whom, and the address of the requester's book, can be read by anybody subscribed to the topic ([#58](https://github.com/NiKrause/deContact/issues/58)).
+
+### Invitation links
+
+The QR code can carry a link instead of the bare DID. Its token is signed by the inviter and holds a random nonce, an expiry (24 hours) and whether the inviter asks back for the invitee's card. The device that created the link remembers it. The first person who sends a request with it gets the inviter's card without a dialog; their app may resend the request with the same token. Anybody else, and anybody after 24 hours, makes the inviter's app ask as for any other request. So does a link created on another of the inviter's devices.
 
 ## Who may write into an address book
 

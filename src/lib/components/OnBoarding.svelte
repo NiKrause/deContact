@@ -16,9 +16,8 @@
     // import { page } from '$app/stores'
 
 
-   const onBoardingToken = decodeURI($query.split("&")[0]).split("=")[1]
-    // const onBoardingToken = $page.url.searchParams.get('onBoardingToken')
-   // const aliceMultiAddress = $page.url.searchParams.get('onBoardingToken') ((JSON.parse(decodeURI($query.split("&")[1]).split("=")[1])
+   // the inviter's one-time token: they answer the first request carrying it without asking
+   const onBoardingToken = new URLSearchParams($query ?? '').get('onBoardingToken') ?? undefined
     // const aliceMultiAddress = JSON.parse(decodeURI($query.split("&")[1]).split("=")[1])
     const aliceMultiAddress = undefined
 
