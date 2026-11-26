@@ -4,6 +4,7 @@ import {
     myAddressBook,
     selectedAddr,
     selectedTab,
+    selectedRowIds,
     qrCodeData,
     qrCodeOpen,
     orbitdb,
@@ -37,8 +38,7 @@ export async function addContact() {
     _selectedAddr._id = await sha256(JSON.stringify(_selectedAddr))
     const hash = await _dbMyAddressBook.put(_selectedAddr)
     notify(`Contact added successfully to ipfs/orbitdb! ${hash}`);
-    selectedAddr.set({})
-    selectedTab.set(0)
+    closeForm()
 }
 
 /**
@@ -56,8 +56,7 @@ export async function updateContact() {
     if(_selectedAddr.owner === _orbitdb?.identity?.id){ //only send update requests if my own address was changed
         await writeMyCardIntoFollowedBooks(_selectedAddr)
     }
-    selectedAddr.set({})
-    selectedTab.set(0)
+    closeForm()
 }
 
 /**
@@ -74,7 +73,16 @@ export async function deleteContact() {
         const hash = await _dbMyAddressBook.del(_selectedAddr._id)
         notify(`Contact deleted successfully! ${hash}`)
     }
+    closeForm()
+}
+
+/**
+ * Back to the list with an empty form. The row leaves the selection too: selecting the same
+ * contact again (e.g. our own card, to change its photo) loads it into the form again.
+ */
+function closeForm() {
     selectedAddr.set({})
+    selectedRowIds.set([])
     selectedTab.set(0)
 }
 

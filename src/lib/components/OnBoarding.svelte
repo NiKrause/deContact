@@ -1,7 +1,7 @@
 <script>
     /**
      * @component Somebody opened an invitation link (#86). The inviter's card arrives by
-     * itself, while the person types their own: email, first and last name, the address
+     * itself (the view then shows their name and photo, #87), while the person types their own: email, first and last name, the address
      * behind "Add address". Then they choose whether the inviter gets it: "Save and share
      * with Alice" or "Save only"; a link without a two-way exchange offers only "Save". A
      * request of the inviter waits for that choice, and no request dialog appears here
@@ -18,6 +18,7 @@
         sendInvitationLinkRequest
     } from '#lib/network/p2p-operations.js'
     import { sha256 } from '../../utils/utils.js'
+    import ContactPhoto from './ContactPhoto.svelte'
 
     // #/onboarding/<the inviter's DID>?onBoardingToken=<their one-time token>
     const inviter = ($did ?? '').trim()
@@ -96,9 +97,12 @@
 
 <div class="content onboarding" data-testid="onboarding">
     {#if inviterCard}
-        <h3 data-testid="inviter-card">
-            {[inviterCard.firstName, inviterCard.lastName].filter(Boolean).join(' ') || inviterCard.email || inviter} was added to your address book
-        </h3>
+        <div class="inviter">
+            <ContactPhoto photo={inviterCard.photo} size={96} testid="inviter-photo" />
+            <h3 data-testid="inviter-card">
+                {[inviterCard.firstName, inviterCard.lastName].filter(Boolean).join(' ') || inviterCard.email || inviter} was added to your address book
+            </h3>
+        </div>
     {:else}
         <h3>Contact data have been shared with you</h3>
         <p class="waiting" role="status" data-testid="waiting-for-phone">Waiting for {inviter}'s phone…</p>
@@ -169,6 +173,11 @@
     }
     .waiting {
         overflow-wrap: anywhere;
+    }
+    .inviter {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
     .card {
         display: flex;
