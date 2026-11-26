@@ -78,7 +78,7 @@
 		"key-did-resolver": "^4.0.0",
 		"libp2p": "3.5.2",
 		"multiformats": "14.0.7",
-		"orbitdb-relay": "0.10.11",
+		"orbitdb-relay": "0.11.1",
 		"qrcode-generator": "^1.4.4",
 		"svelte-qrcode": "^1.0.0",
 		"vite-plugin-node-polyfills": "^0.28.0"
