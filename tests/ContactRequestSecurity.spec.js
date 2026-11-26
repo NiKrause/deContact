@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { addVirtualAuthenticator, confirmExperimental, createAddressBook } from './helpers/passkeys.js';
 
 // Contact requests are signed with the sender's DID, and an invitation link works once
 // (#58, #38). Three people:
@@ -71,6 +72,8 @@ async function newBrowser(browser) {
 	const page = await context.newPage();
 	const lines = [];
 	page.on('console', (message) => lines.push(message.text()));
+	// a passkey per person (#60): its vault holds the identity
+	await addVirtualAuthenticator(page);
 	return { page, saw: (text) => lines.some((line) => line.includes(text)), close: () => context.close() };
 }
 
@@ -79,8 +82,8 @@ async function register(browser, person) {
 	const user = await newBrowser(browser);
 	const { page } = user;
 	await page.goto(process.env.PAGE_URL);
-	await page.getByRole('button', { name: 'Continue' }).click();
-	await page.getByRole('button', { name: 'Generate New' }).click();
+	await confirmExperimental(page);
+	await createAddressBook(page, person.first);
 	await page.getByRole('tab', { name: 'Settings' }).click();
 	const didField = page.getByLabel('DID', { exact: true });
 	await expect(didField).not.toHaveValue('');
@@ -108,8 +111,9 @@ async function invitationLink(page) {
 async function openLink(browser, link) {
 	const user = await newBrowser(browser);
 	await user.page.goto(link);
-	await expect.poll(() => user.page.evaluate(() => window.orbitdb?.identity?.id ?? ''), { timeout: 60000 }).not.toBe('');
-	user.did = await user.page.evaluate(() => window.orbitdb.identity.id);
+	// a new user: a passkey first, then the onboarding goes on by itself
+	await expect(user.page.getByText('Create a passkey to open your own address book')).toBeVisible();
+	user.did = await createAddressBook(user.page, 'Invitee');
 	return user;
 }
 

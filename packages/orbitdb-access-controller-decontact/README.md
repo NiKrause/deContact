@@ -19,8 +19,14 @@ useAccessController(AddressBookAccessController)
 const book = await orbitdb.open('/myAddressBook/…', { type: 'documents', AccessController: AddressBookAccessController() })
 
 // invite Bob: he may then put { _id: contactKey(bob), owner: bob, invitation, … } into the book
-const invitation = await createInvitation(seedOfOwnersDidKey, ownerDid, bobDid)
+const invitation = await createInvitation(ownerSigner, ownerDid, bobDid)
 ```
+
+`createInvitation` takes the owner's key as a signer, `{ did, sign(bytes) }` (deContact passes the
+Ed25519 identity of its passkey vault, `createSecretSigner` of
+`@le-space/orbitdb-identity-provider-webauthn-did`), or as the 32-byte seed of the `did:key`. Either
+way the signer's DID must be the owner's. `verifyInvitation` only reads the key out of the owner's
+`did:key`, so it does not care which of the two made the invitation.
 
 ## On an orbitdb-relay
 

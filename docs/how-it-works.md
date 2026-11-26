@@ -3,6 +3,7 @@
 [README](../README.md) · **How it works** · [Relays](relays.md) · [Configuration](configuration.md) · [Development](development.md)
 
 - [Architecture](#architecture)
+- [Identity: passkeys and the vault](#identity-passkeys-and-the-vault)
 - [Exchanging contact data](#exchanging-contact-data)
 - [Who may write into an address book](#who-may-write-into-an-address-book)
 
@@ -36,8 +37,48 @@ flowchart LR
 | **libp2p** | Connections between browsers and relays: WebSockets to the relay, WebRTC between browsers, circuit relay as fallback, gossipsub for messages and peer discovery |
 | **Helia** | Content-addressed blocks (OrbitDB entries, manifests) over bitswap, stored in IndexedDB (LevelDB) |
 | **OrbitDB** | One `documents` database per address book, a CRDT log that merges concurrent writes |
-| **did:key** | Identity derived from the seed phrase. It signs OrbitDB entries and invitations |
+| **Passkey vault** | One root secret, opened by any of your passkeys or your recovery words ([below](#identity-passkeys-and-the-vault)) |
+| **did:key** | Ed25519 identity derived from the vault's root. It signs OrbitDB entries, requests and invitations |
 | **orbitdb-relay** | Circuit relay, discovery hub and an always-on replica of the address books |
+
+## Identity: passkeys and the vault
+
+deContact has no seed phrase any more ([#60](https://github.com/NiKrause/deContact/issues/60)). A passkey opens a **vault** that holds one 32-byte root, and the identity is derived from that root. The vault, the keeper and the signer come from [`@le-space/orbitdb-identity-provider-webauthn-did`](https://github.com/Le-Space/orbitdb-identity-provider-webauthn-did) (0.14.0); Le-Space/belege keeps its books in the same vault. The glue is in [`src/lib/identity`](../src/lib/identity).
+
+```mermaid
+flowchart LR
+    PK1["passkey 1<br/>(the first)"] -- "PRF output" --> S1["slot 1"]
+    PK2["passkey 2<br/>(security key, other device)"] -- "PRF output" --> S2["slot 2"]
+    W["24 recovery words<br/>(BIP39, on paper)"] -- "BIP39 seed" --> S3["words slot"]
+    S1 & S2 & S3 --> VK["vault key"] --> ROOT["root<br/>= passkey 1's PRF output"]
+    ROOT -- "HKDF 'decontact/identity/v1'" --> DID["Ed25519 did:key<br/>OrbitDB identity, signs requests and invitations"]
+```
+
+- **One prompt per session.** Unlocking reads the passkey's PRF output once (`readPrfOutput`). The same output opens the vault slot, and the identity comes from the root inside; nothing asks the passkey again. Creating an address book takes two prompts (register, read the PRF output); the second is announced by `<passkey-step-dialog>`.
+- **The root.** A new vault takes the first passkey's PRF output as its root, as Belege does. That passkey alone restores everything on an empty device, whether it is synced (iCloud, Google, a password manager) or a security key.
+- **One identity for every passkey.** `createSecretSigner(root, { info: 'decontact/identity/v1' })` gives an Ed25519 `did:key` that belongs to no single passkey. Every slot opens the same root, so every passkey writes as the same DID: the DID that owns the address book in the access controller and under which contacts keep the card (`contact:<DID>`). OrbitDB gets it through `OrbitDBWebAuthnIdentityProviderFunction({ signer })`; peers and relays verify it as the provider's `webauthn` identity type.
+- **Memory only.** OrbitDB's keystore is `createSessionKeystore({ signer })`: no key lands in IndexedDB. The vault key, the root and the identity's key live in the page's memory until it closes.
+- **What the browser keeps.** The vault record in `localStorage` (`decontact.vaults.v1`): public JSON with the root sealed under a random vault key and one slot per passkey (the vault key sealed under a key derived from that passkey's PRF output). It names each slot's credential id and label, nothing secret. The E2E tests scan `localStorage`, `sessionStorage` and IndexedDB for the root, the identity's key and the vault key.
+- **More passkeys.** Under **Settings** a passkey can be added (two prompts) and removed. A removed passkey is refused on this device, but it has seen the root: removing revokes nothing it already opened.
+- **Recovery words.** Under **Settings**, 24 BIP39 words become one more slot (filed under a fixed id, so one set per vault). They are shown once and never stored; replacing them makes the old words useless.
+
+### A device that has nothing yet
+
+A new device finds the vault record in one of three places, and the keeper's `find` asks all of them on every unlock:
+
+| Where | How it gets there |
+|---|---|
+| **OrbitDB, through the relay** | After every unlock and every change the record is published in an OrbitDB event log per slot, named after the slot's lookup id (derived from the slot's secret, so only its holder can name it). The relay replicates it like an address book. Anybody may append, but only a record that opens with the slot's key is taken. |
+| **Device link** | **Settings → Link another device**: a link (and QR code) with the record in the URL fragment, which never reaches a server. |
+| **Vault file** | **Settings → Download vault file**, imported on the new device's first screen. |
+
+- With the **first passkey**: its PRF output is the root, so the identity comes back even if no record is found.
+- With a **second passkey** or the **recovery words**: the record must be found, then it opens. A device whose passkey does not sync opens it with the words and adds its own passkey under **Settings**.
+- A passkey that opens nothing gets no new address book without the person saying so.
+
+### Moving from the seed phrase
+
+A browser that still has a seed phrase loses it on the first start: `seedPhrase`, `seed` and the old OrbitDB keystore (`./orbitdb/identities`) are deleted, and the first screen says so. The seed's DID is not the vault's, so the old identity and its address book are not carried over (deContact is a prototype).
 
 ## Exchanging contact data
 
@@ -52,7 +93,7 @@ sequenceDiagram
     participant BB as Bob's browser
     actor Bob
 
-    Note over AB,BB: On start: seed phrase → did:key → OrbitDB identity + own address book
+    Note over AB,BB: On start: passkey → vault → root → did:key → OrbitDB identity + own address book
     AB->>R: connect (wss), reserve a circuit slot
     BB->>R: connect (wss), reserve a circuit slot
     AB-->>BB: find each other via pubsub peer discovery,<br/>connect over WebRTC (or the relayed circuit)
@@ -79,7 +120,7 @@ sequenceDiagram
 
 ### Requests
 
-Every request is signed with the sender's `did:key`. The signature covers the sender, the recipient, the time, a random nonce, the sender's book address and the invitation ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
+Every request is signed with the sender's `did:key`, the identity of their vault. The signature covers the sender, the recipient, the time, a random nonce, the sender's book address and the invitation ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
 
 - anything that does not have the shape of a request;
 - a request whose signature does not belong to the DID it names as sender;

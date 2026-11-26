@@ -48,6 +48,18 @@ describe('invitations', () => {
 		const forged = { ...(await createInvitation(mallory.seed, mallory.did, mallory.did)), owner: alice.did };
 		expect(await verifyInvitation(forged, { owner: alice.did, invitee: mallory.did })).toBe(false);
 	});
+
+	it('is made by a signer of the owner\'s did:key as by its seed', async () => {
+		// the shape createSecretSigner of the passkey vault returns
+		const key = await generateKeyPairFromSeed('Ed25519', alice.seed);
+		const signer = { did: alice.did, sign: (bytes) => key.sign(bytes) };
+		const invitation = await createInvitation(signer, alice.did, bob.did);
+		expect(invitation).toEqual(await createInvitation(alice.seed, alice.did, bob.did));
+		expect(await verifyInvitation(invitation, { owner: alice.did, invitee: bob.did })).toBe(true);
+		// a signer cannot sign for another DID than its own
+		await expect(createInvitation({ ...signer, did: mallory.did }, alice.did, bob.did)).rejects.toThrow(/does not belong/);
+		await expect(createInvitation(signer, mallory.did, bob.did)).rejects.toThrow(/does not belong/);
+	});
 });
 
 describe('mayWrite', () => {

@@ -18,18 +18,6 @@ export const orbitdb = writable()
  */
 export const helia = writable()
 
-/**
- * The masterSeed based on the seedPhrase. Can be used to create HDKeys for crypto wallets
- * @type {Writable<string>}
- */
-export const masterSeed = writable()
-
-/**
- * Seed phrase
- * @type {Writable<string|undefined>}
- */
-export const seedPhrase = writable(window.localStorage.getItem('seedPhrase') || undefined)
-
 
 export const dbMessages = writable()
 export const subscription = writable()
@@ -59,7 +47,7 @@ export const syncedDevices = writable(false)
 export const recordsSynced = writable(0)
 
 /**
- * Holds the amount of address records, synced from another of my devices (devices with same seed)
+ * Holds the amount of address records, synced from another of my devices (devices with the same identity)
  * @type {Writable<number>}
  */
 // export const addressRecordsSynced = writable(0)

@@ -3,8 +3,9 @@
  * QR code. Pure functions and small stores without app state (contact-messages.spec.js).
  *
  * Messages (gossipsub topic CONTENT_TOPIC/<recipient DID>):
- * - signed with the sender's did:key, the Ed25519 key the DID is made of, so nobody else
- *   can send a request in the sender's name;
+ * - signed with the sender's did:key, the Ed25519 key the DID is made of (the identity of
+ *   the sender's passkey vault, lib/identity/vault.js), so nobody else can send a request
+ *   in the sender's name;
  * - recipient, timestamp and a random nonce are inside the signature: a receiver drops
  *   messages for somebody else, messages outside MAX_CLOCK_SKEW_MS and messages it has
  *   seen before (createReplayGuard);
@@ -58,8 +59,9 @@ async function verifySignature(publicKey, bytes, signature) {
 }
 
 /**
- * Signs with the key of a did:key. Same shape as createSecretSigner of
- * @le-space/orbitdb-identity-provider-webauthn-did, so an Ed25519 signer from there fits.
+ * Signs with the key of a did:key, given its seed. The app signs with the vault's identity
+ * instead (createSecretSigner of @le-space/orbitdb-identity-provider-webauthn-did, which
+ * has the same shape); this one is for tests and tools that hold a seed.
  *
  * @param {Uint8Array} seed the 32-byte seed of the did:key
  * @param {string} did the DID; must belong to the seed

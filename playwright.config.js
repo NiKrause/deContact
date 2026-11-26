@@ -5,7 +5,8 @@ import { defineConfig, devices } from '@playwright/test';
 // the app pointed at it: tests/start-e2e-server.mjs, as in simple-todo. Move the ports with
 // E2E_PREVIEW_PORT / E2E_RELAY_*_PORT to run two checkouts at once.
 const previewPort = Number(process.env.E2E_PREVIEW_PORT || 4431);
-const baseURL = `http://127.0.0.1:${previewPort}/`;
+// WebAuthn needs a domain as relying party id: localhost, never an IP address (#60)
+const baseURL = `http://localhost:${previewPort}/`;
 // the specs open PAGE_URL; it is always the app this run built
 process.env.PAGE_URL = baseURL;
 

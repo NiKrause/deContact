@@ -7,6 +7,8 @@ Relays let browsers find each other, carry a connection when WebRTC can't, and k
 - **Le Space's relays on Aleph.** The app dials the `orbitdb-relay` instances registered on [Aleph](https://aleph.cloud) under `relay:orbitdb-relay:orbitdb-relay`, over their secure WebSocket addresses. Browsers find each other on the relays' discovery topic, `todo._peer-discovery._p2p._pubsub`. See [Finding the relays](#finding-the-relays).
 - **Your own relay.** `src/relay.js` is [orbitdb-relay](https://github.com/NiKrause/orbitdb-relay) with deContact's access controller. Run it yourself and put its address into `VITE_SEED_NODES`.
 - **When the relay keeps replicas.** It replicates address books only if it knows the access controller: deContact's own relay always does, and Le Space's relays from orbitdb-relay 0.11.0 on (via `RELAY_ACCESS_CONTROLLERS`). Without that, contact data arrives only over a direct WebRTC connection between the browsers.
+- **The vault records.** Relays also keep the public vault record that lets a new device open the vault with a second passkey or the recovery words ([#60](how-it-works.md#a-device-that-has-nothing-yet)). It lives in an OrbitDB event log with OrbitDB's own `ipfs` access controller, which every orbitdb-relay knows.
+- **Identities.** Every entry, in an address book or a vault log, is written by the vault's Ed25519 identity, an OrbitDB identity of type `webauthn`. A relay verifies it with `@le-space/orbitdb-identity-provider-webauthn-did`, which orbitdb-relay registers. deContact's relay and Le Space's relays run orbitdb-relay 0.11.1, with the provider's security release 0.14.0, the version the app uses.
 
 ## Finding the relays
 

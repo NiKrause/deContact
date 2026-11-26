@@ -43,17 +43,25 @@ export function publicKeyFromDid(did) {
     }
 }
 
+/** a signer for a 32-byte Ed25519 seed, in the shape of `{ did, sign }` below */
+async function signerOfSeed(seed) {
+    const key = await generateKeyPairFromSeed('Ed25519', seed)
+    const did = `did:key:${base58btc.encode(new Uint8Array([...ED25519_PUBLIC_KEY_PREFIX, ...key.publicKey.raw]))}`
+    return { did, sign: (bytes) => key.sign(bytes) }
+}
+
 /**
  * The owner invites `invitee` to write their contact card into the owner's address books.
  *
- * @param {Uint8Array} seed the 32-byte seed of the owner's did:key
+ * @param {{ did: string, sign: (bytes: Uint8Array) => Promise<Uint8Array> } | Uint8Array} signer
+ *   the key of the owner's did:key: a signer whose DID is the owner's (e.g. `createSecretSigner`
+ *   of @le-space/orbitdb-identity-provider-webauthn-did), or the key's 32-byte seed
  * @param {string} owner the owner's DID
  * @param {string} invitee the invitee's DID
  */
-export async function createInvitation(seed, owner, invitee) {
-    const key = await generateKeyPairFromSeed('Ed25519', seed)
-    const did = `did:key:${base58btc.encode(new Uint8Array([...ED25519_PUBLIC_KEY_PREFIX, ...key.publicKey.raw]))}`
-    if (did !== owner) throw new Error(`this seed does not belong to ${owner}`)
+export async function createInvitation(signer, owner, invitee) {
+    const key = signer instanceof Uint8Array ? await signerOfSeed(signer) : signer
+    if (typeof key?.sign !== 'function' || key.did !== owner) throw new Error(`this key does not belong to ${owner}`)
     const signature = await key.sign(invitationBytes(owner, invitee))
     return { v: 1, owner, invitee, sig: base64url.encode(signature) }
 }
