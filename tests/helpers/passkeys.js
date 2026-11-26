@@ -116,6 +116,8 @@ export async function newPerson(browser, person, { webRTC = true } = {}) {
 	const lines = [];
 	page.on('console', (message) => lines.push(message.text()));
 	const authenticator = await addVirtualAuthenticator(page);
+	// the PRF outputs: what a storage scan must not find, and the root of the vault (#59)
+	await recordCeremonies(page);
 	await page.goto(process.env.PAGE_URL);
 	await confirmExperimental(page);
 	const did = await createAddressBook(page, person.first);

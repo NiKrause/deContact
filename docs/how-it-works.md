@@ -4,6 +4,7 @@
 
 - [Architecture](#architecture)
 - [Identity: passkeys and the vault](#identity-passkeys-and-the-vault)
+- [Encryption: sealed to the reader](#encryption-sealed-to-the-reader)
 - [Exchanging contact data](#exchanging-contact-data)
 - [Who may write into an address book](#who-may-write-into-an-address-book)
 
@@ -21,7 +22,7 @@ flowchart LR
 
     subgraph Relay["orbitdb-relay"]
         CR["circuit relay v2"]
-        REP["replicas of the address books<br/>(checked with the same access controller)"]
+        REP["replicas of the address books<br/>(sealed; checked with the same access controller)"]
     end
 
     ALEPH[("Aleph network<br/>relay registrations")]
@@ -38,7 +39,7 @@ flowchart LR
 | **Helia** | Content-addressed blocks (OrbitDB entries, manifests) over bitswap, stored in IndexedDB (LevelDB) |
 | **OrbitDB** | One `documents` database per address book, a CRDT log that merges concurrent writes |
 | **Passkey vault** | One root secret, opened by any of your passkeys or your recovery words ([below](#identity-passkeys-and-the-vault)) |
-| **did:key** | Ed25519 identity derived from the vault's root. It signs OrbitDB entries, requests and invitations |
+| **did:key** | Ed25519 identity derived from the vault's root. It signs OrbitDB entries, requests and invitations; its X25519 counterpart is the key cards and requests are sealed to |
 | **orbitdb-relay** | Circuit relay, discovery hub and an always-on replica of the address books |
 
 ## Identity: passkeys and the vault
@@ -52,13 +53,14 @@ flowchart LR
     W["24 recovery words<br/>(BIP39, on paper)"] -- "BIP39 seed" --> S3["words slot"]
     S1 & S2 & S3 --> VK["vault key"] --> ROOT["root<br/>= passkey 1's PRF output"]
     ROOT -- "HKDF 'decontact/identity/v1'" --> DID["Ed25519 did:key<br/>OrbitDB identity, signs requests and invitations"]
+    DID -- "its X25519 counterpart" --> X["X25519 key<br/>opens what is sealed to the DID"]
 ```
 
 - **One prompt per session.** Unlocking reads the passkey's PRF output once (`readPrfOutput`). The same output opens the vault slot, and the identity comes from the root inside; nothing asks the passkey again. Creating an address book takes two prompts (register, read the PRF output); the second is announced by `<passkey-step-dialog>`.
 - **The root.** A new vault takes the first passkey's PRF output as its root, as Belege does. That passkey alone restores everything on an empty device, whether it is synced (iCloud, Google, a password manager) or a security key.
 - **One identity for every passkey.** `createSecretSigner(root, { info: 'decontact/identity/v1' })` gives an Ed25519 `did:key` that belongs to no single passkey. Every slot opens the same root, so every passkey writes as the same DID: the DID that owns the address book in the access controller and under which contacts keep the card (`contact:<DID>`). OrbitDB gets it through `OrbitDBWebAuthnIdentityProviderFunction({ signer })`; peers and relays verify it as the provider's `webauthn` identity type.
-- **Memory only.** OrbitDB's keystore is `createSessionKeystore({ signer })`: no key lands in IndexedDB. The vault key, the root and the identity's key live in the page's memory until it closes.
-- **What the browser keeps.** The vault record in `localStorage` (`decontact.vaults.v1`): public JSON with the root sealed under a random vault key and one slot per passkey (the vault key sealed under a key derived from that passkey's PRF output). It names each slot's credential id and label, nothing secret. The E2E tests scan `localStorage`, `sessionStorage` and IndexedDB for the root, the identity's key and the vault key.
+- **Memory only.** OrbitDB's keystore is `createSessionKeystore({ signer })`: no key lands in IndexedDB. The vault key, the root, the identity's key and its X25519 key ([below](#encryption-sealed-to-the-reader)) live in the page's memory until it closes.
+- **What the browser keeps.** The vault record in `localStorage` (`decontact.vaults.v1`): public JSON with the root sealed under a random vault key and one slot per passkey (the vault key sealed under a key derived from that passkey's PRF output). It names each slot's credential id and label, nothing secret. The E2E tests scan `localStorage`, `sessionStorage` and IndexedDB for the root, the identity's key, its X25519 key and the vault key.
 - **More passkeys.** Under **Settings** a passkey can be added (two prompts) and removed. A removed passkey is refused on this device, but it has seen the root: removing revokes nothing it already opened.
 - **Recovery words.** Under **Settings**, 24 BIP39 words become one more slot (filed under a fixed id, so one set per vault). They are shown once and never stored; replacing them makes the old words useless.
 
@@ -80,6 +82,29 @@ A new device finds the vault record in one of three places, and the keeper's `fi
 
 A browser that still has a seed phrase loses it on the first start: `seedPhrase`, `seed` and the old OrbitDB keystore (`./orbitdb/identities`) are deleted, and the first screen says so. The seed's DID is not the vault's, so the old identity and its address book are not carried over (deContact is a prototype).
 
+## Encryption: sealed to the reader
+
+Only the owner of an address book reads it ([#59](https://github.com/NiKrause/deContact/issues/59)). Bob writes his card into Alice's book, but he reads Alice's card in **his own** book, where she wrote it. Followers and relays replicate a book to keep it available, never to read it. So every document is sealed to the owner of the book it sits in, whoever writes it, and every request to its recipient. The code is in [`src/lib/encryption`](../src/lib/encryption).
+
+| In Alice's book | Written by | Sealed to | Read by |
+|---|---|---|---|
+| her own card, placeholders, the books she was invited into | Alice | Alice | Alice's devices |
+| Bob's card (`contact:<Bob's DID>`, with Alice's invitation) | Bob | Alice | Alice's devices |
+| the whole log | | | replicated by the relay and by followers as a backup: ciphertext |
+
+- **The key is the DID.** The X25519 counterpart of an Ed25519 `did:key` is its key-agreement key (the did:key method defines it, libsodium calls it `crypto_sign_ed25519_pk_to_curve25519`). Anybody works it out from the DID alone. So there is no key directory, nothing to look up before the first request, and no key anybody could register under somebody else's DID. The private half comes from the same seed as the identity's Ed25519 key (`deriveSubkey(root, 'decontact/identity/v1')`), so every passkey and every device has it. It is imported into WebCrypto as a key that cannot be extracted.
+- **A seal.** A fresh ephemeral X25519 key pair; HKDF-SHA256 over the shared secret, with both public keys as salt and `decontact/seal/v1` as info; AES-GCM-256 with a fresh nonce. The additional data names what was sealed and where it belongs (the book's owner and the document's `_id`, or the request's recipient): a seal moved elsewhere does not open there. Ported from simple-todo `privacy01` (`key-wrapping.js`, `db-encryption.js`).
+- **Cards.** A document keeps in the clear what the [access controller](#who-may-write-into-an-address-book) checks: its `_id`, and on a contact's card also `owner` and `invitation`. Everything else (names, address, email, the address of the writer's own book) goes into `sealed`. The controller and its rules did not change, so relays still check every entry without a key. OrbitDB's own `encryption.data` is not used: it seals the whole payload, and a relay without the key would see no key, owner or invitation and would refuse every contact's card.
+- **Requests.** The signed request is sealed to the recipient and published as `{ v: 3, sealed }` on the recipient's topic. Inside are the signed request and the sender's name (first name, last name, city), because the recipient can no longer read the sender's book to see who asks.
+- **Removing a contact.** Deleting somebody's card under **Contacts** removes our card from their book, so no later change of ours reaches them, and removes their card, placeholder and book from ours. What they already received stays with them.
+- **Entries from before.** Documents of the own book that were written in the clear before this change are sealed again when the app starts. The log keeps the old plaintext entries.
+
+What stays visible:
+
+- **Who writes into whose book, and when.** An address book's address follows from its owner's DID. Whoever opens it sees which identities wrote entries, the `_id`s (a contact's card is `contact:<their DID>`), the invitations and the entry sizes. A request shows its recipient (the topic), its time and the sender's libp2p peer id.
+- **What a contact received stays theirs.** Removing them stops the updates; it cannot take back what they saw. Their invitation into our book also stays valid: revoking it needs a change of the access controller.
+- **One secret for signing and decrypting.** The identity's Ed25519 key and its X25519 key are one secret. If it leaks, both leak. Reusing it this way is established practice (did:key, libsodium, age), and both would come from the same root anyway.
+
 ## Exchanging contact data
 
 Bob scans Alice's DID. Each then writes their own card into the other's address book:
@@ -100,36 +125,36 @@ sequenceDiagram
 
     Bob->>BB: scan / paste Alice's DID
     BB->>BB: write placeholder contact:did(Alice) into Bob's book
-    BB->>AB: REQUEST_ADDRESS {Bob's book address, invitation for Alice},<br/>signed with Bob's did:key<br/>gossipsub topic /dContact/3/message/proto/did(Alice)
+    BB->>AB: REQUEST_ADDRESS {Bob's book address, invitation for Alice, Bob's name},<br/>signed with Bob's did:key, sealed to Alice's<br/>gossipsub topic /dContact/3/message/proto/did(Alice)
 
     AB->>R: open Bob's book by its address
     R-->>AB: manifest + entries (from the relay's replica or from Bob)
     AB->>Alice: "Bob requests your contact data"
     Alice->>AB: Send my contact data
     AB->>AB: wait until the placeholder has synced
-    AB->>BB: write card contact:did(Alice) + invitation into Bob's book<br/>(OrbitDB sync: directly or through the relay)
-    Note over R: the relay checks the entry with the same<br/>access controller and keeps its replica
+    AB->>BB: write card contact:did(Alice) + invitation into Bob's book,<br/>sealed to Bob (OrbitDB sync: directly or through the relay)
+    Note over R: the relay checks the entry with the same<br/>access controller and keeps its replica (ciphertext)
 
-    AB->>BB: REQUEST_ADDRESS {Alice's book address, invitation for Bob}
+    AB->>BB: REQUEST_ADDRESS {Alice's book address, invitation for Bob, Alice's name}, sealed to Bob
     BB->>Bob: "Alice requests your contact data"
     Bob->>BB: Send my contact data
-    BB->>AB: write card contact:did(Bob) + invitation into Alice's book
+    BB->>AB: write card contact:did(Bob) + invitation into Alice's book, sealed to Alice
 
     Note over AB,BB: Later: Bob changes his address → BB rewrites contact:did(Bob)<br/>in every book he was invited into, using the stored invitation
 ```
 
 ### Requests
 
-Every request is signed with the sender's `did:key`, the identity of their vault. The signature covers the sender, the recipient, the time, a random nonce, the sender's book address and the invitation ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
+Every request is signed with the sender's `did:key`, the identity of their vault, then sealed to the recipient ([above](#encryption-sealed-to-the-reader)). The signature covers the sender, the recipient, the time, a random nonce, the sender's book address, the invitation and the sender's name ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
 
-- anything that does not have the shape of a request;
+- anything that is not sealed to them, or does not have the shape of a request;
 - a request whose signature does not belong to the DID it names as sender;
 - a request for somebody else, older or newer than 10 minutes, or seen before;
 - a request whose book is not the sender's own (the owner in the book's manifest) or whose invitation is not the sender's.
 
 From each sender only the newest request waits for an answer.
 
-Requests are not encrypted yet: who asks whom, and the address of the requester's book, can be read by anybody subscribed to the topic ([#58](https://github.com/NiKrause/deContact/issues/58)).
+A peer subscribed to the topic sees that something was sent to the recipient, when, and from which libp2p peer; not who sent it, the sender's book or their name ([#58](https://github.com/NiKrause/deContact/issues/58), finding 3).
 
 ### Invitation links
 
@@ -142,7 +167,7 @@ Every address book uses the OrbitDB access controller `decontact-address-book`, 
 | Writer | May write |
 |---|---|
 | The owner, on any device with the owner's DID | anything |
-| An invited contact | only their own card: key `contact:<their DID>`, `owner` set to their DID, carrying an **invitation the owner signed** with the Ed25519 key of their `did:key` |
+| An invited contact | only their own card: key `contact:<their DID>`, `owner` set to their DID, carrying an **invitation the owner signed** with the Ed25519 key of their `did:key`. These fields stay in the clear; the rest of the card is sealed to the owner |
 | Anybody else | nothing |
 
 A request for contact data carries the invitation for the recipient. The owner's DID is stored in the database manifest, so a relay can check entries without asking anybody.

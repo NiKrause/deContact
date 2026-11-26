@@ -13,6 +13,8 @@
  *   did:key that belongs to no single passkey. Every slot opens the same root, so every
  *   passkey writes as the same DID - the DID that owns the address book in the access
  *   controller and under which contacts keep the card (`contact:<DID>`).
+ * - The identity's X25519 pair (`encryptionKeysOf`, #59) comes from the same seed as its
+ *   Ed25519 key: what contact cards and requests are sealed to.
  * - The recovery words (recovery-words.js) are one more slot, filed under a fixed id
  *   (WORDS_SLOT_ID) in place of a credential id: one set of words per vault.
  * - Every slot has a lookup id derived from its secret, under which the record is
@@ -31,6 +33,7 @@ import {
     slotIdFor
 } from '@le-space/orbitdb-identity-provider-webauthn-did/vault'
 import { createSecretSigner } from '@le-space/orbitdb-identity-provider-webauthn-did'
+import { encryptionKeysFromSeed } from '../encryption/sealing.js'
 
 /** where the vault records are kept (a JSON array, one record per vault) */
 export const VAULTS_KEY = 'decontact.vaults.v1'
@@ -149,6 +152,27 @@ export async function signerOf(opened) {
         return await createSecretSigner(root, { info: IDENTITY_INFO })
     } finally {
         root.fill(0)
+    }
+}
+
+/**
+ * The identity's X25519 pair (#59), which contact cards and requests are sealed to: the
+ * key-agreement counterpart of its Ed25519 did:key (lib/encryption/sealing.js). It comes
+ * from the seed `createSecretSigner` derives the Ed25519 key from, so every passkey and
+ * every device has the same pair, and anybody can seal to it knowing only the DID.
+ *
+ * @param {string} did the identity's DID (`signerOf(opened).did`): the pair must belong to it
+ * @returns {Promise<{ publicKey: Uint8Array, privateKey: CryptoKey }>} privateKey cannot be extracted
+ */
+export async function encryptionKeysOf(opened, did) {
+    const root = rootOf(opened.payload)
+    let seed
+    try {
+        seed = await deriveSubkey(root, IDENTITY_INFO)
+        return await encryptionKeysFromSeed(seed, { did })
+    } finally {
+        root.fill(0)
+        seed?.fill(0)
     }
 }
 

@@ -65,6 +65,7 @@
 		"@libp2p/webrtc": "7.0.3",
 		"@libp2p/websockets": "10.1.26",
 		"@multiformats/multiaddr": "13.0.3",
+		"@noble/curves": "2.4.0",
 		"@orbitdb/core": "4.0.0",
 		"bip39": "^3.1.0",
 		"blockstore-level": "4.0.1",

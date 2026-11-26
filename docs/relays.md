@@ -2,7 +2,7 @@
 
 [README](../README.md) · [How it works](how-it-works.md) · **Relays** · [Configuration](configuration.md) · [Development](development.md)
 
-Relays let browsers find each other, carry a connection when WebRTC can't, and keep a replica of the address books for people who are offline. They can't change what's in a book: every entry is checked with the [access controller](how-it-works.md#who-may-write-into-an-address-book).
+Relays let browsers find each other, carry a connection when WebRTC can't, and keep a replica of the address books for people who are offline. They can't change what's in a book: every entry is checked with the [access controller](how-it-works.md#who-may-write-into-an-address-book). Nor can they read it: every card is sealed to the book's owner, and a relay keeps only ciphertext ([Encryption](how-it-works.md#encryption-sealed-to-the-reader)).
 
 - **Le Space's relays on Aleph.** The app dials the `orbitdb-relay` instances registered on [Aleph](https://aleph.cloud) under `relay:orbitdb-relay:orbitdb-relay`, over their secure WebSocket addresses. Browsers find each other on the relays' discovery topic, `todo._peer-discovery._p2p._pubsub`. See [Finding the relays](#finding-the-relays).
 - **Your own relay.** `src/relay.js` is [orbitdb-relay](https://github.com/NiKrause/orbitdb-relay) with deContact's access controller. Run it yourself and put its address into `VITE_SEED_NODES`.
