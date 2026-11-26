@@ -1,11 +1,15 @@
 /// <reference types="@sveltejs/kit" />
-import { build, files, version } from '$service-worker';
+// SvelteKit 3 removed $service-worker: the build output and the static files come
+// from $app/manifest, relative to the base path, and the version from $app/env
+import { immutable, assets } from '$app/manifest';
+import { version } from '$app/env';
+import { asset, resolve } from '$app/paths';
 
 const CACHE = `cache-${version}`;
 
 const ASSETS = [
-    ...build, // the app itself
-    ...files  // everything in `static`
+    ...immutable.map(({ path }) => resolve(`/${path}`)), // the app itself
+    ...assets.map(({ path }) => asset(path))  // everything in `static`
 ];
 
 self.addEventListener('install', (event) => {

@@ -1,7 +1,7 @@
 import { convertTo32BitSeed } from "../../utils/utils.js";
-import createIdentityProvider from "$lib/network/identityProvider.js";
+import createIdentityProvider from "#lib/network/identityProvider.js";
 import { createOrbitDB } from "@orbitdb/core";
-import {CONTENT_TOPIC} from "$lib/network/p2p-operations.js";
+import {CONTENT_TOPIC} from "#lib/network/p2p-operations.js";
 
 /**
  * From a seed generate an identity and start an OrbitDB instance

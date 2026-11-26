@@ -5,17 +5,17 @@
     import ConnectionSignal from "carbon-icons-svelte/lib/ConnectionSignal.svelte";
     import { Header, HeaderGlobalAction, HeaderNav, HeaderUtilities, Theme } from "carbon-components-svelte";
     import { hash } from './router.js'
-    import QRCodeModal from "$lib/components/QRCodeModal.svelte";
+    import QRCodeModal from "#lib/components/QRCodeModal.svelte";
     import { myDal, qrCodeOpen, qrCodeData, seedPhrase, helia, orbitdb, masterSeed } from "../stores.js";
 
     import { startNetwork, close } from "../lib/network/p2p-operations.js"
-    import { getIdentityAndCreateOrbitDB} from "$lib/network/getIdendityAndCreateOrbitDB.js"
+    import { getIdentityAndCreateOrbitDB} from "#lib/network/getIdendityAndCreateOrbitDB.js"
 
     import { connectedPeers } from "../stores.js";
     import { confirmExperimentalUse } from "./confirmExperimentalUse.js";
     import { handleSeedphrase } from "./handleSeedphrase.js";
     import Home from './+page.svelte'
-    import OnBoarding from "$lib/components/OnBoarding.svelte";
+    import OnBoarding from "#lib/components/OnBoarding.svelte";
 
     let theme = "g90";
 

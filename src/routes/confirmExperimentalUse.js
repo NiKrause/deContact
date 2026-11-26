@@ -1,4 +1,4 @@
-import {confirm} from "$lib/components/experimentalUseModal.js";
+import {confirm} from "#lib/components/experimentalUseModal.js";
 
 /**
  * When opening the app first time, let the people know this is experimental.

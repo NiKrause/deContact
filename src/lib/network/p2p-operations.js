@@ -25,7 +25,7 @@ import {
 
 import { confirm } from "../components/addressModal.js"
 import { notify, sha256, convertTo32BitSeed } from "../../utils/utils.js";
-import { getIdentityAndCreateOrbitDB } from "$lib/network/getIdendityAndCreateOrbitDB.js";
+import { getIdentityAndCreateOrbitDB } from "#lib/network/getIdendityAndCreateOrbitDB.js";
 import AddressBookAccessController, { contactKey, createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 import {
     REQUEST_ADDRESS,

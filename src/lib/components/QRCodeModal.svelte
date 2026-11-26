@@ -5,7 +5,7 @@
     const dispatch = createEventDispatcher();
     import { orbitdb } from "../../stores.js";
     import { notify } from "../../utils/utils.js";
-    import { issueOnboardingToken } from "$lib/network/p2p-operations.js";
+    import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
 
     const page_url = import.meta.env.VITE_PAGE_URL?import.meta.env.VITE_PAGE_URL+'/#':'https://deContact.xyz/#';
 
