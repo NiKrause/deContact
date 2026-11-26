@@ -25,7 +25,8 @@
         showNotification,
         notificationMessage,
         selectedTab,
-        selectedRowIds
+        selectedRowIds,
+        exchangesWaiting
     } from "../stores.js";
     import { loadContact } from "../operations.js";
     import { requestAddress } from "../lib/network/p2p-operations.js"
@@ -35,6 +36,10 @@
 </script>
 
 <div class="content">
+    <!-- an invitation link we opened: its inviter's phone has not answered yet (#86) -->
+    {#each $exchangesWaiting as waiting (waiting.inviter)}
+        <p class="waiting" role="status" data-testid="waiting-for-phone">Waiting for {waiting.name ?? waiting.inviter}'s phone…</p>
+    {/each}
 <!--    {#if $progressState!==6}
     <ProgressBar helperText={"("+$progressState+"/6) "+$progressText} status={$progressState===6?"finished":"active"} />
     {/if}-->
@@ -87,5 +92,9 @@
     }
     :global(.tabs) {
         margin: 1rem;
+    }
+    .waiting {
+        margin: 0 1rem;
+        overflow-wrap: anywhere;
     }
 </style>

@@ -19,10 +19,23 @@
  * - anything that does not have the expected shape is dropped (openMessage never throws).
  *
  * Invitation links (onboarding tokens):
- * - signed by the inviter over a random nonce, an expiry and the "request address" choice;
+ * - signed by the inviter over a random nonce, an expiry and the "two-way exchange" choice
+ *   (#86): whether the invitee may share their own card back;
  * - the device that issued a token remembers it; the first invitee who uses it owns it,
  *   everybody else is asked for (createOnboardingTokenStore). A token from another device,
  *   a used, expired or forged token means: ask the user to confirm.
+ *
+ * The two-way exchange (#86). The invitee may write into the inviter's book only with an
+ * invitation the inviter signed for the invitee's DID, which the inviter cannot sign before
+ * the invitee's first request. So:
+ * - the invitee's request carries the token and, when the token allows a two-way exchange,
+ *   `twoWay: true`: "send me an invitation into your book, in case I share my card";
+ * - the inviter's device, for its own valid token that allows it and the token's first
+ *   invitee, answers without asking: a request with its invitation, `nopingpong: true` and
+ *   the same `onBoardingToken`, which tells the invitee which link it answers. It writes no
+ *   placeholder into its own book and does not resend: the invitee resends until it has
+ *   what it needs;
+ * - the invitee alone decides whether to use the invitation (exchanges.js).
  */
 import { generateKeyPairFromSeed } from '@libp2p/crypto/keys'
 import { base64url } from 'multiformats/bases/base64'
@@ -109,18 +122,21 @@ function fromOf(card) {
  * A signed message sealed to its recipient, ready to publish.
  *
  * @param signer from createSigner; its DID is the sender
- * @param {{ command: string, recipient: string, data: { sharedAddress: string, invitation: object }, from?: object, onBoardingToken?: string, nopingpong?: boolean }} fields
- *   from: the sender's card; only its name (FROM_FIELDS) goes along
+ * @param {{ command: string, recipient: string, data: { sharedAddress: string, invitation: object }, from?: object, onBoardingToken?: string, nopingpong?: boolean, twoWay?: boolean }} fields
+ *   from: the sender's card; only its name (FROM_FIELDS) goes along;
+ *   twoWay: with an onBoardingToken, ask the inviter for an invitation into their book
  * @returns {Promise<string>}
  */
-export async function sealMessage(signer, { command, recipient, data, from, onBoardingToken, nopingpong }, { now = Date.now() } = {}) {
+export async function sealMessage(signer, { command, recipient, data, from, onBoardingToken, nopingpong, twoWay }, { now = Date.now() } = {}) {
     const recipientKey = encryptionKeyOfDid(recipient)
     if (!recipientKey) throw new Error(`${recipient} is not a did:key we can seal to`)
+    if (twoWay === true && onBoardingToken === undefined) throw new Error('a two-way exchange needs an invitation link')
     const fields = { command, sender: signer.did, recipient, timestamp: now, nonce: randomNonce(), data }
     const name = fromOf(from)
     if (name) fields.from = name
     if (onBoardingToken !== undefined) fields.onBoardingToken = onBoardingToken
     if (nopingpong === true) fields.nopingpong = true
+    if (twoWay === true) fields.twoWay = true
     const payload = JSON.stringify(fields)
     const signedText = JSON.stringify({ v: 2, payload, sig: await signed(signer, messageBytes(payload)) })
     return JSON.stringify({ v: 3, sealed: await seal(recipientKey, encode(signedText), { context: requestContext(recipient) }) })
@@ -129,7 +145,7 @@ export async function sealMessage(signer, { command, recipient, data, from, onBo
 /** what is wrong with the shape of a message, or null */
 function shapeProblem(message) {
     if (!isObject(message)) return 'not a message'
-    const { command, sender, recipient, timestamp, nonce, data, onBoardingToken, nopingpong } = message
+    const { command, sender, recipient, timestamp, nonce, data, onBoardingToken, nopingpong, twoWay } = message
     if (command !== REQUEST_ADDRESS) return 'unknown command'
     if (!publicKeyFromDid(sender)) return 'sender is not a did:key'
     if (typeof recipient !== 'string') return 'no recipient'
@@ -145,6 +161,8 @@ function shapeProblem(message) {
         return 'bad invitation link'
     }
     if (nopingpong !== undefined && typeof nopingpong !== 'boolean') return 'bad nopingpong'
+    if (twoWay !== undefined && typeof twoWay !== 'boolean') return 'bad twoWay'
+    if (twoWay === true && onBoardingToken === undefined) return 'two-way exchange without an invitation link'
     const { from } = message
     if (from !== undefined) {
         if (!isObject(from)) return 'bad name'
@@ -228,22 +246,23 @@ export function createReplayGuard({ maxEntries = 10_000 } = {}) {
     }
 }
 
-const tokenBytes = (inviter, { nonce, expiresAt, requestAddress }) =>
-    encode(`${ONBOARDING_CONTEXT}\n${inviter}\n${nonce}\n${expiresAt}\n${requestAddress ? 1 : 0}`)
+// the last field was called "request address" before #86; the token format is the same
+const tokenBytes = (inviter, { nonce, expiresAt, twoWay }) =>
+    encode(`${ONBOARDING_CONTEXT}\n${inviter}\n${nonce}\n${expiresAt}\n${twoWay ? 1 : 0}`)
 
 /**
  * A token for the invitation link: whoever uses it first gets our contact data without
  * us confirming (once, until it expires).
  *
  * @param signer from createSigner; its DID is the inviter
- * @param {{ requestAddress?: boolean, now?: number, ttlMs?: number }} options
- *   requestAddress: whether we ask the invitee for their contact data in return
- * @returns {Promise<{ text: string, nonce: string, expiresAt: number, requestAddress: boolean }>} text goes into the link
+ * @param {{ twoWay?: boolean, now?: number, ttlMs?: number }} options
+ *   twoWay: whether the invitee may share their contact data with us in return (#86)
+ * @returns {Promise<{ text: string, nonce: string, expiresAt: number, twoWay: boolean }>} text goes into the link
  */
-export async function createOnboardingToken(signer, { requestAddress = true, now = Date.now(), ttlMs = ONBOARDING_TOKEN_TTL_MS } = {}) {
-    const token = { nonce: randomNonce(), expiresAt: now + ttlMs, requestAddress: Boolean(requestAddress) }
+export async function createOnboardingToken(signer, { twoWay = true, now = Date.now(), ttlMs = ONBOARDING_TOKEN_TTL_MS } = {}) {
+    const token = { nonce: randomNonce(), expiresAt: now + ttlMs, twoWay: Boolean(twoWay) }
     const sig = await signed(signer, tokenBytes(signer.did, token))
-    return { ...token, text: ['1', token.nonce, token.expiresAt, token.requestAddress ? 1 : 0, sig].join('.') }
+    return { ...token, text: ['1', token.nonce, token.expiresAt, token.twoWay ? 1 : 0, sig].join('.') }
 }
 
 /** the parts of a token, or null */
@@ -251,14 +270,15 @@ export function parseOnboardingToken(text) {
     if (typeof text !== 'string' || text.length > MAX_TOKEN_LENGTH) return null
     const parts = text.split('.')
     if (parts.length !== 5 || parts[0] !== '1') return null
-    const [, nonce, expiresAt, requestAddress, sig] = parts
-    if (!NONCE.test(nonce) || !/^\d{1,15}$/.test(expiresAt) || !/^[01]$/.test(requestAddress) || !SIGNATURE.test(sig)) return null
-    return { nonce, expiresAt: Number(expiresAt), requestAddress: requestAddress === '1', sig }
+    const [, nonce, expiresAt, twoWay, sig] = parts
+    if (!NONCE.test(nonce) || !/^\d{1,15}$/.test(expiresAt) || !/^[01]$/.test(twoWay) || !SIGNATURE.test(sig)) return null
+    return { nonce, expiresAt: Number(expiresAt), twoWay: twoWay === '1', sig }
 }
 
 /**
  * Whether `inviter` signed this token and it has not expired. Says nothing about whether
- * it was used: that only the issuing device knows (createOnboardingTokenStore).
+ * it was used: that only the issuing device knows (createOnboardingTokenStore). The
+ * invitee checks it too, against the DID in the link, to learn whether it may share back.
  *
  * @returns {Promise<{ ok: true, token: object } | { ok: false, reason: string }>}
  */
@@ -319,11 +339,12 @@ export function createOnboardingTokenStore(storage, key = 'onboardingTokens') {
  * Accepts an invitation link token from `invitee`: signed by us, not expired, issued on
  * this device and not used by anybody else.
  *
- * @returns {Promise<{ ok: true, requestAddress: boolean } | { ok: false, reason: string }>}
+ * @returns {Promise<{ ok: true, twoWay: boolean } | { ok: false, reason: string }>}
+ *   twoWay: whether the token allows a two-way exchange
  */
 export async function redeemOnboardingToken(text, { inviter, invitee, store, now = Date.now() }) {
     const verified = await verifyOnboardingToken(text, { inviter, now })
     if (!verified.ok) return verified
     const redeemed = store.redeem(verified.token, invitee, now)
-    return redeemed.ok ? { ok: true, requestAddress: verified.token.requestAddress } : redeemed
+    return redeemed.ok ? { ok: true, twoWay: verified.token.twoWay } : redeemed
 }

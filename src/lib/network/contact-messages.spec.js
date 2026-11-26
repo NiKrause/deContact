@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateKeyPairFromSeed } from '@libp2p/crypto/keys';
 import { base58btc } from 'multiformats/bases/base58';
+import { base64url } from 'multiformats/bases/base64';
 import { createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 import { encryptionKeysFromSeed, openSeal, seal } from '../encryption/sealing.js';
 import {
@@ -108,6 +109,7 @@ describe('signed requests', () => {
 			(p) => (p.nonce = 'A'.repeat(22)),
 			(p) => (p.onBoardingToken = 'whatever'),
 			(p) => (p.nopingpong = true),
+			(p) => Object.assign(p, { onBoardingToken: 'whatever', twoWay: true }),
 			(p) => (p.from.firstName = 'Carol')
 		];
 		for (const change of changes) {
@@ -173,6 +175,7 @@ describe('signed requests', () => {
 			await tamper(genuine, (p) => (p.onBoardingToken = { nonce: 'x' })),
 			await tamper(genuine, (p) => (p.onBoardingToken = 'x'.repeat(600))),
 			await tamper(genuine, (p) => (p.nopingpong = 'yes')),
+			await tamper(genuine, (p) => (p.twoWay = 'yes')),
 			await tamper(genuine, (p) => (p.from = 'Bob')),
 			await tamper(genuine, (p) => (p.from = { street: 'Example Street 1' })),
 			await tamper(genuine, (p) => (p.from = { firstName: 42 })),
@@ -186,6 +189,48 @@ describe('signed requests', () => {
 
 	it('only signs for the DID of the seed', async () => {
 		await expect(createSigner(bob.seed, alice.did)).rejects.toThrow();
+	});
+});
+
+describe('two-way exchange (#86)', () => {
+	it("asks for an invitation with the link's token, signed like every request", async () => {
+		const token = await createOnboardingToken(alice.signer, { now });
+		const opened = await openMessage(await request(bob, alice, { onBoardingToken: token.text, twoWay: true }), as(alice));
+		expect(opened.ok).toBe(true);
+		expect(opened.message).toMatchObject({ sender: bob.did, onBoardingToken: token.text, twoWay: true });
+		// without the flag the field is left out, as nopingpong is
+		const plain = await openMessage(await request(bob, alice, { onBoardingToken: token.text, twoWay: false }), as(alice));
+		expect(plain.message).not.toHaveProperty('twoWay');
+	});
+
+	it('needs an invitation link', async () => {
+		const data = { sharedAddress: bookOf(bob), invitation: await createInvitation(bob.seed, bob.did, alice.did) };
+		await expect(sealMessage(bob.signer, { command: REQUEST_ADDRESS, recipient: alice.did, data, twoWay: true }, { now })).rejects.toThrow();
+		// made by hand, signed and sealed: dropped all the same
+		const token = await createOnboardingToken(alice.signer, { now });
+		const genuine = await request(bob, alice, { onBoardingToken: token.text, twoWay: true });
+		const envelope = JSON.parse(await unsealed(genuine));
+		const payload = JSON.parse(envelope.payload);
+		delete payload.onBoardingToken;
+		const text = JSON.stringify(payload);
+		const sig = base64url.baseEncode(await bob.signer.sign(new TextEncoder().encode(`decontact/message/v2\n${text}`)));
+		const forged = await sealedFor(JSON.stringify({ v: 2, payload: text, sig }));
+		expect(await openMessage(forged, as(alice))).toEqual({
+			ok: false,
+			reason: 'two-way exchange without an invitation link',
+			sender: bob.did
+		});
+	});
+
+	it("is answered by the inviter's invitation, which names the link it answers", async () => {
+		const token = await createOnboardingToken(alice.signer, { now });
+		// Alice's device answers Bob: her book, an invitation for him, no ping-pong
+		const answer = await openMessage(await request(alice, bob, { onBoardingToken: token.text, nopingpong: true }), as(bob));
+		expect(answer.ok).toBe(true);
+		expect(answer.message).toMatchObject({ sender: alice.did, nopingpong: true, onBoardingToken: token.text });
+		expect(answer.message).not.toHaveProperty('twoWay');
+		// Bob checks that the token is Alice's, against the DID in the link
+		expect(await verifyOnboardingToken(answer.message.onBoardingToken, { inviter: alice.did, now })).toMatchObject({ ok: true });
 	});
 });
 
@@ -255,9 +300,9 @@ describe('replay guard', () => {
 
 describe('invitation link tokens', () => {
 	it('verifies a token of the inviter until it expires', async () => {
-		const token = await createOnboardingToken(alice.signer, { requestAddress: false, now });
+		const token = await createOnboardingToken(alice.signer, { twoWay: false, now });
 		expect(token.expiresAt).toBe(now + ONBOARDING_TOKEN_TTL_MS);
-		expect(parseOnboardingToken(token.text)).toMatchObject({ nonce: token.nonce, expiresAt: token.expiresAt, requestAddress: false });
+		expect(parseOnboardingToken(token.text)).toMatchObject({ nonce: token.nonce, expiresAt: token.expiresAt, twoWay: false });
 		expect(await verifyOnboardingToken(token.text, { inviter: alice.did, now })).toMatchObject({ ok: true });
 		expect(await verifyOnboardingToken(token.text, { inviter: alice.did, now: token.expiresAt })).toEqual({
 			ok: false,
@@ -266,12 +311,13 @@ describe('invitation link tokens', () => {
 	});
 
 	it("rejects somebody else's token and changed tokens", async () => {
-		const token = await createOnboardingToken(alice.signer, { requestAddress: false, now });
-		const [v, nonce, expiresAt, requestAddress, sig] = token.text.split('.');
+		const token = await createOnboardingToken(alice.signer, { twoWay: false, now });
+		const [v, nonce, expiresAt, twoWay, sig] = token.text.split('.');
 		const changed = [
-			[v, nonce, expiresAt + '0', requestAddress, sig],
+			[v, nonce, expiresAt + '0', twoWay, sig],
+			// nobody can turn a two-way exchange on (or off) after Alice signed
 			[v, nonce, expiresAt, '1', sig],
-			[v, 'B'.repeat(22), expiresAt, requestAddress, sig]
+			[v, 'B'.repeat(22), expiresAt, twoWay, sig]
 		].map((parts) => parts.join('.'));
 		for (const text of changed) {
 			expect((await verifyOnboardingToken(text, { inviter: alice.did, now })).reason).toBe('is not signed by us');
@@ -295,11 +341,24 @@ describe('invitation link tokens', () => {
 		store.issued(token, now);
 		const redeem = (invitee, at = now) => redeemOnboardingToken(token.text, { inviter: alice.did, invitee, store, now: at });
 
-		expect(await redeem(bob.did)).toEqual({ ok: true, requestAddress: true });
+		expect(await redeem(bob.did)).toEqual({ ok: true, twoWay: true });
 		// Bob's app resends its request until it is answered
-		expect(await redeem(bob.did, now + 1000)).toEqual({ ok: true, requestAddress: true });
+		expect(await redeem(bob.did, now + 1000)).toEqual({ ok: true, twoWay: true });
 		expect(await redeem(carol.did)).toEqual({ ok: false, reason: 'was already used' });
 		expect(await redeem(bob.did, token.expiresAt)).toEqual({ ok: false, reason: 'has expired' });
+	});
+
+	it('says whether a two-way exchange is allowed, on by default', async () => {
+		const store = createOnboardingTokenStore(memoryStorage());
+		const twoWay = await createOnboardingToken(alice.signer, { now });
+		const oneWay = await createOnboardingToken(alice.signer, { twoWay: false, now });
+		expect(twoWay.twoWay).toBe(true);
+		expect(twoWay.text.split('.')[3]).toBe('1');
+		expect(oneWay.text.split('.')[3]).toBe('0');
+		for (const token of [twoWay, oneWay]) store.issued(token, now);
+		const redeem = (token) => redeemOnboardingToken(token.text, { inviter: alice.did, invitee: bob.did, store, now });
+		expect(await redeem(twoWay)).toEqual({ ok: true, twoWay: true });
+		expect(await redeem(oneWay)).toEqual({ ok: true, twoWay: false });
 	});
 
 	it('expires an unused token', async () => {

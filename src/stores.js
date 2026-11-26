@@ -58,6 +58,12 @@ export const notificationMessage = writable()
 export const useWebRTC = writable(window.localStorage.getItem('useWebRTC') !== null ? window.localStorage.getItem('useWebRTC') === 'true' : true);
 
 export const followList = writable([] )
+/**
+ * The inviters whose phone we wait for, after we opened their invitation link (#86):
+ * `{ inviter: DID, name?: their first name, once their card arrived }`
+ * @type {Writable<Array<{ inviter: string, name?: string }>>}
+ */
+export const exchangesWaiting = writable([])
 export const qrCodeOpen = writable(false)
 export const qrCodeData = writable()
 
