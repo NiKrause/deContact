@@ -1,6 +1,6 @@
 # Configuration
 
-[README](../README.md) · [How it works](how-it-works.md) · [Relays](relays.md) · **Configuration** · [Development](development.md)
+[README](../README.md) · [How it works](how-it-works.md) · [Relays](relays.md) · **Configuration** · [Development](development.md) · [FAQ](faq.md)
 
 ## App
 

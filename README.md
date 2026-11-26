@@ -69,11 +69,12 @@ The app finds Le Space's relays on Aleph by itself. To try it with two people:
 | [Relays](docs/relays.md) | Le Space's relays on Aleph, when a relay keeps replicas, running your own (also with Docker) |
 | [Configuration](docs/configuration.md) | environment variables of the app and the relay, the WebRTC switch |
 | [Development](docs/development.md) | local setup with your own relay, build, tests, project structure |
+| [FAQ](docs/faq.md) | encryption and privacy: who can read what, what stays visible, removing a contact, why no shared or replication key |
 | [Access controller package](packages/orbitdb-access-controller-decontact) | `@le-space/orbitdb-access-controller-decontact` on npm |
 
 ## Known limitations
 - **Experimental.** Data formats and protocols may still change; the address book format changed in 0.5.0.
-- **Metadata is visible.** Cards and requests are encrypted, but who exchanged cards with whom, and when, is not: a book's address follows from its owner's DID, and whoever opens it sees which DIDs wrote into it. A request shows its recipient and its time.
+- **Metadata is visible.** Cards and requests are encrypted, but who exchanged cards with whom, and when, is not: a book's address follows from its owner's DID, and whoever opens it sees which DIDs wrote into it. A request shows its recipient and its time. More in the [FAQ](docs/faq.md).
 - **Passkeys with PRF.** The browser and the passkey must support the WebAuthn PRF extension (recent Chrome, Safari, Edge; iCloud Keychain, Google Password Manager, 1Password, YubiKey 5). Without it the vault does not open.
 - **Security notes.**
   - Nothing secret is stored in the clear: the browser keeps only the sealed vault record, and OrbitDB's keystore lives in memory. While the app is open, the root, the identity's key and its X25519 key are in the page's memory, so a script running in the page could use them.

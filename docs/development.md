@@ -1,6 +1,6 @@
 # Development
 
-[README](../README.md) · [How it works](how-it-works.md) · [Relays](relays.md) · [Configuration](configuration.md) · **Development**
+[README](../README.md) · [How it works](how-it-works.md) · [Relays](relays.md) · [Configuration](configuration.md) · **Development** · [FAQ](faq.md)
 
 ## Prerequisites
 - Node.js **22** or newer

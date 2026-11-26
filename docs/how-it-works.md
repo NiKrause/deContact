@@ -1,6 +1,6 @@
 # How deContact works
 
-[README](../README.md) · **How it works** · [Relays](relays.md) · [Configuration](configuration.md) · [Development](development.md)
+[README](../README.md) · **How it works** · [Relays](relays.md) · [Configuration](configuration.md) · [Development](development.md) · [FAQ](faq.md)
 
 - [Architecture](#architecture)
 - [Identity: passkeys and the vault](#identity-passkeys-and-the-vault)
@@ -84,7 +84,7 @@ A browser that still has a seed phrase loses it on the first start: `seedPhrase`
 
 ## Encryption: sealed to the reader
 
-Only the owner of an address book reads it ([#59](https://github.com/NiKrause/deContact/issues/59)). Bob writes his card into Alice's book, but he reads Alice's card in **his own** book, where she wrote it. Followers and relays replicate a book to keep it available, never to read it. So every document is sealed to the owner of the book it sits in, whoever writes it, and every request to its recipient. The code is in [`src/lib/encryption`](../src/lib/encryption).
+Only the owner of an address book reads it ([#59](https://github.com/NiKrause/deContact/issues/59); questions and answers in the [FAQ](faq.md)). Bob writes his card into Alice's book, but he reads Alice's card in **his own** book, where she wrote it. Followers and relays replicate a book to keep it available, never to read it. So every document is sealed to the owner of the book it sits in, whoever writes it, and every request to its recipient. The code is in [`src/lib/encryption`](../src/lib/encryption).
 
 | In Alice's book | Written by | Sealed to | Read by |
 |---|---|---|---|

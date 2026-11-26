@@ -1,6 +1,6 @@
 # Relays
 
-[README](../README.md) · [How it works](how-it-works.md) · **Relays** · [Configuration](configuration.md) · [Development](development.md)
+[README](../README.md) · [How it works](how-it-works.md) · **Relays** · [Configuration](configuration.md) · [Development](development.md) · [FAQ](faq.md)
 
 Relays let browsers find each other, carry a connection when WebRTC can't, and keep a replica of the address books for people who are offline. They can't change what's in a book: every entry is checked with the [access controller](how-it-works.md#who-may-write-into-an-address-book). Nor can they read it: every card is sealed to the book's owner, and a relay keeps only ciphertext ([Encryption](how-it-works.md#encryption-sealed-to-the-reader)).
 
