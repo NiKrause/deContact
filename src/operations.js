@@ -31,26 +31,14 @@ export async function loadContact(id) {
  * At the end we switch back to ContactList Tab
  * @returns {Promise<void>}
  */
-export async function addContact(isOnBoarding) {
-
-    if(!isOnBoarding){
-        _selectedAddr.owner = _orbitdb?.identity?.id
-        _selectedAddr.sharedAddress = _dbMyAddressBook?.address
-        _selectedAddr._id = await sha256(JSON.stringify(_selectedAddr))
-        const hash = await _dbMyAddressBook.put(_selectedAddr)
-        notify(`Contact added successfully to ipfs/orbitdb! ${hash}`);
-        selectedAddr.set({})
-        selectedTab.set(0)
-    }
-    else{ //here we should have already _id, owner etc fields from the dummy before (otherwise we get double entries in Alice contact list)
-        console.log("going to root now")
-        const hash = await _dbMyAddressBook.put(_selectedAddr)
-        notify(`Contact added successfully to ipfs/orbitdb! ${hash}`);
-        window.location.pathname = "/"
-        selectedAddr.set({})
-        selectedTab.set(0)
-    }
-
+export async function addContact() {
+    _selectedAddr.owner = _orbitdb?.identity?.id
+    _selectedAddr.sharedAddress = _dbMyAddressBook?.address
+    _selectedAddr._id = await sha256(JSON.stringify(_selectedAddr))
+    const hash = await _dbMyAddressBook.put(_selectedAddr)
+    notify(`Contact added successfully to ipfs/orbitdb! ${hash}`);
+    selectedAddr.set({})
+    selectedTab.set(0)
 }
 
 /**
@@ -58,7 +46,7 @@ export async function addContact(isOnBoarding) {
  * 2. Inform the subscribers about the address update
  * @returns {Promise<void>}
  */
-export async function updateContact(isOnBoarding) {
+export async function updateContact() {
     const newAddrBook = _myAddressBook.filter( el => el._id !== _selectedAddr._id )
     _selectedAddr.owner = _orbitdb?.identity?.id
     await _dbMyAddressBook.put(_selectedAddr)
@@ -70,8 +58,6 @@ export async function updateContact(isOnBoarding) {
     }
     selectedAddr.set({})
     selectedTab.set(0)
-    if(isOnBoarding) window.location.pathname = "/"
-
 }
 
 /**

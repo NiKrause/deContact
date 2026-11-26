@@ -13,16 +13,17 @@
     export let qrCodeOpen
 
     let onBoardingToken
-    let requestAddress = true
+    /** whoever scans the code may share their card with us in return (#86) */
+    let twoWay = true
     let fullDeContactUrl = true
 
     // a new one-time token each time the dialog opens or the checkbox changes (it is signed in)
     let issuing = 0
-    $: if (qrCodeOpen && $orbitdb) issueToken(requestAddress)
-    function issueToken(requestAddress) {
+    $: if (qrCodeOpen && $orbitdb) issueToken(twoWay)
+    function issueToken(twoWay) {
         const issue = ++issuing
         onBoardingToken = undefined
-        issueOnboardingToken({ requestAddress })
+        issueOnboardingToken({ twoWay })
             .then((token) => { if (issue === issuing) onBoardingToken = token })
             .catch((error) => console.log("could not create an invitation link:", error?.message))
     }
@@ -46,7 +47,10 @@
                     bind:toggled={fullDeContactUrl}/>
             </Column>
             <Column>
-                <Checkbox labelText="Request address from peer"  bind:checked={requestAddress} />
+                <Checkbox id="two-way-exchange" labelText="Two-way exchange" bind:checked={twoWay} />
+                <div class="bx--form__helper-text">
+                    Whoever scans this code can also share their contact details with you. They decide whether to.
+                </div>
             </Column>
         </Row>
         <Row>

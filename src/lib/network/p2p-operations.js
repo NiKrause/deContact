@@ -18,7 +18,8 @@ import {
     subscription,
     connectedPeers,
     followList, dbMessages, selectedTab, syncedDevices,
-    useWebRTC
+    useWebRTC,
+    exchangesWaiting
 } from "../../stores.js";
 
 import { confirm } from "../components/addressModal.js"
@@ -33,8 +34,10 @@ import {
     createReplayGuard,
     openMessage,
     redeemOnboardingToken,
-    sealMessage
+    sealMessage,
+    verifyOnboardingToken
 } from "./contact-messages.js";
+import { EXCHANGE_RETRY_MS, createExchangeStore, exchangeNeeds } from "./exchanges.js";
 
 let blockstore = new LevelBlockstore("./helia-blocks")
 let datastore = new LevelDatastore("./helia-data")
@@ -45,7 +48,20 @@ const pendingRequests = new Map();
 const answering = new Set();
 /** when we last answered each sender */
 const answeredAt = new Map();
+/** "sender token" of invitation link requests we answered in the dialog: their resends ask nobody again */
+const answeredLinks = new Set();
 const replayGuard = createReplayGuard();
+
+/**
+ * The inviter whose link is open in the onboarding view (#86): their requests wait for our
+ * choice (heldInvitations), and no request dialog appears until the view is left.
+ */
+let onboardingWith
+/** the newest request of an inviter that waits for our choice: inviter -> request */
+const heldInvitations = new Map();
+let releaseDialogs
+/** resolves once request dialogs may appear */
+let dialogsAllowed = Promise.resolve()
 
 let _libp2p; /** @type {import('libp2p').Libp2p} Value of to the libp2p store variable containing the libp2p instance*/
 libp2p.subscribe((val) => {
@@ -157,6 +173,7 @@ export async function startAddressBook(signer, keys) {
 
     initReplicationBackup(_orbitdb.identity.id)
 
+    void retryExchanges() // the links we opened before a reload
     startInvitationCheckWorker()
     _dbMyAddressBook.events.on('join', async (peerId, heads) => {
         console.log(`db replicated (join event received) peerId: ${peerId}`,heads)
@@ -232,7 +249,8 @@ function processMessageQueue() {
 
 /**
  * A verified request: write our card into the sender's address book - right away for a
- * valid invitation link of ours, otherwise after the user confirmed.
+ * valid invitation link of ours, otherwise after the user confirmed. A request of an
+ * inviter whose link we opened is answered by our choice instead (#86).
  */
 async function answerRequest(request) {
     const me = _orbitdb.identity.id
@@ -249,19 +267,45 @@ async function answerRequest(request) {
     // what we write into it is sealed to the sender, the book's owner
     const requesterDB = bookOf(opened)
 
+    // the inviter of a link we opened: we chose, or are about to, whether they get our card;
+    // a token other than that link's can only be one of ours
+    const exchange = exchanges().get(sender)
+    const toOurLink = request.onBoardingToken !== undefined && request.onBoardingToken !== exchange?.token
+    if (!toOurLink && (exchange || onboardingWith === sender)) {
+        if (await answerInviter(request, requesterDB, exchange)) return
+        return askToConfirm(request, requesterDB)
+    }
+
     if (request.onBoardingToken !== undefined) {
         const redeemed = await redeemOnboardingToken(request.onBoardingToken, { inviter: me, invitee: sender, store: onboardingTokens() })
         if (redeemed.ok) {
             console.log(`accepted the invitation link of ${sender}`)
+            // two-way exchange (#86): the invitation they asked for, in case they share their card
+            if (request.twoWay && redeemed.twoWay) await sendInvitation(sender, request.onBoardingToken)
             await writeMyAddressIntoRequesterDB(requesterDB, data.invitation);
-            if (redeemed.requestAddress) await requestAddress(sender, true)
+            // their book, so that later changes of our card reach it
+            await rememberTheirBook(sender, data.sharedAddress)
             initReplicationBackup(me) //init replication of all subscriber ids
+            return
+        }
+        if (answeredLinks.has(`${sender} ${request.onBoardingToken}`)) {
+            console.log(`dropped contact message from ${sender}: we answered this invitation link already`)
             return
         }
         console.log(`rejected the invitation link of ${sender}: it ${redeemed.reason}`)
         notify(`the invitation link ${redeemed.reason} - please confirm the request`);
     }
 
+    await askToConfirm(request, requesterDB)
+    if (request.onBoardingToken !== undefined) answeredLinks.add(`${sender} ${request.onBoardingToken}`)
+}
+
+/** the request dialog: send our card (and ask back), send it only, or cancel */
+async function askToConfirm(request, requesterDB) {
+    const me = _orbitdb.identity.id
+    const { sender, data } = request
+    // no dialog while the onboarding view is open (#86)
+    await dialogsAllowed
     console.log(`asking to confirm the request of ${sender}`)
     const result = await confirm({ data: request });
 
@@ -270,9 +314,7 @@ async function answerRequest(request) {
             //As Bob updates his contact data (without requesting contact data of Alice), Bob needs to remember Alice db address so he can
             //1) update his contact data in her address book
             //2) keep a backup of her data
-            const subscriber  = { sharedAddress: data.sharedAddress, owner: sender, subscriber:true }
-            subscriber._id = await sha256(JSON.stringify(subscriber));
-            await _dbMyAddressBook.put(subscriber)
+            await rememberTheirBook(sender, data.sharedAddress)
             await writeMyAddressIntoRequesterDB(requesterDB, data.invitation); //Bob writes his address into Alice address book
         }
         else {
@@ -282,19 +324,83 @@ async function answerRequest(request) {
         initReplicationBackup(me) //init replication of all subscriber ids
 
     } else{
-        try {
-            // the placeholder the requester wrote for us is the only document we may change;
-            // it is sealed to the requester, so we replace it without reading it
-            const placeholder = await requesterDB.get(contactKey(me))
-            if (placeholder) {
-                const canceled = { _id: contactKey(me), owner: me, firstName: "request canceled", lastName: me, invitation: data.invitation }
-                const hash = await requesterDB.put(canceled)
-                notify(`wrote canceled request with hash ${hash}`);
-            }
-        } catch (error) {
-            console.error('Error in writeMyAddressIntoRequesterDB:', error);
-        }
+        await decline(requesterDB, data.invitation)
     }
+}
+
+/**
+ * Cancel: the placeholder the requester wrote for us, the only document of theirs we may
+ * change, says so. It is sealed to the requester, so we replace it without reading it. We
+ * know it from our own documents, which carry their invitation in the clear: a card we
+ * gave them, or an earlier "request canceled", stays as it is.
+ */
+async function decline(requesterDB, invitation) {
+    const me = _orbitdb.identity.id
+    try {
+        const placeholder = await requesterDB.get(contactKey(me))
+        if (placeholder && placeholder.value?.invitation === undefined) {
+            const canceled = { _id: contactKey(me), owner: me, firstName: "request canceled", lastName: me, invitation }
+            const hash = await requesterDB.put(canceled)
+            notify(`wrote canceled request with hash ${hash}`);
+        }
+    } catch (error) {
+        console.error('could not decline the request:', error);
+    }
+}
+
+/**
+ * A request of the inviter whose link we opened (#86, exchanges.js): it waits while the
+ * onboarding view is open; then our choice answers it. False: ask in the dialog after all
+ * (no choice was offered, or the view was left before choosing).
+ */
+async function answerInviter(request, requesterDB, exchange) {
+    const me = _orbitdb.identity.id
+    const { sender, data } = request
+    if (onboardingWith === sender) {
+        heldInvitations.set(sender, request)
+        console.log(`holding the request of ${sender} until we chose`)
+        showWaiting()
+        return true
+    }
+    switch (exchange?.choice) {
+        case 'only':
+            console.log(`declined the request of ${sender}: we saved our card only`)
+            await decline(requesterDB, data.invitation)
+            return true
+        case 'share': {
+            // their answer to our link comes without a placeholder for us in their book
+            const answersOurLink = request.onBoardingToken === exchange.token
+            if (await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { waitForPlaceholder: !answersOurLink })) {
+                exchanges().shared(sender)
+                console.log(`shared our card with ${sender}`)
+                initReplicationBackup(me)
+                void retryExchanges()
+            }
+            return true
+        }
+        default:
+            return false
+    }
+}
+
+/**
+ * The answer to the two-way exchange of our invitation link (#86): our book and an
+ * invitation for `invitee`, with nopingpong and the link's token. No placeholder in our
+ * book and no resend: the invitee resends until it has what it needs.
+ */
+async function sendInvitation(invitee, onBoardingToken) {
+    const msg = await addressRequest(invitee, { onBoardingToken, nopingpong: true })
+    await _libp2p.services.pubsub.publish(CONTENT_TOPIC + "/" + invitee, new TextEncoder().encode(msg))
+    console.log(`sent an invitation to ${invitee} for the two-way exchange`)
+}
+
+/** a hidden record of somebody's book, so that we keep our card in it up to date and keep a backup */
+async function rememberTheirBook(owner, sharedAddress) {
+    const subscriber = { sharedAddress, owner, subscriber: true }
+    subscriber._id = await sha256(JSON.stringify(subscriber));
+    // their app resends its request: one record is enough
+    if (await _dbMyAddressBook.get(subscriber._id)) return
+    await _dbMyAddressBook.put(subscriber)
 }
 
 /**
@@ -316,6 +422,7 @@ async function getAddressRecords() {
             return addr.id !==undefined && addr.subscriber===undefined
         })
         myAddressBook.set(transformedRecords);
+        showWaiting()
         console.log("records in dbMyAddressBook ",addressRecords)
         return addressRecords
     } catch (e) {
@@ -344,8 +451,14 @@ async function getAddressRecords() {
 async function initReplicationBackup(ourDID) {
 
     const addressRecords = await _dbMyAddressBook.all();
+    const addresses = new Set()
     _followList = addressRecords.filter((addr)=> {
-        return addr.value.owner !== ourDID && addr.value.sharedAddress!==undefined //sharedAddress undefined for all not decentralized addresses
+        //sharedAddress undefined for all not decentralized addresses
+        if (addr.value.owner === ourDID || addr.value.sharedAddress === undefined) return false
+        // a card and the record of the same book (rememberTheirBook): one is enough
+        if (addresses.has(addr.value.sharedAddress)) return false
+        addresses.add(addr.value.sharedAddress)
+        return true
     })
 
     followList.set(_followList)
@@ -401,10 +514,10 @@ async function signer() {
  * A signed address request for `recipient`, sealed to them, carrying our address book, an
  * invitation to write into it and our name (they cannot read our book to see who asks).
  */
-async function addressRequest(recipient, { onBoardingToken, nopingpong } = {}) {
+async function addressRequest(recipient, { onBoardingToken, nopingpong, twoWay } = {}) {
     const data = { sharedAddress: _dbMyAddressBook.address, invitation: await invite(recipient) }
     const from = ownCard()
-    return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, from, onBoardingToken, nopingpong })
+    return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, from, onBoardingToken, nopingpong, twoWay })
 }
 
 /** our own card as our address book shows it */
@@ -424,13 +537,146 @@ function onboardingTokens() {
  * A one-time token for our invitation link (QR code): the first person who opens the link
  * gets our contact data without us confirming; later or after 24 hours we are asked.
  *
- * @param {{ requestAddress?: boolean }} options whether we then ask them for their contact data
+ * @param {{ twoWay?: boolean }} options whether they may share their contact data with us
+ *   in return (#86): then we send them an invitation without asking, when they ask for one
  * @returns {Promise<string>}
  */
-export async function issueOnboardingToken({ requestAddress = true } = {}) {
-    const token = await createOnboardingToken(await signer(), { requestAddress })
+export async function issueOnboardingToken({ twoWay = true } = {}) {
+    const token = await createOnboardingToken(await signer(), { twoWay })
     onboardingTokens().issued(token)
     return token.text
+}
+
+let _exchanges
+/** the invitation links we opened, as the invitee (exchanges.js) */
+function exchanges() {
+    _exchanges ??= createExchangeStore(localStorage)
+    return _exchanges
+}
+
+/** a request dialog would interrupt the onboarding: they wait (#86) */
+function holdDialogs() {
+    if (releaseDialogs) return
+    dialogsAllowed = new Promise((resolve) => (releaseDialogs = resolve))
+}
+
+function allowDialogs() {
+    releaseDialogs?.()
+    releaseDialogs = undefined
+    dialogsAllowed = Promise.resolve()
+}
+
+/**
+ * We opened an invitation link (#86). Nothing is sent yet (sendInvitationLinkRequest),
+ * so the person can save and choose before the network is up.
+ *
+ * @param inviter the DID in the link
+ * @param onBoardingToken the token in the link
+ * @returns {Promise<{ twoWay: boolean }>} whether we may share our card back: the token
+ *   is the inviter's, valid, and allows it
+ */
+export async function openInvitationLink(inviter, onBoardingToken) {
+    onboardingWith = inviter
+    holdDialogs()
+    const verified = onBoardingToken === undefined
+        ? { ok: false, reason: 'has no token' }
+        : await verifyOnboardingToken(onBoardingToken, { inviter })
+    if (!verified.ok) {
+        // their device asks them; a request they send back is asked for in our dialog
+        console.log(`the invitation link of ${inviter} ${verified.reason}: they will be asked`)
+        return { twoWay: false }
+    }
+    const exchange = exchanges().opened({ inviter, token: onBoardingToken, expiresAt: verified.token.expiresAt, twoWay: verified.token.twoWay })
+    return { twoWay: exchange.twoWay }
+}
+
+/**
+ * Once the network is up: ask the inviter for their card, and, when the token allows a
+ * two-way exchange, for an invitation in case we share ours. Resent until we have what we
+ * need (retryExchanges).
+ */
+export async function sendInvitationLinkRequest(inviter, onBoardingToken) {
+    if (!exchanges().get(inviter)) return requestAddress(inviter, false, onBoardingToken) // asked for, as any request
+    await writePlaceholder(inviter, onBoardingToken)
+    await retryExchanges()
+}
+
+/**
+ * We saved our card in the onboarding view and chose (#86, exchanges.js CHOICES). A
+ * request of the inviter that waited is answered by the choice, and dialogs may appear
+ * again.
+ */
+export async function chooseExchange(inviter, choice) {
+    const exchange = exchanges().chose(inviter, choice)
+    if (!exchange) console.log(`no valid invitation link of ${inviter}: nothing chosen`)
+    // saved before the network was up: the placeholder their card is to replace
+    else await writePlaceholder(inviter, exchange.token)
+    leaveInvitationLink(inviter)
+    await retryExchanges() // with 'share' and no invitation at hand: ask for one now
+}
+
+/** the onboarding view is gone: a request that waited is answered, or asked for in the dialog */
+export function leaveInvitationLink(inviter) {
+    if (onboardingWith !== inviter) return
+    onboardingWith = undefined
+    allowDialogs()
+    const held = heldInvitations.get(inviter)
+    heldInvitations.delete(inviter)
+    // through the queue, so that one request of theirs is answered at a time
+    if (held && !(pendingRequests.get(inviter)?.request.timestamp > held.timestamp)) {
+        pendingRequests.set(inviter, { request: held, receivedAt: Date.now() })
+        processMessageQueue()
+    }
+    showWaiting()
+}
+
+/** a placeholder card is ours, under the key the contact's card will have */
+const isPlaceholder = (card, did) => card?.firstName === 'invited' && card?.lastName === did
+
+/** what we have of each link we opened, and what we still need (exchanges.js) */
+function exchangeStates() {
+    return exchanges().all().map((exchange) => {
+        const card = _myAddressBook?.find((it) => it.owner === exchange.inviter && !isPlaceholder(it, exchange.inviter))
+        const needs = exchangeNeeds(exchange, {
+            cardArrived: Boolean(card),
+            invitationHeld: heldInvitations.has(exchange.inviter),
+            declinedByInviter: card?.firstName === 'request canceled'
+        })
+        return { exchange, card, needs }
+    })
+}
+
+/** whose phone we wait for: shown as "Waiting for <name>'s phone…" */
+function showWaiting() {
+    exchangesWaiting.set(exchangeStates().filter(({ needs }) => needs.waiting)
+        .map(({ exchange, card }) => ({ inviter: exchange.inviter, name: card?.firstName || card?.lastName || undefined })))
+}
+
+let exchangeTimer
+/**
+ * Resends the request of every link we opened until we have what we need, every
+ * EXCHANGE_RETRY_MS until its token expires (#86): the inviter's phone may not answer
+ * while their app is in the background.
+ */
+async function retryExchanges() {
+    clearTimeout(exchangeTimer)
+    if (!_dbMyAddressBook?.address || !_libp2p) return
+    let again = false
+    for (const { exchange, needs } of exchangeStates()) {
+        if (!needs.send) continue
+        again = true
+        try {
+            // a new message each time: the recipient drops one it has seen before
+            const msg = await addressRequest(exchange.inviter, { onBoardingToken: exchange.token, twoWay: needs.twoWay })
+            await _libp2p.services.pubsub.publish(CONTENT_TOPIC + "/" + exchange.inviter, new TextEncoder().encode(msg))
+            console.log(`sent the request of the invitation link to ${exchange.inviter}${needs.twoWay ? ', asking for an invitation' : ''}`)
+        } catch (error) {
+            console.log(`could not send the request of the invitation link to ${exchange.inviter}:`, error?.message)
+        }
+    }
+    showWaiting()
+    clearTimeout(exchangeTimer)
+    if (again) exchangeTimer = setTimeout(() => void retryExchanges(), EXCHANGE_RETRY_MS)
 }
 
 /**
@@ -452,17 +698,7 @@ export const requestAddress = async (_scannedAddress,nopingpong, onBoardingToken
         // the invitation lets the recipient write their card into our address book
         const msg = await addressRequest(scannedAddress, { onBoardingToken, nopingpong })
 
-        // a placeholder under the key their card will have; keep a card we already have
-        if (!(await _dbMyAddressBook.get(contactKey(scannedAddress)))) {
-            const dummyContact = {
-                _id: contactKey(scannedAddress),
-                owner: scannedAddress,
-                firstName: 'invited',
-                lastName: scannedAddress
-            }
-            if(onBoardingToken!==undefined) dummyContact.onBoardingToken = onBoardingToken
-            await _dbMyAddressBook.put(dummyContact)
-        }
+        await writePlaceholder(scannedAddress, onBoardingToken)
 
         await _libp2p.services.pubsub.publish(CONTENT_TOPIC+"/"+scannedAddress, new TextEncoder().encode(msg))
 
@@ -471,6 +707,15 @@ export const requestAddress = async (_scannedAddress,nopingpong, onBoardingToken
     } catch (error) {
         console.error('Error in requestAddress:', error);
     }
+}
+
+/** a placeholder under the key their card will have; keep a card we already have */
+async function writePlaceholder(did, onBoardingToken) {
+    if (await _dbMyAddressBook.get(contactKey(did))) return
+    const dummyContact = { _id: contactKey(did), owner: did, firstName: 'invited', lastName: did }
+    if (onBoardingToken !== undefined) dummyContact.onBoardingToken = onBoardingToken
+    await _dbMyAddressBook.put(dummyContact)
+    await getAddressRecords()
 }
 
 /**
@@ -484,7 +729,8 @@ function startInvitationCheckWorker() {
         console.log("Checking for 'invited' contacts to resend requests...");
 
         const allContacts = await _dbMyAddressBook.all();
-        const invitedContacts = allContacts.filter(contact => contact.value.firstName === 'invited');
+        // the links we opened resend by themselves (retryExchanges)
+        const invitedContacts = allContacts.filter(contact => contact.value.firstName === 'invited' && !exchanges().get(contact.value.owner));
 
         if (invitedContacts.length === 0) {
             console.log("No 'invited' contacts found. Worker will not schedule further checks.");
@@ -548,7 +794,12 @@ async function waitForOurEntries(requesterDB, timeoutMs = SYNC_WAIT_MS) {
     return ours()
 }
 
-export async function writeMyAddressIntoRequesterDB(requesterDB, invitation) {
+/**
+ * @param {{ waitForPlaceholder?: boolean }} options false: the requester wrote no
+ *   placeholder for us (the answer to our invitation link, #86)
+ * @returns {Promise<string | undefined>} the entry's hash, if we wrote one
+ */
+export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { waitForPlaceholder = true } = {}) {
     try {
         const card = ownCard()
         if (!card) {
@@ -560,13 +811,26 @@ export async function writeMyAddressIntoRequesterDB(requesterDB, invitation) {
             return
         }
         // write after the requester's placeholder, so our card replaces it
-        const placeholder = await waitForOurEntries(requesterDB)
-        if (placeholder.length === 0) console.log(`no placeholder for us in ${requesterDB.address} yet - writing our card anyway`)
+        if (waitForPlaceholder) {
+            const placeholder = await waitForOurEntries(requesterDB)
+            if (placeholder.length === 0) console.log(`no placeholder for us in ${requesterDB.address} yet - writing our card anyway`)
+        }
         const hash = await requesterDB.put(cardFor(card, invitation))
         notify(`wrote my address into requesters db with hash ${hash}`);
+        return hash
     } catch (error) {
         console.error('Error in writeMyAddressIntoRequesterDB:', error);
     }
+}
+
+/**
+ * Our own card, saved in the onboarding view (#86): into our book, and into every book we
+ * already keep our card in.
+ */
+export async function saveOwnCard(card) {
+    await _dbMyAddressBook.put(card)
+    await getAddressRecords()
+    await writeMyCardIntoFollowedBooks(card)
 }
 
 /**

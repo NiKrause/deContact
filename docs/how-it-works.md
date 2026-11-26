@@ -107,7 +107,7 @@ What stays visible:
 
 ## Exchanging contact data
 
-Bob scans Alice's DID. Each then writes their own card into the other's address book:
+Bob scans Alice's DID. Each then writes their own card into the other's address book. (Opening Alice's [invitation link](#invitation-links) instead goes without a dialog.)
 
 ```mermaid
 sequenceDiagram
@@ -145,9 +145,9 @@ sequenceDiagram
 
 ### Requests
 
-Every request is signed with the sender's `did:key`, the identity of their vault, then sealed to the recipient ([above](#encryption-sealed-to-the-reader)). The signature covers the sender, the recipient, the time, a random nonce, the sender's book address, the invitation and the sender's name ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
+Every request is signed with the sender's `did:key`, the identity of their vault, then sealed to the recipient ([above](#encryption-sealed-to-the-reader)). The signature covers the sender, the recipient, the time, a random nonce, the sender's book address, the invitation, the sender's name and, for an [invitation link](#invitation-links), its token and whether the sender asks for an invitation (`twoWay`) ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
 
-- anything that is not sealed to them, or does not have the shape of a request;
+- anything that is not sealed to them, or does not have the shape of a request (`twoWay` without a token, for example);
 - a request whose signature does not belong to the DID it names as sender;
 - a request for somebody else, older or newer than 10 minutes, or seen before;
 - a request whose book is not the sender's own (the owner in the book's manifest) or whose invitation is not the sender's.
@@ -158,7 +158,40 @@ A peer subscribed to the topic sees that something was sent to the recipient, wh
 
 ### Invitation links
 
-The QR code can carry a link instead of the bare DID. Its token is signed by the inviter and holds a random nonce, an expiry (24 hours) and whether the inviter asks back for the invitee's card. The device that created the link remembers it. The first person who sends a request with it gets the inviter's card without a dialog; their app may resend the request with the same token. Anybody else, and anybody after 24 hours, makes the inviter's app ask as for any other request. So does a link created on another of the inviter's devices.
+The onboarding at a conference ([#86](https://github.com/NiKrause/deContact/issues/86)): Alice shows a QR code, Bob opens the link, gets Alice's card at once, quickly types his own and decides whether Alice gets it too.
+
+The QR code can carry a link instead of the bare DID: `#/onboarding/<Alice's DID>?onBoardingToken=…`. Its token is signed by Alice and holds a random nonce, an expiry (24 hours) and whether a **two-way exchange** is allowed: the option *Two-way exchange* in the QR dialog, on by default, says "Whoever scans this code can also share their contact details with you. They decide whether to." The device that created the link remembers it. Alice's card is not in the QR code: anybody who photographs the code would have it.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Alice
+    participant AB as Alice's browser
+    participant BB as Bob's browser
+    actor Bob
+
+    Alice->>AB: QR code, "Two-way exchange" on
+    AB->>AB: sign a token {nonce, expiry, two-way}, remember it
+    Bob->>BB: scan, open #/onboarding/did(Alice)?onBoardingToken=…
+    BB->>BB: passkey → identity, check the token against did(Alice),<br/>placeholder contact:did(Alice) into Bob's book
+    loop every 15 s until Bob's app has what it needs, at most until the token expires
+        BB->>AB: REQUEST_ADDRESS {Bob's book, invitation for Alice, token, twoWay},<br/>signed by Bob, sealed to Alice
+    end
+    Note over AB: Alice's own token, valid, two-way, Bob is its first invitee: no dialog
+    AB->>BB: REQUEST_ADDRESS {Alice's book, invitation for Bob, token, nopingpong}, sealed to Bob
+    AB->>BB: card contact:did(Alice) + invitation into Bob's book, sealed to Bob
+    BB->>Bob: "Alice … was added to your address book", her invitation waits
+    Bob->>BB: email, first and last name → "Save and share with Alice"
+    BB->>AB: card contact:did(Bob) + invitation into Alice's book, sealed to Alice
+    Note over BB: "Save only": the invitation is dropped,<br/>nothing of Bob's goes into Alice's book
+```
+
+- **The first person** who sends a request with the token gets Alice's card without a dialog. Anybody else, anybody after 24 hours, and a link created on another of Alice's devices make her app ask, as for any other request; the resends of a request she answered in the dialog ask her no second time.
+- **The form.** While Alice's card is on its way, Bob's app shows the form: email, first name and last name first, the address behind *Add address*. The email alone is enough. Bob chooses **Save and share with Alice** or **Save only**; a link without a two-way exchange, or one whose token does not check out against the DID in it, offers only **Save**. No request dialog appears during the onboarding: a request of Alice's that arrives before Bob saves waits for his choice, and *Save only* declines it, as Cancel does in the dialog. Bob's app writes no placeholder card of his own (his DID as the last name) anywhere.
+- **Sharing back without being asked.** Bob may write into Alice's book only with an invitation she signed for his DID, and she cannot sign one before she knows it. So, when the token allows a two-way exchange, Bob's request carries `twoWay: true`: "send me an invitation, in case I share". For her own valid token and its first invitee, Alice's device answers without asking: a request with her invitation, `nopingpong` and the same token, which tells Bob's app what it answers. It writes no placeholder for Bob into her book and does not resend. Bob's app asks for the invitation together with the card, so that it is there while Alice still holds her phone, and uses it only if he shares. After *Save and share* it asks until the invitation has arrived.
+- **Waiting for Alice's phone.** A PWA in the background misses pubsub messages. Bob's app resends the request with the same token every 15 seconds until Alice's card (and, after *Save and share*, her invitation) has arrived, until the token expires, and says "Waiting for Alice's phone…" (with her DID until her card is there). His choice is kept in `localStorage` (`decontact.exchanges.v1`) until the token expires: an invitation that comes after a reload is used, or declined, without asking him again ([`exchanges.js`](../src/lib/network/exchanges.js)).
+- **Both ways stay current.** Alice remembers Bob's book (a hidden record in hers), so a later change of her card reaches him even when he saved only. After *Save and share* his changes reach her the same way.
+- **Apps from before #86.** The token's format did not change; its last field was "request address from peer". An older app that opens a new link gets Alice's card only. A request from an older app of Alice's, which asked Bob back on its own, waits for his choice like any request of hers.
 
 ## Who may write into an address book
 
