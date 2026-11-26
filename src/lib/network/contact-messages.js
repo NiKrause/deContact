@@ -6,6 +6,13 @@
  * - signed with the sender's did:key, the Ed25519 key the DID is made of (the identity of
  *   the sender's passkey vault, lib/identity/vault.js), so nobody else can send a request
  *   in the sender's name;
+ * - then sealed to the recipient (#59, finding 3 of #58): to the X25519 counterpart of
+ *   their did:key (lib/encryption/sealing.js). A peer on the topic sees that something was
+ *   sent to the recipient, not who sent it, the sender's book or name. Signed inside the
+ *   seal, and the signature names the recipient, so a request sealed again for somebody
+ *   else is dropped there;
+ * - the sender's name travels inside (`from`): the recipient cannot read the sender's
+ *   book, which is sealed to its owner;
  * - recipient, timestamp and a random nonce are inside the signature: a receiver drops
  *   messages for somebody else, messages outside MAX_CLOCK_SKEW_MS and messages it has
  *   seen before (createReplayGuard);
@@ -20,17 +27,25 @@
 import { generateKeyPairFromSeed } from '@libp2p/crypto/keys'
 import { base64url } from 'multiformats/bases/base64'
 import { publicKeyFromDid, verifyInvitation } from '@le-space/orbitdb-access-controller-decontact'
+import { encryptionKeyOfDid, isSeal, openSeal, seal } from '../encryption/sealing.js'
 
 export const REQUEST_ADDRESS = 'REQUEST_ADDRESS'
 
 /** a request is well below 2 KiB; anything much larger is not one of ours */
 export const MAX_MESSAGE_LENGTH = 16 * 1024
+/** a sealed request: the signed one in base64url, and the seal around it */
+export const MAX_SEALED_LENGTH = 24 * 1024
 /** how far a message's timestamp may be from our clock (gossipsub delivers at once) */
 export const MAX_CLOCK_SKEW_MS = 10 * 60 * 1000
 /** how long an invitation link can be used */
 export const ONBOARDING_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
 const MESSAGE_CONTEXT = 'decontact/message/v2'
+/** what a request is sealed under: for one recipient */
+const REQUEST_SEAL_CONTEXT = 'decontact/request/v1'
+/** the fields of the sender's card a request carries, so the recipient knows who asks */
+export const FROM_FIELDS = ['firstName', 'lastName', 'city']
+const MAX_NAME_LENGTH = 200
 const ONBOARDING_CONTEXT = 'decontact/onboarding/v1'
 const NONCE = /^[A-Za-z0-9_-]{22}$/ // 16 random bytes, base64url
 const SIGNATURE = /^[A-Za-z0-9_-]{86}$/ // 64 bytes Ed25519, base64url
@@ -78,19 +93,37 @@ const signed = async (signer, bytes) => base64url.baseEncode(await signer.sign(b
 
 const messageBytes = (payload) => encode(`${MESSAGE_CONTEXT}\n${payload}`)
 
+const requestContext = (recipient) => `${REQUEST_SEAL_CONTEXT}\n${recipient}`
+
+/** the sender's name for the recipient's dialog: only FROM_FIELDS, only text */
+function fromOf(card) {
+    if (!isObject(card)) return undefined
+    const from = {}
+    for (const field of FROM_FIELDS) {
+        if (typeof card[field] === 'string' && card[field] !== '') from[field] = card[field].slice(0, MAX_NAME_LENGTH)
+    }
+    return Object.keys(from).length > 0 ? from : undefined
+}
+
 /**
- * A signed message, ready to publish.
+ * A signed message sealed to its recipient, ready to publish.
  *
  * @param signer from createSigner; its DID is the sender
- * @param {{ command: string, recipient: string, data: { sharedAddress: string, invitation: object }, onBoardingToken?: string, nopingpong?: boolean }} fields
+ * @param {{ command: string, recipient: string, data: { sharedAddress: string, invitation: object }, from?: object, onBoardingToken?: string, nopingpong?: boolean }} fields
+ *   from: the sender's card; only its name (FROM_FIELDS) goes along
  * @returns {Promise<string>}
  */
-export async function sealMessage(signer, { command, recipient, data, onBoardingToken, nopingpong }, { now = Date.now() } = {}) {
+export async function sealMessage(signer, { command, recipient, data, from, onBoardingToken, nopingpong }, { now = Date.now() } = {}) {
+    const recipientKey = encryptionKeyOfDid(recipient)
+    if (!recipientKey) throw new Error(`${recipient} is not a did:key we can seal to`)
     const fields = { command, sender: signer.did, recipient, timestamp: now, nonce: randomNonce(), data }
+    const name = fromOf(from)
+    if (name) fields.from = name
     if (onBoardingToken !== undefined) fields.onBoardingToken = onBoardingToken
     if (nopingpong === true) fields.nopingpong = true
     const payload = JSON.stringify(fields)
-    return JSON.stringify({ v: 2, payload, sig: await signed(signer, messageBytes(payload)) })
+    const signedText = JSON.stringify({ v: 2, payload, sig: await signed(signer, messageBytes(payload)) })
+    return JSON.stringify({ v: 3, sealed: await seal(recipientKey, encode(signedText), { context: requestContext(recipient) }) })
 }
 
 /** what is wrong with the shape of a message, or null */
@@ -112,18 +145,47 @@ function shapeProblem(message) {
         return 'bad invitation link'
     }
     if (nopingpong !== undefined && typeof nopingpong !== 'boolean') return 'bad nopingpong'
+    const { from } = message
+    if (from !== undefined) {
+        if (!isObject(from)) return 'bad name'
+        for (const [field, value] of Object.entries(from)) {
+            if (!FROM_FIELDS.includes(field) || typeof value !== 'string' || value.length > MAX_NAME_LENGTH) return 'bad name'
+        }
+    }
     return null
+}
+
+/** the signed message inside a sealed one, or why there is none */
+async function unseal(text, { me, keys }) {
+    if (typeof text !== 'string' || text.length > MAX_SEALED_LENGTH) return { reason: 'not text or too large' }
+    const outer = parseJson(text)
+    if (!isObject(outer) || outer.v !== 3 || !isSeal(outer.sealed)) return { reason: 'not a sealed deContact message' }
+    if (!keys) return { reason: 'no key to open it' }
+    try {
+        const bytes = await openSeal(keys, outer.sealed, { context: requestContext(me) })
+        return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes) }
+    } catch {
+        return { reason: 'not sealed for us' }
+    }
 }
 
 /**
  * Checks a received message. Never throws.
  *
  * @param {string} text as received
- * @param {{ me: string, now?: number }} options me: our DID
+ * @param {{ me: string, keys?: { publicKey: Uint8Array, privateKey: CryptoKey }, now?: number }} options
+ *   me: our DID; keys: our X25519 pair (vault.js `encryptionKeysOf`)
  * @returns {Promise<{ ok: true, message: object } | { ok: false, reason: string, sender?: string }>}
  *   sender: the DID the message claims to come from, for logging
  */
-export async function openMessage(text, { me, now = Date.now() }) {
+export async function openMessage(text, { me, keys, now = Date.now() }) {
+    const unsealed = await unseal(text, { me, keys })
+    if (unsealed.reason) return { ok: false, reason: unsealed.reason }
+    return openSigned(unsealed.text, { me, now })
+}
+
+/** the checks of a signed message, once unsealed */
+async function openSigned(text, { me, now }) {
     if (typeof text !== 'string' || text.length > MAX_MESSAGE_LENGTH) return { ok: false, reason: 'not text or too large' }
     const envelope = parseJson(text)
     if (!isObject(envelope) || envelope.v !== 2 || typeof envelope.payload !== 'string' || typeof envelope.sig !== 'string') {

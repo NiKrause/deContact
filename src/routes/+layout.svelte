@@ -12,7 +12,7 @@
     import { myDal, qrCodeOpen, qrCodeData, helia, orbitdb } from "../stores.js";
 
     import { startNetwork, startAddressBook, close } from "../lib/network/p2p-operations.js"
-    import { attachOrbitDB, handRecord, initVault, ready, session } from "#lib/identity/session.js"
+    import { attachOrbitDB, currentEncryptionKeys, handRecord, initVault, ready, session } from "#lib/identity/session.js"
     import { parseVaultRecord } from "#lib/identity/vault.js"
 
     import { connectedPeers } from "../stores.js";
@@ -63,7 +63,7 @@
         )
         const signer = await ready
         await network
-        await startAddressBook(signer);
+        await startAddressBook(signer, currentEncryptionKeys());
         await attachOrbitDB(get(orbitdb))
     } )
 

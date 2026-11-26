@@ -1,5 +1,5 @@
 import {notify, sha256} from "./utils/utils.js";
-import { writeMyCardIntoFollowedBooks } from "./lib/network/p2p-operations.js";
+import { removeContact, writeMyCardIntoFollowedBooks } from "./lib/network/p2p-operations.js";
 import {
     myAddressBook,
     selectedAddr,
@@ -74,10 +74,20 @@ export async function updateContact(isOnBoarding) {
 
 }
 
+/**
+ * Deletes the selected contact. A card somebody else keeps up to date (or the placeholder
+ * of a request to them) means removing that person: our card leaves their book too, and
+ * they get no more updates from us (removeContact).
+ */
 export async function deleteContact() {
-    const hash = await _dbMyAddressBook.del(_selectedAddr._id)
-    // myAddressBook.set(_myAddressBook.filter( el => el.id !== _selectedAddr.id ))
-    notify(`Contact deleted successfully! ${hash}`)
+    const owner = _selectedAddr.owner
+    if (owner && owner !== _orbitdb?.identity?.id) {
+        await removeContact(owner)
+        notify(`Contact removed: ${owner} gets no more updates from you`)
+    } else {
+        const hash = await _dbMyAddressBook.del(_selectedAddr._id)
+        notify(`Contact deleted successfully! ${hash}`)
+    }
     selectedAddr.set({})
     selectedTab.set(0)
 }

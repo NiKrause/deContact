@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { deriveAesKey, deriveSubkey, openVault } from '@le-space/orbitdb-identity-provider-webauthn-did/vault';
+import { ed25519 } from '@noble/curves/ed25519.js';
 import {
 	addCard,
 	addVirtualAuthenticator,
@@ -49,8 +50,9 @@ async function relayEntries(address) {
 }
 
 /**
- * What must not be on disk: the root (the PRF output), the identity's key and the vault
- * key - worked out here from the PRF outputs the page was given and the public record.
+ * What must not be on disk: the root (the PRF output), the identity's key, its X25519 key
+ * and the vault key - worked out here from the PRF outputs the page was given and the
+ * public record.
  */
 async function secretsOf(page) {
 	const outputs = await prfOutputs(page);
@@ -59,7 +61,10 @@ async function secretsOf(page) {
 	const secrets = {};
 	for (const [i, hex] of outputs.entries()) {
 		secrets[`PRF output ${i + 1}`] = hex;
-		secrets[`identity key from PRF output ${i + 1}`] = hexOf(await deriveSubkey(fromHex(hex), IDENTITY_INFO));
+		const identitySeed = await deriveSubkey(fromHex(hex), IDENTITY_INFO);
+		secrets[`identity key from PRF output ${i + 1}`] = hexOf(identitySeed);
+		// the X25519 key cards and requests are sealed to (#59)
+		secrets[`X25519 key from PRF output ${i + 1}`] = hexOf(ed25519.utils.toMontgomerySecret(identitySeed));
 		for (const slot of record.slots) {
 			try {
 				const { vaultKey } = await openVault(record.vault, {
@@ -132,7 +137,7 @@ test('a passkey opens the address book, again after a reload, and nothing secret
 			await expect.poll(() => names(page), { timeout: 30000 }).toContain(`${alice.first} ${alice.last}`);
 		});
 
-		await test.step('no root, identity key or vault key at rest', async () => {
+		await test.step('no root, identity key, X25519 key or vault key at rest', async () => {
 			await expectNothingSecretStored(page, did);
 		});
 	} finally {

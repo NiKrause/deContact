@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateKeyPairFromSeed } from '@libp2p/crypto/keys';
 import { base58btc } from 'multiformats/bases/base58';
 import { createInvitation } from '@le-space/orbitdb-access-controller-decontact';
+import { encryptionKeysFromSeed, openSeal, seal } from '../encryption/sealing.js';
 import {
 	MAX_CLOCK_SKEW_MS,
 	ONBOARDING_TOKEN_TTL_MS,
@@ -22,7 +23,7 @@ async function person(n) {
 	const seed = seedOf(n);
 	const key = await generateKeyPairFromSeed('Ed25519', seed);
 	const did = `did:key:${base58btc.encode(new Uint8Array([0xed, 0x01, ...key.publicKey.raw]))}`;
-	return { seed, did, signer: await createSigner(seed, did) };
+	return { seed, did, signer: await createSigner(seed, did), keys: await encryptionKeysFromSeed(seed, { did }) };
 }
 
 const alice = await person(1);
@@ -31,6 +32,8 @@ const carol = await person(3);
 const bookOf = (p) => `/orbitdb/zdpu${p.did.slice(-20)}`;
 
 const now = 1_800_000_000_000;
+/** how `me` opens what arrives on its topic */
+const as = (me, extra = {}) => ({ me: me.did, keys: me.keys, now, ...extra });
 
 /** a request from `from` to `to`, as their app sends it */
 async function request(from, to, extra = {}, options = { now }) {
@@ -38,12 +41,27 @@ async function request(from, to, extra = {}, options = { now }) {
 	return sealMessage(from.signer, { command: REQUEST_ADDRESS, recipient: to.did, data, ...extra }, options);
 }
 
-/** change the signed payload without signing again */
-function tamper(text, change) {
-	const envelope = JSON.parse(text);
+// part of the format (contact-messages.js)
+const contextFor = (recipient) => `decontact/request/v1\n${recipient.did}`;
+
+/** the signed message inside, as `to` opens it */
+async function unsealed(text, to = alice) {
+	const bytes = await openSeal(to.keys, JSON.parse(text).sealed, { context: contextFor(to) });
+	return new TextDecoder().decode(bytes);
+}
+
+/** a signed message sealed for `to`, as anybody can make one */
+async function sealedFor(signedText, to = alice) {
+	const sealed = await seal(to.keys.publicKey, new TextEncoder().encode(signedText), { context: contextFor(to) });
+	return JSON.stringify({ v: 3, sealed });
+}
+
+/** change the signed payload without signing again (and seal it again for Alice) */
+async function tamper(text, change) {
+	const envelope = JSON.parse(await unsealed(text));
 	const payload = JSON.parse(envelope.payload);
 	change(payload);
-	return JSON.stringify({ ...envelope, payload: JSON.stringify(payload) });
+	return sealedFor(JSON.stringify({ ...envelope, payload: JSON.stringify(payload) }));
 }
 
 const memoryStorage = () => {
@@ -53,7 +71,7 @@ const memoryStorage = () => {
 
 describe('signed requests', () => {
 	it('accepts a request signed by its sender', async () => {
-		const opened = await openMessage(await request(bob, alice, { nopingpong: true }), { me: alice.did, now });
+		const opened = await openMessage(await request(bob, alice, { nopingpong: true }), as(alice));
 		expect(opened.ok).toBe(true);
 		expect(opened.message).toMatchObject({
 			command: REQUEST_ADDRESS,
@@ -67,8 +85,8 @@ describe('signed requests', () => {
 
 	it('rejects a request that names somebody else as sender', async () => {
 		// Carol signs, then claims to be Bob
-		const forged = tamper(await request(carol, alice), (payload) => (payload.sender = bob.did));
-		expect(await openMessage(forged, { me: alice.did, now })).toEqual({
+		const forged = await tamper(await request(carol, alice), (payload) => (payload.sender = bob.did));
+		expect(await openMessage(forged, as(alice))).toEqual({
 			ok: false,
 			reason: 'signature does not match the sender',
 			sender: bob.did
@@ -79,45 +97,49 @@ describe('signed requests', () => {
 		const signedByCarol = { did: bob.did, sign: carol.signer.sign };
 		const data = { sharedAddress: bookOf(bob), invitation: await createInvitation(bob.seed, bob.did, alice.did) };
 		const forged = await sealMessage(signedByCarol, { command: REQUEST_ADDRESS, recipient: alice.did, data }, { now });
-		expect((await openMessage(forged, { me: alice.did, now })).reason).toBe('signature does not match the sender');
+		expect((await openMessage(forged, as(alice))).reason).toBe('signature does not match the sender');
 	});
 
 	it('rejects changes to any signed field', async () => {
-		const genuine = await request(bob, alice);
+		const genuine = await request(bob, alice, { from: { firstName: 'Bob' } });
 		const changes = [
 			(p) => (p.data.sharedAddress = bookOf(carol)),
 			(p) => (p.timestamp += 1),
 			(p) => (p.nonce = 'A'.repeat(22)),
 			(p) => (p.onBoardingToken = 'whatever'),
-			(p) => (p.nopingpong = true)
+			(p) => (p.nopingpong = true),
+			(p) => (p.from.firstName = 'Carol')
 		];
 		for (const change of changes) {
-			expect((await openMessage(tamper(genuine, change), { me: alice.did, now })).reason).toBe('signature does not match the sender');
+			expect((await openMessage(await tamper(genuine, change), as(alice))).reason).toBe('signature does not match the sender');
 		}
 	});
 
 	it('rejects a request for somebody else', async () => {
-		expect((await openMessage(await request(bob, carol), { me: alice.did, now })).reason).toBe('not addressed to us');
+		// Bob's request for Carol, which Carol seals again for Alice
+		const forwarded = await sealedFor(await unsealed(await request(bob, carol), carol), alice);
+		expect((await openMessage(forwarded, as(alice))).reason).toBe('not addressed to us');
 	});
 
 	it('rejects a request that is too old or from the future', async () => {
 		const old = await request(bob, alice, {}, { now: now - MAX_CLOCK_SKEW_MS - 1 });
 		const future = await request(bob, alice, {}, { now: now + MAX_CLOCK_SKEW_MS + 1 });
-		expect((await openMessage(old, { me: alice.did, now })).reason).toBe('too old or from the future');
-		expect((await openMessage(future, { me: alice.did, now })).reason).toBe('too old or from the future');
+		expect((await openMessage(old, as(alice))).reason).toBe('too old or from the future');
+		expect((await openMessage(future, as(alice))).reason).toBe('too old or from the future');
 		const justInTime = await request(bob, alice, {}, { now: now - MAX_CLOCK_SKEW_MS });
-		expect((await openMessage(justInTime, { me: alice.did, now })).ok).toBe(true);
+		expect((await openMessage(justInTime, as(alice))).ok).toBe(true);
 	});
 
 	it("rejects an invitation that is not the sender's for us", async () => {
 		const data = { sharedAddress: bookOf(bob), invitation: await createInvitation(bob.seed, bob.did, carol.did) };
 		const message = await sealMessage(bob.signer, { command: REQUEST_ADDRESS, recipient: alice.did, data }, { now });
-		expect((await openMessage(message, { me: alice.did, now })).reason).toBe('invitation is not from the sender for us');
+		expect((await openMessage(message, as(alice))).reason).toBe('invitation is not from the sender for us');
 	});
 
 	it('drops malformed messages without throwing', async () => {
 		const genuine = await request(bob, alice);
-		const envelope = JSON.parse(genuine);
+		const envelope = JSON.parse(await unsealed(genuine));
+		const outer = JSON.parse(genuine);
 		const malformed = [
 			undefined,
 			'',
@@ -125,30 +147,39 @@ describe('signed requests', () => {
 			'null',
 			'[]',
 			'"text"',
-			'x'.repeat(20_000),
+			'x'.repeat(30_000),
 			// the old, unsigned format
 			JSON.stringify({ command: REQUEST_ADDRESS, sender: bob.did, recipient: alice.did, data: '{}' }),
-			JSON.stringify({ ...envelope, v: 1 }),
-			JSON.stringify({ ...envelope, payload: 'not json' }),
-			JSON.stringify({ ...envelope, payload: { nested: true } }),
-			JSON.stringify({ ...envelope, sig: 42 }),
-			JSON.stringify({ ...envelope, sig: 'too short' }),
-			tamper(genuine, (p) => (p.command = 'CANCEL_REQUEST')),
-			tamper(genuine, (p) => (p.sender = '__proto__')),
-			tamper(genuine, (p) => (p.sender = 'did:web:example.com')),
-			tamper(genuine, (p) => delete p.recipient),
-			tamper(genuine, (p) => (p.timestamp = String(now))),
-			tamper(genuine, (p) => (p.nonce = 'short')),
-			tamper(genuine, (p) => (p.data = JSON.stringify(p.data))),
-			tamper(genuine, (p) => (p.data.sharedAddress = 'https://example.com')),
-			tamper(genuine, (p) => (p.data.sharedAddress = `/orbitdb/${'z'.repeat(300)}`)),
-			tamper(genuine, (p) => delete p.data.invitation),
-			tamper(genuine, (p) => (p.onBoardingToken = { nonce: 'x' })),
-			tamper(genuine, (p) => (p.onBoardingToken = 'x'.repeat(600))),
-			tamper(genuine, (p) => (p.nopingpong = 'yes'))
+			JSON.stringify({ ...outer, v: 2 }),
+			JSON.stringify({ ...outer, sealed: { ...outer.sealed, v: 2 } }),
+			JSON.stringify({ ...outer, sealed: 'text' }),
+			await sealedFor('not json'),
+			await sealedFor('x'.repeat(17_000)),
+			await sealedFor(JSON.stringify({ ...envelope, v: 1 })),
+			await sealedFor(JSON.stringify({ ...envelope, payload: 'not json' })),
+			await sealedFor(JSON.stringify({ ...envelope, payload: { nested: true } })),
+			await sealedFor(JSON.stringify({ ...envelope, sig: 42 })),
+			await sealedFor(JSON.stringify({ ...envelope, sig: 'too short' })),
+			await tamper(genuine, (p) => (p.command = 'CANCEL_REQUEST')),
+			await tamper(genuine, (p) => (p.sender = '__proto__')),
+			await tamper(genuine, (p) => (p.sender = 'did:web:example.com')),
+			await tamper(genuine, (p) => delete p.recipient),
+			await tamper(genuine, (p) => (p.timestamp = String(now))),
+			await tamper(genuine, (p) => (p.nonce = 'short')),
+			await tamper(genuine, (p) => (p.data = JSON.stringify(p.data))),
+			await tamper(genuine, (p) => (p.data.sharedAddress = 'https://example.com')),
+			await tamper(genuine, (p) => (p.data.sharedAddress = `/orbitdb/${'z'.repeat(300)}`)),
+			await tamper(genuine, (p) => delete p.data.invitation),
+			await tamper(genuine, (p) => (p.onBoardingToken = { nonce: 'x' })),
+			await tamper(genuine, (p) => (p.onBoardingToken = 'x'.repeat(600))),
+			await tamper(genuine, (p) => (p.nopingpong = 'yes')),
+			await tamper(genuine, (p) => (p.from = 'Bob')),
+			await tamper(genuine, (p) => (p.from = { street: 'Example Street 1' })),
+			await tamper(genuine, (p) => (p.from = { firstName: 42 })),
+			await tamper(genuine, (p) => (p.from = { firstName: 'x'.repeat(201) }))
 		];
 		for (const text of malformed) {
-			const opened = await openMessage(text, { me: alice.did, now });
+			const opened = await openMessage(text, as(alice));
 			expect(opened.ok, String(text).slice(0, 80)).toBe(false);
 		}
 	});
@@ -158,11 +189,46 @@ describe('signed requests', () => {
 	});
 });
 
+describe('sealed requests (#59, finding 3 of #58)', () => {
+	it('show a peer on the topic nothing of the sender, their book or their name', async () => {
+		const text = await request(bob, alice, { from: { firstName: 'Bob', lastName: 'Stromwerk', city: 'Example City' } });
+		for (const plain of [bob.did, bookOf(bob), 'Stromwerk', 'Example City', REQUEST_ADDRESS]) {
+			expect(text).not.toContain(plain);
+		}
+		expect(await openMessage(text, as(carol))).toEqual({ ok: false, reason: 'not sealed for us' });
+	});
+
+	it('open for the recipient only, with its key', async () => {
+		const text = await request(bob, alice);
+		expect((await openMessage(text, as(alice))).ok).toBe(true);
+		expect(await openMessage(text, { me: alice.did, now })).toEqual({ ok: false, reason: 'no key to open it' });
+		// Carol's key, under Alice's name
+		expect((await openMessage(text, { me: alice.did, keys: carol.keys, now })).reason).toBe('not sealed for us');
+	});
+
+	it('drop a request that was signed but not sealed', async () => {
+		const signedOnly = await unsealed(await request(bob, alice));
+		expect(await openMessage(signedOnly, as(alice))).toEqual({ ok: false, reason: 'not a sealed deContact message' });
+	});
+
+	it("carry the sender's name, and nothing else of the card", async () => {
+		const card = { firstName: 'Bob', lastName: 'Stromwerk', city: 'Example City', street: 'Example Street 1', email: 'bob@example.com', own: true };
+		const opened = await openMessage(await request(bob, alice, { from: card }), as(alice));
+		expect(opened.message.from).toEqual({ firstName: 'Bob', lastName: 'Stromwerk', city: 'Example City' });
+		expect((await openMessage(await request(bob, alice, { from: { firstName: '' } }), as(alice))).message.from).toBeUndefined();
+	});
+
+	it('can only be made for a did:key', async () => {
+		const data = { sharedAddress: bookOf(bob), invitation: await createInvitation(bob.seed, bob.did, alice.did) };
+		await expect(sealMessage(bob.signer, { command: REQUEST_ADDRESS, recipient: 'did:web:example.com', data })).rejects.toThrow();
+	});
+});
+
 describe('replay guard', () => {
 	it('lets each message through once', async () => {
 		const guard = createReplayGuard();
-		const first = (await openMessage(await request(bob, alice), { me: alice.did, now })).message;
-		const second = (await openMessage(await request(bob, alice), { me: alice.did, now })).message;
+		const first = (await openMessage(await request(bob, alice), as(alice))).message;
+		const second = (await openMessage(await request(bob, alice), as(alice))).message;
 		expect(guard.firstTime(first, now)).toBe(true);
 		expect(guard.firstTime(first, now)).toBe(false);
 		// a resend is a new message
@@ -173,7 +239,7 @@ describe('replay guard', () => {
 
 	it('remembers a message as long as it would be accepted', async () => {
 		const guard = createReplayGuard();
-		const message = (await openMessage(await request(bob, alice), { me: alice.did, now })).message;
+		const message = (await openMessage(await request(bob, alice), as(alice))).message;
 		guard.firstTime(message, now);
 		expect(guard.firstTime(message, now + MAX_CLOCK_SKEW_MS)).toBe(false);
 	});

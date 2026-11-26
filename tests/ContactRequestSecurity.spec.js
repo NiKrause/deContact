@@ -1,11 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, confirmExperimental, createAddressBook } from './helpers/passkeys.js';
+import { createSecretSigner } from '@le-space/orbitdb-identity-provider-webauthn-did';
+import { createInvitation } from '@le-space/orbitdb-access-controller-decontact';
+import { base64url } from 'multiformats/bases/base64';
+import { encryptionKeyOfDid, seal } from '../src/lib/encryption/sealing.js';
+import { addVirtualAuthenticator, confirmExperimental, createAddressBook, prfOutputs, recordCeremonies } from './helpers/passkeys.js';
+
+// part of the data format (src/lib/identity/vault.js, src/lib/network/contact-messages.js)
+const IDENTITY_INFO = 'decontact/identity/v1';
 
 // Contact requests are signed with the sender's DID, and an invitation link works once
 // (#58, #38). Three people:
 // 1. Bob opens Alice's invitation link: Alice sends her card without being asked.
 // 2. Carol opens the same link afterwards: the token is used, Alice is asked to confirm.
-// 3. Carol sends Alice a request in Bob's name: Alice drops it.
+// 3. Carol sends Alice a request in Bob's name, sealed to Alice: Alice drops it.
 // The assertions read Alice's console (p2p-operations.js logs what it accepts and drops).
 
 const people = {
@@ -40,22 +47,17 @@ test('forged senders and used invitation links are rejected', async ({ browser }
 		});
 
 		await test.step("Carol sends a request in Bob's name: Alice drops it", async () => {
-			// Carol's app signs her request; on the way out it claims to come from Bob
-			await carol.page.evaluate((bobDid) => {
-				const pubsub = window.helia.libp2p.services.pubsub;
-				const publish = pubsub.publish.bind(pubsub);
-				pubsub.publish = (topic, bytes) => {
-					const envelope = JSON.parse(new TextDecoder().decode(bytes));
-					const payload = JSON.parse(envelope.payload);
-					payload.sender = bobDid;
-					envelope.payload = JSON.stringify(payload);
-					return publish(topic, new TextEncoder().encode(JSON.stringify(envelope)));
-				};
-			}, bob.did);
-			await carol.page.evaluate(() => (window.location.hash = '#/'));
-			await carol.page.getByRole('tab', { name: 'Contacts' }).click();
-			await carol.page.getByRole('textbox', { role: 'scanContact' }).fill(alice.did);
-			await carol.page.getByRole('button', { name: 'Scan' }).click();
+			// Carol signs a request with her own key, names Bob as its sender and seals it
+			// to Alice, as anybody can (#59): only the signature gives her away
+			const [root] = await prfOutputs(carol.page);
+			const signer = await createSecretSigner(Uint8Array.from(Buffer.from(root, 'hex')), { info: IDENTITY_INFO });
+			expect(signer.did).toBe(carol.did);
+			const sharedAddress = await carol.page.evaluate(() => window.mydb.address);
+			const forged = await forgedRequest(signer, { claimedSender: bob.did, recipient: alice.did, sharedAddress });
+			await carol.page.evaluate(
+				({ topic, text }) => window.helia.libp2p.services.pubsub.publish(topic, new TextEncoder().encode(text)),
+				{ topic: `/dContact/3/message/proto/${alice.did}`, text: forged }
+			);
 
 			await expect.poll(() => alice.saw(`dropped contact message from ${bob.did}: signature does not match the sender`), { timeout: 120000 })
 				.toBe(true);
@@ -74,6 +76,7 @@ async function newBrowser(browser) {
 	page.on('console', (message) => lines.push(message.text()));
 	// a passkey per person (#60): its vault holds the identity
 	await addVirtualAuthenticator(page);
+	await recordCeremonies(page);
 	return { page, saw: (text) => lines.some((line) => line.includes(text)), close: () => context.close() };
 }
 
@@ -115,6 +118,27 @@ async function openLink(browser, link) {
 	await expect(user.page.getByText('Create a passkey to open your own address book')).toBeVisible();
 	user.did = await createAddressBook(user.page, 'Invitee');
 	return user;
+}
+
+/**
+ * A request `signer` signs, naming `claimedSender` as its sender, sealed to `recipient`:
+ * the format of contact-messages.js, made by hand.
+ */
+async function forgedRequest(signer, { claimedSender, recipient, sharedAddress }) {
+	const encode = (text) => new TextEncoder().encode(text);
+	const payload = JSON.stringify({
+		command: 'REQUEST_ADDRESS',
+		sender: claimedSender,
+		recipient,
+		timestamp: Date.now(),
+		nonce: base64url.baseEncode(crypto.getRandomValues(new Uint8Array(16))),
+		data: { sharedAddress, invitation: await createInvitation(signer, signer.did, recipient) }
+	});
+	const sig = base64url.baseEncode(await signer.sign(encode(`decontact/message/v2\n${payload}`)));
+	const sealed = await seal(encryptionKeyOfDid(recipient), encode(JSON.stringify({ v: 2, payload, sig })), {
+		context: `decontact/request/v1\n${recipient}`
+	});
+	return JSON.stringify({ v: 3, sealed });
 }
 
 /** names in this browser's own address book */

@@ -4,8 +4,9 @@
  * - Unlocking costs one passkey prompt: its PRF output opens the vault, and the
  *   identity is derived from the root inside it. Nothing asks the passkey again in this
  *   session.
- * - The vault key, the root and the identity's key live in this module's memory until the
- *   page closes; the UI sees `session` (the DID and the slots), never a secret.
+ * - The vault key, the root, the identity's key and its X25519 pair (#59) live in this
+ *   module's memory until the page closes; the UI sees `session` (the DID and the slots),
+ *   never a secret.
  * - Every unlock asks `find` for records kept elsewhere: records handed over (a device
  *   link, a file) and the record published for this slot over OrbitDB
  *   (vault-directory.js). A passkey that opens nothing is never given a new address book
@@ -34,6 +35,7 @@ import {
     signerOf,
     slotsOf,
     findIn,
+    encryptionKeysOf,
     wordsSecret
 } from './vault.js'
 
@@ -54,6 +56,8 @@ let storage
 let opened
 /** the identity: `{ did, type, publicKey, sign }` */
 let signer
+/** the identity's X25519 pair, which cards and requests are sealed to (#59) */
+let encryptionKeys
 /** lookup ids of the slots this session knows: where the record is published */
 const lookupIds = new Set()
 /** records handed over from another device */
@@ -114,6 +118,7 @@ async function begin(next, lookupId) {
     opened = next
     lookupIds.add(lookupId)
     signer = await signerOf(opened)
+    encryptionKeys = await encryptionKeysOf(opened, signer.did)
     storage.setItem(LAST_SLOT_KEY, opened.kid)
     console.log(`vault opened (${opened.created ? 'new' : opened.found ? 'found elsewhere' : 'kept here'}), identity ${signer.did}`)
     await refresh()
@@ -274,4 +279,12 @@ export function vaultRecordText() {
 /** the identity's signer, for contact requests and invitations */
 export function currentSigner() {
     return signer
+}
+
+/**
+ * The identity's X25519 pair, to open what was sealed to our DID (#59): our own address
+ * book and the requests sent to us. Its private key cannot be extracted.
+ */
+export function currentEncryptionKeys() {
+    return encryptionKeys
 }

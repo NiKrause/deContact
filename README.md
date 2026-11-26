@@ -25,7 +25,7 @@
 - **Address books go stale.** People move, change their phone number or their email. Whoever has your card keeps the old one until you tell everybody, one by one.
 - **Contacts don't belong in someone else's cloud.** They shouldn't live on a platform's servers, tied to its account.
 
-deContact gives every person a self-owned address book. It lives in the browser and syncs peer-to-peer with the people they exchanged cards with. When you change your address, you rewrite your card in every address book you were invited into. Relays only help peers find each other and keep a replica for when you are offline; they can't change what's in your book.
+deContact gives every person a self-owned address book. It lives in the browser and syncs peer-to-peer with the people they exchanged cards with. When you change your address, you rewrite your card in every address book you were invited into. Relays only help peers find each other and keep a replica for when you are offline; they can neither read nor change what's in your book.
 
 ## Features
 - 🔑 **Self-sovereign identity, opened with a passkey.** A passkey opens a vault that holds one root; your `did:key` (Ed25519) and OrbitDB identity are derived from it. No account, no seed phrase, no server-side login ([how](docs/how-it-works.md#identity-passkeys-and-the-vault)).
@@ -33,6 +33,7 @@ deContact gives every person a self-owned address book. It lives in the browser 
 - 🤝 **Exchange cards by DID.** Scan a QR code or paste a DID. The other person confirms, and each side writes their card into the other's book.
 - 🔄 **Updates follow you.** A changed card is rewritten in every book you were invited into.
 - 🛡️ **Signed invitations.** Only invited contacts may write, and only their own card (see [who may write](docs/how-it-works.md#who-may-write-into-an-address-book)).
+- 🔒 **End-to-end encrypted.** Every card is sealed to the owner of the book it sits in, every request to its recipient. Relays and the followers who keep a backup hold ciphertext only ([how](docs/how-it-works.md#encryption-sealed-to-the-reader)).
 - 🌐 **Direct and relayed.** WebRTC between browsers when possible, a circuit relay otherwise. Relays found through Aleph, or your own.
 - 💾 **Offline-friendly.** The relay keeps a replica, so updates reach you after you've been offline.
 - 📱 **Multiple devices.** Every passkey you add opens the same vault and writes as the same DID. A synced passkey restores everything on a new device; one that does not sync joins with a device link or your recovery words.
@@ -72,10 +73,13 @@ The app finds Le Space's relays on Aleph by itself. To try it with two people:
 
 ## Known limitations
 - **Experimental.** Data formats and protocols may still change; the address book format changed in 0.5.0.
-- **Not encrypted.** Contact data in address books is not encrypted yet. Anybody who knows a book's address can read it.
+- **Metadata is visible.** Cards and requests are encrypted, but who exchanged cards with whom, and when, is not: a book's address follows from its owner's DID, and whoever opens it sees which DIDs wrote into it. A request shows its recipient and its time.
 - **Passkeys with PRF.** The browser and the passkey must support the WebAuthn PRF extension (recent Chrome, Safari, Edge; iCloud Keychain, Google Password Manager, 1Password, YubiKey 5). Without it the vault does not open.
 - **Security notes.**
-  - Nothing secret is stored in the clear: the browser keeps only the sealed vault record, and OrbitDB's keystore lives in memory. While the app is open, the root and the identity's key are in the page's memory, so a script running in the page could use them.
+  - Nothing secret is stored in the clear: the browser keeps only the sealed vault record, and OrbitDB's keystore lives in memory. While the app is open, the root, the identity's key and its X25519 key are in the page's memory, so a script running in the page could use them.
+  - Cards and requests are sealed to the X25519 counterpart of the reader's `did:key`. Signing and decrypting depend on one secret: if the identity's key leaks, both do.
+  - Removing a contact removes your card from their book and stops your updates. What they already received stays with them, and their invitation to write into your book stays valid.
+  - Documents written in the clear before the encryption are sealed again on the first start, but the log keeps the old plaintext entries.
   - The first passkey's PRF output is the vault's root. Removing a passkey revokes nothing it already opened, and the first passkey always restores the identity.
   - The vault record is public. It is published over OrbitDB (and the relays) under a name only a slot's holder can work out; it names each passkey's credential id and label.
   - Browsers that used the seed phrase lose it on the first start; their old DID and address book are not carried over.

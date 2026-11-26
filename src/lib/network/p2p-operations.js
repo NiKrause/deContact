@@ -25,6 +25,7 @@ import { confirm } from "../components/addressModal.js"
 import { notify, sha256 } from "../../utils/utils.js";
 import { getIdentityAndCreateOrbitDB } from "#lib/network/getIdendityAndCreateOrbitDB.js";
 import AddressBookAccessController, { contactKey, createInvitation } from '@le-space/orbitdb-access-controller-decontact';
+import { sealedBook } from "../encryption/sealed-book.js";
 import {
     REQUEST_ADDRESS,
     createOnboardingToken,
@@ -111,11 +112,16 @@ export async function startNetwork() {
  * Starting OrbitDB with the identity of the passkey vault, replication of my address book
  * with my other devices and the contact requests of others.
  *
+ * Every document in an address book is sealed to the book's owner, and every request to
+ * its recipient (#59, lib/encryption): `keys` opens what was sealed to us.
+ *
  * @param signer the identity: `{ did, sign }` of the vault's root (lib/identity/vault.js)
+ * @param keys the identity's X25519 pair (vault.js `encryptionKeysOf`)
  * @returns {Promise<void>}
  */
-export async function startAddressBook(signer) {
+export async function startAddressBook(signer, keys) {
     _signer = signer
+    _keys = keys
     _orbitdb = await getIdentityAndCreateOrbitDB(signer, _helia)
     orbitdb.set(_orbitdb)
     window.orbitdb = _orbitdb
@@ -137,13 +143,14 @@ export async function startAddressBook(signer) {
     const myIdentityHash = await sha256(_orbitdb.identity.id)
     let myDBName = "/myAddressBook/"+myIdentityHash
 
-    _dbMyAddressBook = await _orbitdb.open(myDBName, {
+    _dbMyAddressBook = bookOf(await _orbitdb.open(myDBName, {
         type: 'documents',
         sync: true,
         AccessController: AddressBookAccessController()
-    })
+    }))
 
     logSyncErrors(_dbMyAddressBook)
+    await sealWhatWasPlain(_dbMyAddressBook)
     dbMyAddressBook.set(_dbMyAddressBook)
     window.mydb = _dbMyAddressBook
     await getAddressRecords()
@@ -184,7 +191,7 @@ export async function close() {
  * for us, recent and not seen before is dropped (contact-messages.js).
  */
 async function handleMessage(text) {
-    const opened = await openMessage(text, { me: _orbitdb?.identity?.id })
+    const opened = await openMessage(text, { me: _orbitdb?.identity?.id, keys: _keys })
     if (!opened.ok) {
         console.log(`dropped contact message${opened.sender ? ` from ${opened.sender}` : ''}: ${opened.reason}`)
         return
@@ -232,13 +239,15 @@ async function answerRequest(request) {
     const { sender, data } = request
 
     // opened by address: its manifest names the access controller
-    const requesterDB = await _orbitdb.open(data.sharedAddress, { type: 'documents', sync: true })
-    logSyncErrors(requesterDB)
+    const opened = await _orbitdb.open(data.sharedAddress, { type: 'documents', sync: true })
+    logSyncErrors(opened)
     // our card goes only into the sender's own address book
-    if (requesterDB.access?.type !== AddressBookAccessController.type || requesterDB.access?.owner !== sender) {
+    if (opened.access?.type !== AddressBookAccessController.type || opened.access?.owner !== sender) {
         console.log(`dropped contact message from ${sender}: ${data.sharedAddress} is not their address book`)
         return
     }
+    // what we write into it is sealed to the sender, the book's owner
+    const requesterDB = bookOf(opened)
 
     if (request.onBoardingToken !== undefined) {
         const redeemed = await redeemOnboardingToken(request.onBoardingToken, { inviter: me, invitee: sender, store: onboardingTokens() })
@@ -254,7 +263,7 @@ async function answerRequest(request) {
     }
 
     console.log(`asking to confirm the request of ${sender}`)
-    const result = await confirm({ data: request, db: requesterDB });
+    const result = await confirm({ data: request });
 
     if(result){
         if(result==='ONLY_HANDOUT'){
@@ -274,10 +283,12 @@ async function answerRequest(request) {
 
     } else{
         try {
-            // the placeholder the requester wrote for us is the only document we may change
+            // the placeholder the requester wrote for us is the only document we may change;
+            // it is sealed to the requester, so we replace it without reading it
             const placeholder = await requesterDB.get(contactKey(me))
             if (placeholder) {
-                const hash = await requesterDB.put({ ...placeholder.value, firstName: "request canceled", invitation: data.invitation })
+                const canceled = { _id: contactKey(me), owner: me, firstName: "request canceled", lastName: me, invitation: data.invitation }
+                const hash = await requesterDB.put(canceled)
                 notify(`wrote canceled request with hash ${hash}`);
             }
         } catch (error) {
@@ -292,7 +303,11 @@ async function answerRequest(request) {
  */
 async function getAddressRecords() {
     try {
-        const addressRecords = await _dbMyAddressBook.all();
+        const addressRecords = (await _dbMyAddressBook.all()).filter((record) => {
+            if (!record.value?.unreadable) return true
+            console.log(`could not open ${record.key} in our address book: not sealed to us`)
+            return false
+        });
         let transformedRecords = addressRecords.map(record => ({
             ...record.value,
             id: record.value._id
@@ -337,32 +352,65 @@ async function initReplicationBackup(ourDID) {
     for (const s in _followList) {
         const dbAddress = _followList[s].value.sharedAddress
         try {
-            _followList[s].db = await _orbitdb.open(dbAddress, { type: 'documents', sync: true })
+            // we keep a backup of their book and write our card into it: sealed to its owner
+            const followed = bookOf(await _orbitdb.open(dbAddress, { type: 'documents', sync: true }))
+            if (followed.bookOwner !== _followList[s].value.owner) {
+                console.log(`not following ${dbAddress}: it is not the address book of ${_followList[s].value.owner}`)
+                continue
+            }
+            _followList[s].db = followed
             logSyncErrors(_followList[s].db)
             _followList[s].db.all().then((records)=> { //replicate the addresses of Bob, Peter etc.
                 console.log(`we follow and backup dbAddress: ${dbAddress} records`,records)
             })
         } catch(e){
-            await close()
-            console.log(`error while loading ${dbAddress} `)}
+            // one book we cannot open (a contact may name any address) must not stop the others
+            console.log(`error while loading ${dbAddress}:`, e?.message)}
     }
 }
 
 /** the vault's identity: the key of our did:key, the DID of our OrbitDB identity */
 let _signer
+/** its X25519 pair: opens what was sealed to us (#59) */
+let _keys
+
+/** an address book whose documents are sealed to its owner (lib/encryption/sealed-book.js) */
+function bookOf(db) {
+    return sealedBook(db, { me: _orbitdb.identity.id, keys: _keys })
+}
+
+/**
+ * Documents our book still holds in the clear, from before #59: sealed again. The book's
+ * owner may write any document. The log keeps the plaintext entries it had.
+ */
+async function sealWhatWasPlain(book) {
+    try {
+        const plain = await book.unsealed()
+        for (const { value } of plain) await book.put(value)
+        if (plain.length > 0) console.log(`sealed ${plain.length} documents of our address book that were in the clear`)
+    } catch (error) {
+        console.log('could not seal the documents that were in the clear:', error?.message)
+    }
+}
 async function signer() {
     if (_signer?.did !== _orbitdb.identity.id) throw new Error(`the identity ${_orbitdb.identity.id} has no signer here`)
     return _signer
 }
 
 /**
- * A signed address request for `recipient`, carrying our address book and an invitation
- * to write into it.
- * //TODO encrypt for the recipient (#58)
+ * A signed address request for `recipient`, sealed to them, carrying our address book, an
+ * invitation to write into it and our name (they cannot read our book to see who asks).
  */
 async function addressRequest(recipient, { onBoardingToken, nopingpong } = {}) {
     const data = { sharedAddress: _dbMyAddressBook.address, invitation: await invite(recipient) }
-    return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, onBoardingToken, nopingpong })
+    const from = ownCard()
+    return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, from, onBoardingToken, nopingpong })
+}
+
+/** our own card as our address book shows it */
+function ownCard() {
+    const me = _orbitdb?.identity?.id
+    return _myAddressBook?.find((it) => it.owner === me && it.own) ?? _myAddressBook?.find((it) => it.owner === me)
 }
 
 let _onboardingTokens
@@ -502,9 +550,8 @@ async function waitForOurEntries(requesterDB, timeoutMs = SYNC_WAIT_MS) {
 
 export async function writeMyAddressIntoRequesterDB(requesterDB, invitation) {
     try {
-        const me = _orbitdb?.identity?.id
-        const ownCard = _myAddressBook?.find((it) => it.owner === me)
-        if (!ownCard) {
+        const card = ownCard()
+        if (!card) {
             console.log("no contact card of our own yet - nothing written")
             return
         }
@@ -515,7 +562,7 @@ export async function writeMyAddressIntoRequesterDB(requesterDB, invitation) {
         // write after the requester's placeholder, so our card replaces it
         const placeholder = await waitForOurEntries(requesterDB)
         if (placeholder.length === 0) console.log(`no placeholder for us in ${requesterDB.address} yet - writing our card anyway`)
-        const hash = await requesterDB.put(cardFor(ownCard, invitation))
+        const hash = await requesterDB.put(cardFor(card, invitation))
         notify(`wrote my address into requesters db with hash ${hash}`);
     } catch (error) {
         console.error('Error in writeMyAddressIntoRequesterDB:', error);
@@ -540,6 +587,38 @@ export async function writeMyCardIntoFollowedBooks(ownCard) {
             console.log(`could not update our card in ${followed.db.address}:`, error?.message)
         }
     }
+}
+
+/**
+ * We remove a contact (#59): our card leaves their address book, so no later change of
+ * ours reaches them, and their card, placeholder and the record of their book leave ours.
+ * What they already received stays with them. Their invitation into our book stays valid:
+ * revoking it needs the access controller (a follow-up of #59).
+ *
+ * @param did the contact's DID
+ */
+export async function removeContact(did) {
+    const me = _orbitdb?.identity?.id
+    if (!did || did === me) return
+    const records = (await _dbMyAddressBook.all()).filter((record) => record.value?.owner === did)
+    const addresses = new Set(records.map((record) => record.value.sharedAddress).filter((address) => typeof address === 'string'))
+    for (const address of addresses) {
+        try {
+            const followed = _followList?.find((it) => it.value?.sharedAddress === address)?.db
+                ?? bookOf(await _orbitdb.open(address, { type: 'documents', sync: true }))
+            if (followed.bookOwner !== did) continue // not their book: nothing of ours to take back
+            if (await followed.get(contactKey(me))) {
+                await followed.del(contactKey(me))
+                console.log(`removed our card from the address book of ${did}`)
+            }
+        } catch (error) {
+            console.log(`could not remove our card from ${address}:`, error?.message)
+        }
+    }
+    for (const record of records) await _dbMyAddressBook.del(record.key)
+    console.log(`removed ${did} from our address book`)
+    await initReplicationBackup(me)
+    await getAddressRecords()
 }
 
 /** our card as we write it into somebody else's address book */

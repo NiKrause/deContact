@@ -22,8 +22,10 @@ import {
     setRecoveryWords,
     signerOf,
     slotsOf,
+    encryptionKeysOf,
     wordsSecret
 } from './vault.js'
+import { rootOf } from '@le-space/orbitdb-identity-provider-webauthn-did/vault'
 import { WORD_COUNT, checkWords, newRecoveryWords, normalizeWords, seedFromWords } from './recovery-words.js'
 import { REQUEST_ADDRESS, openMessage, sealMessage } from '../network/contact-messages.js'
 
@@ -258,7 +260,8 @@ describe('records and lookups', () => {
 describe('signing as the vault identity', () => {
     it('makes invitations and contact requests that verify against the DID', async () => {
         const alice = (await createdVault()).signer
-        const bob = (await createdVault()).signer
+        const bobsVault = await createdVault()
+        const bob = bobsVault.signer
         const invitation = await createInvitation(alice, alice.did, bob.did)
         expect(await verifyInvitation(invitation, { owner: alice.did, invitee: bob.did })).toBe(true)
 
@@ -267,7 +270,22 @@ describe('signing as the vault identity', () => {
             recipient: bob.did,
             data: { sharedAddress: '/orbitdb/zdpuExample', invitation }
         })
-        const opened = await openMessage(text, { me: bob.did })
+        // sealed to Bob's DID, opened with the pair his vault derives (#59)
+        const opened = await openMessage(text, { me: bob.did, keys: await encryptionKeysOf(bobsVault.opened, bob.did) })
         expect(opened).toMatchObject({ ok: true, message: { sender: alice.did } })
+    })
+
+    it('gives the same X25519 pair to every slot, from the root, and leaves the root alone', async () => {
+        const { keeper, first, opened, signer } = await createdVault()
+        const second = passkey()
+        const withTwo = await addPasskey(keeper, opened, { ...second, label: 'Security key' })
+        const viaSecond = await openWithPasskey(keeper, second)
+        const one = await encryptionKeysOf(withTwo, signer.did)
+        const two = await encryptionKeysOf(viaSecond, signer.did)
+        expect(two.publicKey).toEqual(one.publicKey)
+        expect((await signerOf(viaSecond)).did).toBe(signer.did)
+        // the payload still holds the root afterwards: only the copies are zeroed
+        expect(Buffer.from(rootOf(viaSecond.payload))).toEqual(Buffer.from(first.prfOutput.slice(0, 32)))
+        await expect(encryptionKeysOf(opened, (await createdVault()).signer.did)).rejects.toThrow(/does not belong/)
     })
 })

@@ -1,6 +1,6 @@
 <script>
     import { ComposedModal, ModalHeader, ModalBody, ModalFooter, ExpandableTile, Column, Grid, Row, Checkbox } from "carbon-components-svelte";
-    import { onMount, createEventDispatcher } from "svelte";
+    import { createEventDispatcher } from "svelte";
 
 
     /** dispatches the events when a button was clicked*/
@@ -14,45 +14,23 @@
     /** the button label when canceling the operation  @type {string} [heading='Send My Contact Data']*/
     export let CancelOperationButtonText = 'Cancel';
 
-    /** the pub-sub message from Alice */
+    /** the request from Alice, opened and verified (contact-messages.js) */
     export let data;
 
-    /** the orbitdb of Alice (which requests contact data from Bob */
-    export let db;
-
-
-    /** contains the contact data of Alice (the requester) @type {Array<object>} */
-    let aliceOwnContactData
+    /**
+     * Who asks: the name Alice's request carries. Her address book is sealed to her (#59),
+     * so we cannot look her card up there; the name is inside her signed request.
+     * @type {{ firstName?: string, lastName?: string, city?: string }}
+     */
+    const from = data.from ?? {}
+    const name = [from.firstName, from.lastName].filter(Boolean).join(' ')
 
     /** label for the checkbox which requests the contact data from Alice after Bob received her data @type {string} */
-    let checkboxLabel;
+    const checkboxLabel = `Request contact data from ${name || 'them'}${from.city ? ` ${from.city}` : ''}`;
 
     /** if Alice receives a REQUEST_ADDRESS from Bob, he marks the pubsub message with nopingpong=true so Alice isn't requesting Bobs contact data again*/
     let exchangeData = !data.nopingpong
     let dontRequestData = data.nopingpong
-
-    /**
-     * @function
-     * Opens the address book of the requester (Alice) and iterates over all contacts.
-     * Find Alice own contact data.
-     *
-     * //TODO since Alice db is encrypted by her publicKey, those data can't be read in practice from the db.
-     * //TODO 1. the db must be still opened so we replicate (and backup her db)
-     * //TODO 2. Alice contact data (her business card should be sent in the pubsub message encrypted by Bob's public key.
-     *
-     * @returns {Promise<void>}
-     */
-    async function readRequestersContactData(){
-        const businessCardElements = await db.all();
-        aliceOwnContactData = businessCardElements.filter(element => element.value.owner === data.sender);
-
-        if(aliceOwnContactData.length>0)
-            checkboxLabel =  `Request contact data from ${aliceOwnContactData[0].value.firstName} ${aliceOwnContactData[0].value?.lastName} ${aliceOwnContactData[0].value.city}`
-    }
-
-    onMount(() => {
-        readRequestersContactData();
-    });
 </script>
 <!--
 @component
@@ -63,11 +41,9 @@ Opens a confirmation modal on Bob's device when Alice is requesting his contact 
     <ModalBody hasForm>
         <ExpandableTile>
             <div slot="above">
-                <div>From:
-                    {#if aliceOwnContactData?.length>0}
-                        {aliceOwnContactData[0]?.firstName} {aliceOwnContactData[0]?.lastName} {aliceOwnContactData[0]?.city} <br/>
-                        owner: {aliceOwnContactData[0]?.owner}<br/>
-                    {/if}
+                <div data-testid="request-from">From:
+                    {name || 'somebody without a name on their card'} {from.city ?? ''} <br/>
+                    owner: {data.sender}<br/>
                 </div>
                 <p>&nbsp;</p>
                 {#if !dontRequestData}
