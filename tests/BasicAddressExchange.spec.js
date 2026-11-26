@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { addVirtualAuthenticator, confirmExperimental, createAddressBook } from './helpers/passkeys.js';
 test.describe('Simple exchange of address between Alice and Bob', async () => {
 	let pageAlice, pageBob;
 
 	test.beforeAll(async ({ browser }) => {
 		// two pages, each waiting until OrbitDB shows its DID
-		test.setTimeout(60000);
+		test.setTimeout(90000);
 		pageAlice = await initializeNewPage(browser, users[0]);
 		pageBob = await initializeNewPage(browser, users[1]);
 	});
@@ -112,13 +113,12 @@ async function initializeNewPage(browser, user) {
 		const page_url = process.env.PAGE_URL;
 
 
+		// a passkey per person (#60): its vault holds the identity
+		await addVirtualAuthenticator(page);
 		await page.goto(page_url);
-		await page.evaluate(() => window.localStorage.clear());
-		await page.evaluate(() => window.sessionStorage.clear());
-		await page.getByRole('button', { name: 'Continue' }).click();
-		await page.getByRole('button', { name: 'Generate New' }).click();
+		await confirmExperimental(page);
+		await createAddressBook(page, user.identity);
 		await page.getByRole('tab', { name: 'Settings' }).click();
-		await page.getByLabel('DID', { exact: true }).click();
 		// the DID appears once OrbitDB has started
 		await expect(page.getByLabel('DID', { exact: true })).not.toHaveValue('', { timeout: 30000 });
 		user.did = await page.getByLabel('DID', { exact: true }).inputValue();

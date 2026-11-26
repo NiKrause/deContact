@@ -1,16 +1,14 @@
 <script>
-    import { TextInput, PasswordInput, Button, Column, Grid, Row, Toggle } from "carbon-components-svelte";
+    import { TextInput, Button, Column, Grid, Row, Toggle } from "carbon-components-svelte";
+    import PasskeySettings from "./PasskeySettings.svelte";
     import {
         libp2p,
         connectedPeers,
-        masterSeed,
-        orbitdb, seedPhrase,
+        orbitdb,
         dbMyAddressBook, selectedAddr, selectedTab,
         useWebRTC
     } from "../../stores.js"
 
-    $:window.localStorage.setItem('seed', $masterSeed);
-    $:window.localStorage.setItem('seedPhrase', $seedPhrase);
     $:window.localStorage.setItem('useWebRTC', $useWebRTC.toString());
 
   console.log("useWebRTC",$useWebRTC)
@@ -23,19 +21,19 @@
 <Grid>
     <Row>
         <Column sm={3}><TextInput labelText="DID"
-                                  helperText="Generated from your seed phrase"
+                                  helperText="Derived from your passkey vault: the same for each of your passkeys"
                                   size="sm"
                                   readonly
                                   value={$orbitdb?.identity?.id} /></Column>
     </Row>
 
     <Row class="custom-row">
-        <Column sm={3}><PasswordInput labelText="Seed Phrase" helperText="If you change the seed phrase a new DID is generated" size="sm" bind:value={$seedPhrase} /></Column>
+        <Column><PasskeySettings /></Column>
     </Row>
 
     <Row>
         <Column sm={3}><TextInput labelText="PeerId (LibP2P)"
-                                  helperText="Every device has a unique peer id independent from your seed phrase"
+                                  helperText="Every device has a unique peer id independent from your identity"
                                   readonly size="sm"
                                   value={$libp2p?.peerId?.toString()} /></Column>
     </Row>

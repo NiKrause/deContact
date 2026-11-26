@@ -13,7 +13,9 @@ function getDID () {
     if(browser){
         const hashWithDID = location.hash.replace(/^#/, '')
         if(hashWithDID.length<2) return ""
-        return hashWithDID.split("/")[2].substring(0,hashWithDID.split("/")[2].indexOf("?"))
+        const segment = hashWithDID.split("/")[2] // #/onboarding/<did>?...
+        if (segment === undefined) return ""
+        return segment.indexOf("?") !== -1 ? segment.substring(0, segment.indexOf("?")) : segment
     }
 }
 

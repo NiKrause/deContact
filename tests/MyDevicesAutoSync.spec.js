@@ -1,90 +1,93 @@
 import { test, expect } from '@playwright/test';
+import {
+	addVirtualAuthenticator,
+	confirmExperimental,
+	continuePasskeyStep,
+	didOf,
+	names,
+	newPerson,
+	recordCeremonies,
+	takeCeremonies
+} from './helpers/passkeys.js';
 
-const users = [ //TODO can we put this into assets?
-	{
-		identity: 'Alice',
-		firstname: 'Alice',
-		lastname: 'Maier',
-		street: 'Schulgasse 5',
-		zipcode: '84444',
-		did: '',
-		// the BIP39 test vector unless the run brings its own
-		seed: process.env.SEED_TEST || 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-		city: 'Berlin',
-		country: 'Germany'
-	}
-];
+// Two devices of one person (#60). Device A makes the address book with its passkey and
+// sets up the recovery words. Device B, whose passkey does not sync, opens A's device
+// link, unlocks with the words, adds a passkey of its own and from then on writes as the
+// same DID: what it writes arrives on A, and A's card on B.
 
+const alice = { first: 'Alice', last: 'Wolkenfabrik', city: 'Musterstadt' };
 
-test.describe('Devices auto synchronization', () => {
-	let page, page2;
+test('a second device with a passkey of its own writes as the same DID', async ({ browser }) => {
+	test.setTimeout(300000);
+	const a = await newPerson(browser, alice);
+	const context = await browser.newContext();
+	try {
+		let words;
+		let link;
+		await test.step('device A: recovery words and a device link', async () => {
+			await a.page.getByRole('tab', { name: 'Settings' }).click();
+			await a.page.getByRole('button', { name: 'Set up recovery words' }).click();
+			words = await a.page.getByTestId('recovery-words').locator('ol li').allTextContents();
+			expect(words).toHaveLength(24);
+			await a.page.getByLabel('I have written the words down').check();
+			await a.page.getByRole('button', { name: 'Keep these recovery words' }).click();
+			await expect(a.page.getByTestId('vault-slot')).toHaveCount(2);
+			await expect(a.page.getByTestId('vault-slot').last()).toContainText('Recovery words');
+			// the words are not kept anywhere
+			const stored = await a.page.evaluate(() => JSON.stringify({ ...localStorage }));
+			expect(stored).not.toContain(words.slice(0, 3).join(' '));
+			await a.page.getByRole('button', { name: 'Link another device' }).click();
+			link = await a.page.getByTestId('device-link').inputValue();
+			expect(link).toContain('#/link?vault=');
+		});
 
-	test.beforeEach(async ({ browser }) => {
-		test.setTimeout(50000);
-		page = await initializeNewPage(browser, users[0]);		
-	});
-
-	test('checkDeviceSync', async ({ browser }) => {
-		test.setTimeout(150000);
-
-		const context = await browser.newContext();
-		page2 = await context.newPage();
-		const page_url = process.env.PAGE_URL;
-		await page2.goto(page_url);
-
-		await page2.getByRole('button', { name: 'Continue' }).click();
-		await page2.getByRole('button', { name: 'Enter Existing Seed Phrase' }).click();
-		await page2.getByRole('button', { name: 'Enter Existing Seed Phrase' }).click();
-		await page2.getByRole('tab', { name: 'Contacts' }).click();
-
-		//const connect =  page2.getByRole('img', { name: 'Swarm connected' })
-		//await expect(connect, 'connection Alice synchronization').toBeEnabled({ timeout: 30000 }); 
-
-		await page2.getByLabel('Contacts').locator('span').first().click();
-	});
-
-	test.afterEach(async () => {
-		await Promise.all([
-			page.close(),
-			page2.close()
-		]);
-	});
-});
-
-
-
-async function fillInput(page, placeholder, value) {
-	await page.click(`[placeholder="${placeholder}"]`);
-	await page.fill(`[placeholder="${placeholder}"]`, value);
-}
-
-async function fillForm(page, user) {
-	await fillInput(page, 'Enter firstname...', user.firstname);
-	await fillInput(page, 'Enter lastname...', user.lastname);
-	await fillInput(page, 'Enter street...', user.street);
-	await fillInput(page, 'Enter zipcode...', user.zipcode);
-	await fillInput(page, 'Enter city...', user.city);
-	await fillInput(page, 'Enter country...', user.country);
-}
-
-async function initializeNewPage(browser, user) {
-	
-		const context = await browser.newContext();
 		const page = await context.newPage();
-		const page_url = process.env.PAGE_URL;
-		await page.goto(page_url);
-		await page.evaluate(() => window.localStorage.clear());
-		await page.evaluate(() => window.sessionStorage.clear());
-		await page.getByRole('button', { name: 'Continue' }).click();
-		await page.getByRole('button', { name: 'Enter Existing Seed Phrase' }).click();
-		await page.getByRole('button', { name: 'Enter Existing Seed Phrase' }).click();
-		await page.getByRole('tab', { name: 'Settings' }).click();
-		await page.getByLabel('Seed Phrase', { exact: true }).click();
-		await page.getByLabel('Seed Phrase').fill(user.seed);
-		await page.getByRole('button', { name: 'Enter Existing Seed Phrase' }).click();
-		await page.getByRole('tab', { name: 'My Address' }).click();
-		await fillForm(page, user);
-		await page.getByRole('button', { name: 'Add' }).click({ timeout: 50000 });
-		return page;
-	
-}
+		const lines = [];
+		page.on('console', (message) => lines.push(message.text()));
+		await addVirtualAuthenticator(page);
+		await recordCeremonies(page);
+
+		await test.step('device B: the link and the words open the vault', async () => {
+			await page.goto(link);
+			await confirmExperimental(page);
+			await expect(page.getByTestId('vault-handed-over')).toBeVisible();
+			// the record left the address bar
+			expect(page.url()).not.toContain('vault=');
+			await page.getByRole('button', { name: 'Restore with recovery words' }).click();
+			await page.getByLabel('Your 24 recovery words').fill(words.map((word, i) => `${i + 1}. ${word}`).join('\n'));
+			await page.getByRole('button', { name: 'Open with recovery words' }).click();
+			expect(await didOf(page)).toBe(a.did);
+			expect(await takeCeremonies(page)).toEqual([]);
+		});
+
+		await test.step('device B: a passkey of its own', async () => {
+			await page.getByRole('tab', { name: 'Settings' }).click();
+			await page.getByLabel('Name of the new passkey (optional)').fill('Device B');
+			await page.getByRole('button', { name: 'Add a passkey' }).click();
+			await continuePasskeyStep(page);
+			await expect(page.getByTestId('vault-slot')).toHaveCount(3);
+			expect(await takeCeremonies(page)).toEqual([
+				['create', true, 0],
+				['get', true, 1]
+			]);
+		});
+
+		await test.step('device B unlocks with its passkey as the same DID', async () => {
+			await page.reload();
+			await page.getByRole('button', { name: 'Unlock with passkey' }).click();
+			expect(await didOf(page)).toBe(a.did);
+			// one prompt, open to the two passkeys the vault knows
+			expect(await takeCeremonies(page)).toEqual([['get', true, 2]]);
+		});
+
+		await test.step('what device B writes arrives on device A, and A\'s card on B', async () => {
+			await expect.poll(() => names(page), { timeout: 90000, message: "A's card on B" }).toContain(`${alice.first} ${alice.last}`);
+			await page.evaluate(() =>
+				window.mydb.put({ _id: 'written-on-b', owner: window.orbitdb.identity.id, firstName: 'Written', lastName: 'on device B' })
+			);
+			await expect.poll(() => names(a.page), { timeout: 90000, message: "B's entry on A" }).toContain('Written on device B');
+		});
+	} finally {
+		await Promise.all([a.close(), context.close()]);
+	}
+});

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { addVirtualAuthenticator, confirmExperimental, createAddressBook } from './helpers/passkeys.js';
 
 // The other specs only click through the dialogs. This one checks that each address
 // really ends up in the other address book, and logs which way it travelled:
@@ -58,9 +59,10 @@ async function startPerson(browser, person, { webRTC }) {
 		const text = message.text();
 		if (/discovered peer|reserved a slot|refused a reservation/.test(text)) dials.push(text.slice(0, 300));
 	});
+	await addVirtualAuthenticator(page);
 	await page.goto(process.env.PAGE_URL);
-	await page.getByRole('button', { name: 'Continue' }).click();
-	await page.getByRole('button', { name: 'Generate New' }).click();
+	await confirmExperimental(page);
+	await createAddressBook(page, person.first);
 	await page.getByRole('tab', { name: 'Settings' }).click();
 	const didField = page.getByLabel('DID', { exact: true });
 	await expect(didField).not.toHaveValue('');

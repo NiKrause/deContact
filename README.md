@@ -14,6 +14,7 @@
 [![Helia](https://img.shields.io/badge/Helia-7.1-65c2cb)](https://helia.io)
 [![OrbitDB](https://img.shields.io/badge/OrbitDB-4.0-orange)](https://orbitdb.org)
 [![DID](https://img.shields.io/badge/identity-did%3Akey-informational)](https://w3c-ccg.github.io/did-method-key/)
+[![Passkeys](https://img.shields.io/badge/login-passkeys%20(PRF)-informational)](https://w3c.github.io/webauthn/#prf-extension)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-2-FF3E00?logo=svelte&logoColor=white)](https://kit.svelte.dev)
 
 </div>
@@ -27,14 +28,15 @@
 deContact gives every person a self-owned address book. It lives in the browser and syncs peer-to-peer with the people they exchanged cards with. When you change your address, you rewrite your card in every address book you were invited into. Relays only help peers find each other and keep a replica for when you are offline; they can't change what's in your book.
 
 ## Features
-- 🔑 **Self-sovereign identity.** A BIP39 seed phrase gives you a `did:key` (Ed25519), which serves as your OrbitDB identity. No account, no server-side login.
+- 🔑 **Self-sovereign identity, opened with a passkey.** A passkey opens a vault that holds one root; your `did:key` (Ed25519) and OrbitDB identity are derived from it. No account, no seed phrase, no server-side login ([how](docs/how-it-works.md#identity-passkeys-and-the-vault)).
 - 📇 **Your own address book.** An OrbitDB documents database for your card and the cards others write into it (private, business or other).
 - 🤝 **Exchange cards by DID.** Scan a QR code or paste a DID. The other person confirms, and each side writes their card into the other's book.
 - 🔄 **Updates follow you.** A changed card is rewritten in every book you were invited into.
 - 🛡️ **Signed invitations.** Only invited contacts may write, and only their own card (see [who may write](docs/how-it-works.md#who-may-write-into-an-address-book)).
 - 🌐 **Direct and relayed.** WebRTC between browsers when possible, a circuit relay otherwise. Relays found through Aleph, or your own.
 - 💾 **Offline-friendly.** The relay keeps a replica, so updates reach you after you've been offline.
-- 📱 **Multiple devices.** The same seed phrase on another device gives the same DID, and the same address book syncs between your devices.
+- 📱 **Multiple devices.** Every passkey you add opens the same vault and writes as the same DID. A synced passkey restores everything on a new device; one that does not sync joins with a device link or your recovery words.
+- 🧾 **Recovery words.** Optionally 24 words on paper open the vault when no passkey is at hand.
 - 🔍 **Contact list with search.** A Progressive Web App built with SvelteKit and Carbon.
 
 ## How it works
@@ -54,7 +56,7 @@ pnpm dev
 ```
 The app finds Le Space's relays on Aleph by itself. To try it with two people:
 1. Open the app in two separate browsers or browser profiles.
-2. In each, choose **Continue**, then **Generate New**, then enter your card under **My Address**.
+2. In each, choose **Continue**, then **Create a new address book** (your browser asks for a passkey twice), then enter your card under **My Address**.
 3. In browser A, copy the DID from **Settings**. In browser B, paste it under **Contacts** and press **Scan**.
 4. Confirm **Send My Contact Data** in both browsers.
 5. Each contact list now shows the other person's card.
@@ -71,7 +73,12 @@ The app finds Le Space's relays on Aleph by itself. To try it with two people:
 ## Known limitations
 - **Experimental.** Data formats and protocols may still change; the address book format changed in 0.5.0.
 - **Not encrypted.** Contact data in address books is not encrypted yet. Anybody who knows a book's address can read it.
-- **Keys in the browser.** The seed phrase is kept in browser storage. Use a separate test seed phrase.
+- **Passkeys with PRF.** The browser and the passkey must support the WebAuthn PRF extension (recent Chrome, Safari, Edge; iCloud Keychain, Google Password Manager, 1Password, YubiKey 5). Without it the vault does not open.
+- **Security notes.**
+  - Nothing secret is stored in the clear: the browser keeps only the sealed vault record, and OrbitDB's keystore lives in memory. While the app is open, the root and the identity's key are in the page's memory, so a script running in the page could use them.
+  - The first passkey's PRF output is the vault's root. Removing a passkey revokes nothing it already opened, and the first passkey always restores the identity.
+  - The vault record is public. It is published over OrbitDB (and the relays) under a name only a slot's holder can work out; it names each passkey's credential id and label.
+  - Browsers that used the seed phrase lose it on the first start; their old DID and address book are not carried over.
 - **WebRTC.** In automated headless tests, browsers only reach each other through the relay. Direct WebRTC between real browsers still needs confirming.
 
 ## Contributing

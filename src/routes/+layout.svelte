@@ -1,47 +1,70 @@
 <script>
     import { onDestroy, onMount } from "svelte";
+    import { get } from "svelte/store";
     import "carbon-components-svelte/css/all.css";
     import ConnectionSignalOff from "carbon-icons-svelte/lib/ConnectionSignalOff.svelte";
     import ConnectionSignal from "carbon-icons-svelte/lib/ConnectionSignal.svelte";
     import { Header, HeaderGlobalAction, HeaderNav, HeaderUtilities, Theme } from "carbon-components-svelte";
+    import { connectPasskeyStepDialog } from "@le-space/orbitdb-identity-provider-webauthn-did/elements";
     import { hash } from './router.js'
     import QRCodeModal from "#lib/components/QRCodeModal.svelte";
-    import { myDal, qrCodeOpen, qrCodeData, seedPhrase, helia, orbitdb, masterSeed } from "../stores.js";
+    import PasskeyGate from "#lib/components/PasskeyGate.svelte";
+    import { myDal, qrCodeOpen, qrCodeData, helia, orbitdb } from "../stores.js";
 
-    import { startNetwork, close } from "../lib/network/p2p-operations.js"
-    import { getIdentityAndCreateOrbitDB} from "#lib/network/getIdendityAndCreateOrbitDB.js"
+    import { startNetwork, startAddressBook, close } from "../lib/network/p2p-operations.js"
+    import { attachOrbitDB, handRecord, initVault, ready, session } from "#lib/identity/session.js"
+    import { parseVaultRecord } from "#lib/identity/vault.js"
 
     import { connectedPeers } from "../stores.js";
     import { confirmExperimentalUse } from "./confirmExperimentalUse.js";
-    import { handleSeedphrase } from "./handleSeedphrase.js";
     import Home from './+page.svelte'
     import OnBoarding from "#lib/components/OnBoarding.svelte";
 
     let theme = "g90";
 
-    $: if ( $helia!==undefined && $masterSeed!==undefined && $seedPhrase!==undefined ) {
-        //TODO if we use EthereumProvider Seedphrase doesn't need to be handled at all instead - Metamask must be connected
-        handleSeedphrase().then(() => {
-            console.log("generated seed phrase - creating identity and starting orbitdb")
-            getIdentityAndCreateOrbitDB('ed25519', $masterSeed, $helia)
-                .then(dbInstance => {
-                    orbitdb.set(dbInstance);
-                })
-                .catch(error => {
-                    console.error('Failed to create OrbitDB instance:', error);
-                });
-        })
+    // the vault comes first: the gate below asks it whether this browser keeps one
+    let networkStarted
+    initVault({ helia: new Promise((resolve) => (networkStarted = resolve)) })
+    const handedOver = takeDeviceLink()
+
+    /**
+     * A device link (#/link?vault=...) brings the public vault record of another device:
+     * unlocking here looks in it too. The record leaves the address bar at once.
+     */
+    function takeDeviceLink() {
+        if (!location.hash.startsWith('#/link?')) return false
+        const encoded = new URLSearchParams(location.hash.slice('#/link?'.length)).get('vault') ?? ''
+        history.replaceState(null, '', `${location.pathname}${location.search}#/`)
+        try {
+            const text = new TextDecoder().decode(
+                Uint8Array.from(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))
+            )
+            const record = parseVaultRecord(text)
+            if (record) handRecord(record)
+            return Boolean(record)
+        } catch {
+            return false
+        }
     }
 
+    let stepDialog
     onMount( async () => {
-        if($hash!=='/onboarding'){
-            await confirmExperimentalUse();
-            await handleSeedphrase();
-        }else
-            await handleSeedphrase(true);
+        // every passkey prompt after the first of an action says what it is for
+        connectPasskeyStepDialog(stepDialog)
+        if($hash!=='/onboarding') await confirmExperimentalUse();
 
-
-        await startNetwork();
+        // the network starts while the person unlocks; the address book once both are done
+        const network = startNetwork().then(
+            () => networkStarted(get(helia)),
+            (error) => {
+                console.error('the network did not start:', error)
+                networkStarted(undefined) // the unlock goes on without looking anything up
+            }
+        )
+        const signer = await ready
+        await network
+        await startAddressBook(signer);
+        await attachOrbitDB(get(orbitdb))
     } )
 
     onDestroy(close)
@@ -55,7 +78,7 @@
         '/onboarding': OnBoarding
     }
     $: console.log("$hash",$hash)
-    $: view = routes[$hash]
+    $: view = routes[$hash] ?? Home
 
         //    const urlParams = new URLSearchParams(window.location.search); //TODO url params we need when we "onboard" a new user via scanning a URL
 </script>
@@ -102,7 +125,12 @@
         qrCodeData={ $qrCodeData }
         dbMyDal={ $myDal } />
 <!--<slot></slot>-->
-<svelte:component this={ view } />
+{#if $session}
+    <svelte:component this={ view } />
+{:else}
+    <PasskeyGate onboarding={ $hash==='/onboarding' } { handedOver } />
+{/if}
+<passkey-step-dialog bind:this={ stepDialog }></passkey-step-dialog>
 <style>
     :global(.bx--toast-notification) {
         z-index: 1;
