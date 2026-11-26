@@ -13,10 +13,10 @@
     } from "carbon-components-svelte";
     import QrCode from "carbon-icons-svelte/lib/QrCode.svelte";
     import Scan from "carbon-icons-svelte/lib/Scan.svelte";
-    import ContactForm from "$lib/components/ContactForm.svelte";
-    import ContactList from "$lib/components/ContactList.svelte";
-    import Settings from "$lib/components/Settings.svelte";
-    import Statistics from "$lib/components/Statistics.svelte";
+    import ContactForm from "#lib/components/ContactForm.svelte";
+    import ContactList from "#lib/components/ContactList.svelte";
+    import Settings from "#lib/components/Settings.svelte";
+    import Statistics from "#lib/components/Statistics.svelte";
 
     import {
         orbitdb,
