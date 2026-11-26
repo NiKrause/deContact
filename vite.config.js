@@ -1,6 +1,6 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 export default defineConfig({
 	plugins: [
@@ -37,6 +37,8 @@ export default defineConfig({
 		// 	srcDir: 'src'})
 	],
 	test: {
-		include: ['src/**/*.{test,spec}.{js,ts}', 'packages/*/**/*.{test,spec}.{js,ts}']
+		include: ['src/**/*.{test,spec}.{js,ts}', 'packages/*/**/*.{test,spec}.{js,ts}'],
+		// unit tests that need a real browser run in Playwright (playwright.unit.config.js)
+		exclude: [...configDefaults.exclude, '**/*.browser.spec.js']
 	}
 });

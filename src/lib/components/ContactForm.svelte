@@ -2,11 +2,60 @@
      import { selectedAddr, orbitdb } from "../../stores.js";
      import { addContact, deleteContact, updateContact } from "../../operations.js";
      import { Button, Checkbox, Column, Dropdown, Grid, Row, TextInput } from "carbon-components-svelte";
+     import ContactPhoto from "./ContactPhoto.svelte";
+     import { photoFromFile } from "#lib/photo/photo.js";
+
+     /** our own card, or a new one: it may get a photo (#87) */
+     $: ours = $selectedAddr.owner === $orbitdb?.identity?.id || !$selectedAddr._id
+
+     let photoInput
+     let photoProblem = ""
+     let readingPhoto = false
+
+     /** the picked or taken image, made small and without its metadata (photo.js); saved with the card */
+     async function choosePhoto(event) {
+          const input = event.currentTarget
+          const file = input.files?.[0]
+          input.value = "" // the same file can be chosen again
+          if (!file) return
+          photoProblem = ""
+          readingPhoto = true
+          try {
+               $selectedAddr = { ...$selectedAddr, photo: await photoFromFile(file) }
+          } catch (error) {
+               console.log("could not use the photo:", error?.message)
+               photoProblem = "This image could not be used."
+          } finally {
+               readingPhoto = false
+          }
+     }
+
+     function removePhoto() {
+          // eslint-disable-next-line no-unused-vars
+          const { photo, ...card } = $selectedAddr
+          $selectedAddr = card
+     }
 </script>
 
 <section>
     <Grid>
 
+        <Row>
+            <Column>
+                <div class="photo">
+                    <ContactPhoto photo={$selectedAddr.photo} size={96} alt="Photo" testid="form-photo" />
+                    {#if ours}
+                        <!-- no capture attribute: on a phone the system then offers the camera and the gallery -->
+                        <input bind:this={photoInput} type="file" accept="image/*" hidden on:change={choosePhoto} />
+                        <Button kind="tertiary" size="sm" disabled={readingPhoto} on:click={() => photoInput.click()}>Choose photo</Button>
+                        {#if $selectedAddr.photo}
+                            <Button kind="ghost" size="sm" on:click={removePhoto}>Remove photo</Button>
+                        {/if}
+                    {/if}
+                </div>
+                {#if photoProblem}<p class="problem" role="alert">{photoProblem}</p>{/if}
+            </Column>
+        </Row>
         <Row>
             <Column><TextInput data-cy="txtFirstname" size="sm" labelText="firstname" placeholder="Enter firstname..."
                                bind:value={$selectedAddr.firstName} /></Column>
@@ -64,3 +113,18 @@
     </Grid>
 
 </section>
+<style>
+    .photo {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 1rem;
+        margin-bottom: 1rem;
+    }
+    .photo :global(.bx--btn) {
+        margin-bottom: 0;
+    }
+    .problem {
+        color: #fa4d56;
+    }
+</style>
