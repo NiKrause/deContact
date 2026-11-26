@@ -1,4 +1,5 @@
 import {confirm} from "#lib/components/experimentalUseModal.js";
+import { t } from "#lib/i18n/index.js";
 
 /**
  * When opening the app first time, let the people know this is experimental.
@@ -6,11 +7,7 @@ import {confirm} from "#lib/components/experimentalUseModal.js";
  */
 export const confirmExperimentalUse = async () => {
     if(!localStorage.getItem("testConfirmation")) {
-        const result = await confirm({ data: {
-                text: "Note: This is still experimental software. " +
-                    "This peer-to-peer only progressive web app (PWA) is not (yet) intended for use in production environments " +
-                    "or for use where real money or real contact data are at stake! \n" +
-                    "Please contact developers for questions. " } })
+        const result = await confirm({ data: { text: t('experimental.text') } })
         if(result===true) localStorage.setItem("testConfirmation",result)
     }
 }

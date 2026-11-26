@@ -40,6 +40,7 @@ deContact gives every person a self-owned address book. It lives in the browser 
 - 📱 **Multiple devices.** Every passkey you add opens the same vault and writes as the same DID. A synced passkey restores everything on a new device; one that does not sync joins with a device link or your recovery words.
 - 🧾 **Recovery words.** Optionally 24 words on paper open the vault when no passkey is at hand.
 - 🔍 **Contact list with search.** A Progressive Web App built with SvelteKit and Carbon.
+- 🗣️ **English and German.** The app follows your browser's language and can be switched under **Settings** (or on the first screen); both work offline.
 
 ## How it works
 1. Bob scans Alice's DID (QR code or text) and sends her a request over libp2p. The request carries the address of his book and a signed invitation.

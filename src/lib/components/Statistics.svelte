@@ -7,6 +7,7 @@
     import WatsonHealthAiStatus from "carbon-icons-svelte/lib/WatsonHealthAiStatus.svelte";
     import WatsonHealthAiStatusComplete from "carbon-icons-svelte/lib/WatsonHealthAiStatusComplete.svelte";
     import {connectedPeers, recordsSynced, synced} from "../../stores.js";
+    import { _ } from "#lib/i18n/index.js";
 </script>
 
 <!--
@@ -15,14 +16,14 @@
 -->
 <Grid>
     <Row>
-        <Column sm={2}>Seed Node connected / Swarm connected  </Column>
+        <Column sm={2}>{$_('statistics.connected')}</Column>
         <Column sm={1}>
             {#if ($connectedPeers===0) }
-                <ConnectionSignalOff title="No network or connecting..." class="statusRed" />&nbsp;{$connectedPeers}
+                <ConnectionSignalOff title={$_('header.peers.none')} class="statusRed" />&nbsp;{$connectedPeers}
             {:else if $connectedPeers===1}
-                <ConnectionSignal title="Seed Nodes connected" class="statusYellow" />&nbsp;{$connectedPeers}
+                <ConnectionSignal title={$_('header.peers.seed')} class="statusYellow" />&nbsp;{$connectedPeers}
             {:else}
-                <ConnectionSignal title="Swarm connected" class="statusGreen" />&nbsp;{$connectedPeers}
+                <ConnectionSignal title={$_('header.peers.swarm')} class="statusGreen" />&nbsp;{$connectedPeers}
             {/if}
         </Column>
     </Row>

@@ -28,6 +28,10 @@ export default defineConfig({
 	expect: { timeout: 30000 },
 	use: {
 		baseURL,
+		// the app follows the browser's language (#89): the suites read English on any machine;
+		// tests/Language.spec.js switches to German itself. Contexts made with
+		// browser.newContext() get this too.
+		locale: 'en-US',
 		trace: 'on-first-retry'
 	},
 	projects: [

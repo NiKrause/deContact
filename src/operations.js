@@ -1,5 +1,6 @@
 import {notify, sha256} from "./utils/utils.js";
 import { removeContact, writeMyCardIntoFollowedBooks } from "./lib/network/p2p-operations.js";
+import { t } from "#lib/i18n/index.js";
 import {
     myAddressBook,
     selectedAddr,
@@ -37,7 +38,7 @@ export async function addContact() {
     _selectedAddr.sharedAddress = _dbMyAddressBook?.address
     _selectedAddr._id = await sha256(JSON.stringify(_selectedAddr))
     const hash = await _dbMyAddressBook.put(_selectedAddr)
-    notify(`Contact added successfully to ipfs/orbitdb! ${hash}`);
+    notify(t('notify.contactAdded', { hash }));
     closeForm()
 }
 
@@ -52,7 +53,8 @@ export async function updateContact() {
     await _dbMyAddressBook.put(_selectedAddr)
     newAddrBook.push(_selectedAddr)
     myAddressBook.set(newAddrBook)
-    notify(`Contact updated successfully - informing our followers! ${_myAddressBook.firstName} ${_myAddressBook.lastName}`)
+    const name = [_selectedAddr.firstName, _selectedAddr.lastName].filter(Boolean).join(' ')
+    notify(t('notify.contactUpdated', { name }))
     if(_selectedAddr.owner === _orbitdb?.identity?.id){ //only send update requests if my own address was changed
         await writeMyCardIntoFollowedBooks(_selectedAddr)
     }
@@ -68,10 +70,10 @@ export async function deleteContact() {
     const owner = _selectedAddr.owner
     if (owner && owner !== _orbitdb?.identity?.id) {
         await removeContact(owner)
-        notify(`Contact removed: ${owner} gets no more updates from you`)
+        notify(t('notify.contactRemoved', { owner }))
     } else {
         const hash = await _dbMyAddressBook.del(_selectedAddr._id)
-        notify(`Contact deleted successfully! ${hash}`)
+        notify(t('notify.contactDeleted', { hash }))
     }
     closeForm()
 }

@@ -1,4 +1,4 @@
-import { notificationMessage, showNotification, libp2p } from "../stores.js";
+import { notificationMessage, notificationKind, showNotification, libp2p } from "../stores.js";
 
 /**
  * Make an sha256 hash
@@ -14,7 +14,14 @@ export async function sha256(input) {
     return hashHex;
 }
 
-export function notify(message) {
+/**
+ * A toast for a moment. The message comes from the catalogue (t(), #89), so its kind is
+ * said here rather than guessed from its words.
+ * @param {string} message
+ * @param {'success' | 'warning' | 'error'} [kind]
+ */
+export function notify(message, kind = 'success') {
+    notificationKind.set(kind);
     notificationMessage.set(message);
     showNotification.set(true)
 
