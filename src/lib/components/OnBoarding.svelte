@@ -47,7 +47,9 @@
     $effect(() => {
         if (requested || !$dbMyAddressBook?.address || $connectedPeers < 1) return
         requested = true
-        opening.then(() => sendInvitationLinkRequest(inviter, onBoardingToken))
+        opening
+            .then(() => sendInvitationLinkRequest(inviter, onBoardingToken))
+            .catch((error) => console.log('could not send the request of the invitation link:', error?.message))
     })
 
     const me = $derived($orbitdb?.identity?.id)
