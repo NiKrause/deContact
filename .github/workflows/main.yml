@@ -33,6 +33,15 @@ jobs:
           playwright-report
           test-results/relay.log
         retention-days: 7
+    # every screen at every reference width (tests/Screens.spec.js, #110), to compare a
+    # change to the UI before and after: open index.html in the artifact
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: screens
+        path: test-results/screens
+        if-no-files-found: ignore
+        retention-days: 14
 
   # Pages only gets a build whose tests passed, and only from main
   build-pages:
