@@ -128,12 +128,24 @@ export async function newPerson(browser, person, { webRTC = true } = {}) {
 
 /** our own contact card */
 export async function addCard(page, { first, last, city = 'Example City' }) {
-	await page.getByRole('tab', { name: 'My Address' }).click();
+	await page.getByRole('link', { name: 'My card' }).click();
 	await page.getByPlaceholder('Enter firstname...').fill(first);
 	await page.getByPlaceholder('Enter lastname...').fill(last);
 	await page.getByPlaceholder('Enter city...').fill(city);
 	await page.getByRole('button', { name: 'Add' }).click();
 	await expect.poll(() => names(page), { timeout: 30000 }).toContain(`${first} ${last}`);
+}
+
+/**
+ * Asks somebody for their card by their contact address, as a person does without a camera:
+ * Exchange → "Paste a contact address instead" → Ask (#110).
+ */
+export async function askByAddress(page, address) {
+	await page.getByRole('link', { name: 'Exchange' }).click();
+	const field = page.getByTestId('scan-field');
+	if (!(await field.isVisible())) await page.getByRole('button', { name: 'Paste a contact address instead' }).click();
+	await field.fill(address);
+	await page.getByRole('button', { name: 'Ask', exact: true }).click();
 }
 
 /** names in this browser's own address book */

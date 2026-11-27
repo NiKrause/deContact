@@ -37,8 +37,8 @@ export const answerRequests = (page, answering) =>
  * `twoWay: false` turns the second off first.
  */
 export async function invitationLink(page, { twoWay = true } = {}) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
-	await page.getByRole('button', { name: 'QR Code' }).click();
+	await page.getByRole('link', { name: 'Exchange' }).click();
+	await page.getByRole('button', { name: 'Show my code' }).click();
 	await expect(page.getByRole('radio', { name: 'Share right away' })).toBeChecked();
 	const option = page.getByRole('checkbox', { name: 'Also ask for their contact details' });
 	await expect(option).toBeChecked();

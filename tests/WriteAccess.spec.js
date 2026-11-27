@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, names, newPerson } from './helpers/passkeys.js';
+import { contactAddressOf, names, newPerson, askByAddress } from './helpers/passkeys.js';
 import { times } from './helpers/onboarding.js';
 
 // Who may write into an address book, through the app and the relay (#81), and what
@@ -202,9 +202,7 @@ test("a removed contact's card stays out until they are invited again", async ({
  * each has the other's card.
  */
 async function exchangeCards(from, to) {
-	await from.page.getByRole('tab', { name: 'Contacts' }).click();
-	await from.page.getByTestId('scan-field').fill(await contactAddressOf(to.page));
-	await from.page.getByRole('button', { name: 'Scan' }).click();
+	await askByAddress(from.page, await contactAddressOf(to.page));
 	await expect(to.page.getByTestId('request-from')).toBeVisible({ timeout: 90000 });
 	await to.page.getByRole('button', { name: 'Share and ask for theirs' }).click({ timeout: 90000 });
 	await from.page.getByRole('button', { name: 'Share mine' }).click({ timeout: 90000 });
@@ -281,19 +279,19 @@ async function relayHasEntry(address, entryHash) {
 
 /** the rows of the contact list on screen */
 async function listed(page) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
+	await page.getByRole('link', { name: 'Contacts' }).click();
 	return page.getByRole('row').allTextContents();
 }
 
 /** our own card: My Address opens it, it is not in the list (#110) */
 async function openOwnCard(page, lastName) {
-	await page.getByRole('tab', { name: 'My Address' }).click();
+	await page.getByRole('link', { name: 'My card' }).click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 
 /** selects a contact in the list, which opens it in the form */
 async function selectContact(page, lastName) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
+	await page.getByRole('link', { name: 'Contacts' }).click();
 	await page.getByRole('row', { name: new RegExp(lastName) }).locator('label').click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }

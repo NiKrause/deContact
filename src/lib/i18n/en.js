@@ -47,16 +47,25 @@ export default {
 			count: { one: '({count} peer)', other: '({count} peers)' }
 		}
 	},
-	tabs: {
+	// the four places (#110), at the bottom on a phone, a rail on a desktop
+	nav: {
+		label: 'Main',
+		exchange: 'Exchange',
 		contacts: 'Contacts',
-		myAddress: 'My Address',
-		statistics: 'Statistics',
+		card: 'My card',
 		settings: 'Settings'
 	},
+	// the start screen (#110)
+	exchange: {
+		ready: 'Ready to exchange',
+		connecting: 'Connecting…',
+		showCode: 'Show my code',
+		scan: 'Scan a code',
+		paste: 'Paste a contact address instead',
+		pasteLabel: 'Contact address',
+		ask: 'Ask'
+	},
 	home: {
-		scan: 'Scan',
-		scanLabel: 'Contact address',
-		qrCode: 'QR Code',
 		waiting: "Waiting for {name}'s phone…",
 		waitingNameless: 'Waiting for the phone of the person who invited you…'
 	},
@@ -88,6 +97,8 @@ export default {
 		firstName: 'Firstname',
 		search: 'Search...',
 		searchLabel: 'Search contacts',
+		add: 'Add contact',
+		back: 'All contacts',
 		// an expanded row: the card in words, the technical parts collapsed (#110)
 		details: {
 			email: 'Email',
@@ -100,7 +111,7 @@ export default {
 		clearSearch: 'Clear search input',
 		// what Carbon's table says to a screen reader (its translateWithId)
 		table: {
-			selectRow: 'Open this contact in My Address',
+			selectRow: 'Open this contact',
 			selectAll: 'Select all contacts',
 			expandRow: 'Expand current row',
 			collapseRow: 'Collapse current row',
@@ -329,6 +340,7 @@ export default {
 		peerIdHelp: 'Every device has a unique peer id independent from your identity',
 		peers: 'Connected Peers',
 		peersHelp: 'This is the amount of peers which are connected in our peer-to-peer network',
+		network: 'Network',
 		webrtc: 'WebRTC (applies after reload)',
 		dropFollowers: 'Drop Followed & Follower DBs',
 		dropAddressBook: 'Drop AddressDB',

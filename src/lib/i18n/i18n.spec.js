@@ -129,12 +129,12 @@ describe('the catalogues (#89)', () => {
 	it('components get the same words through the store $_, which changes with each switch', () => {
 		const english = get(_);
 		expect(get(language)).toBe('en');
-		expect(english('tabs.contacts')).toBe('Contacts');
+		expect(english('nav.contacts')).toBe('Contacts');
 		setLocale('de');
 		expect(get(language)).toBe('de');
 		const german = get(_);
 		expect(german).not.toBe(english);
-		expect(german('tabs.contacts')).toBe('Kontakte');
+		expect(german('nav.contacts')).toBe('Kontakte');
 		expect(german('home.waiting', { name: 'Alice' })).toBe(t('home.waiting', { name: 'Alice' }));
 		expect(german('contacts.itemRange', { count: 2, min: 1, max: 2, total: 2 })).toBe('1–2 von 2 Einträgen');
 	});

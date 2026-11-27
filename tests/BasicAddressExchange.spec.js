@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, contactAddressOf, createAddressBook } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, contactAddressOf, createAddressBook, askByAddress } from './helpers/passkeys.js';
 /** the console of both pages */
 const lines = [];
 
@@ -22,10 +22,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		await expect(pageAlice.getByTestId('peers'), 'connection Alice').toContainText('Swarm connected', { timeout: 15000 });
 		await expect(pageBob.getByTestId('peers'), 'connection Bob').toContainText('Swarm connected');
 
-		await pageBob.getByRole('tab', { name: 'Contacts' }).click();
-		await pageBob.getByTestId('scan-field').click();
-		await pageBob.getByTestId('scan-field').fill(await contactAddressOf(pageAlice));
-		await pageBob.getByRole('button', { name: 'Scan' }).click();
+		await askByAddress(pageBob, await contactAddressOf(pageAlice));
 
 
 		const button = pageAlice.getByRole('button', { name: 'Share and ask for theirs' })
@@ -50,7 +47,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		test.setTimeout(180000);
 
 		// his own card: under My Address, not in his list (#110)
-		await pageBob.getByRole('tab', { name: 'My Address' }).click();
+		await pageBob.getByRole('link', { name: 'My card' }).click();
 		await expect(pageBob.getByPlaceholder('Enter lastname...')).toHaveValue(users[1].lastname);
 		await pageBob.getByPlaceholder('Enter lastname...').click();
 		await pageBob.getByPlaceholder('Enter lastname...').fill(users[2].lastname);
@@ -65,13 +62,13 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		// in Alice's book and in her list, without a reload
 		await expect.poll(() => cardOf(pageAlice, users[1].did), { timeout: 90000, message: "Bob's update in Alice's book" })
 			.toMatchObject({ lastName: users[2].lastname, street: users[2].street, city: users[2].city });
-		await pageAlice.getByRole('tab', { name: 'Contacts' }).click();
+		await pageAlice.getByRole('link', { name: 'Contacts' }).click();
 		await expect(pageAlice.getByRole('row', { name: new RegExp(users[2].lastname) })).toBeVisible({ timeout: 30000 });
 	});
 
 	test('Alice updates her address and Bob receives the update', async () => {
 		test.setTimeout(180000);
-		await pageAlice.getByRole('tab', { name: 'My Address' }).click();
+		await pageAlice.getByRole('link', { name: 'My card' }).click();
 		await expect(pageAlice.getByPlaceholder('Enter lastname...')).toHaveValue(users[0].lastname);
 		await pageAlice.getByPlaceholder('Enter lastname...').fill(users[3].lastname);
 		await pageAlice.getByPlaceholder('Enter street...').fill(users[3].street);
@@ -81,7 +78,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		await pageAlice.getByRole('button', { name: 'Update' }).click();
 		await expect.poll(() => cardOf(pageBob, users[0].did), { timeout: 90000, message: "Alice's update in Bob's book" })
 			.toMatchObject({ lastName: users[3].lastname, street: users[3].street, city: users[3].city });
-		await pageBob.getByRole('tab', { name: 'Contacts' }).click();
+		await pageBob.getByRole('link', { name: 'Contacts' }).click();
 		await expect(pageBob.getByRole('row', { name: new RegExp(users[3].lastname) })).toBeVisible({ timeout: 30000 });
 	});
 	
@@ -141,11 +138,11 @@ async function initializeNewPage(browser, user) {
 		await addVirtualAuthenticator(page);
 		await page.goto(page_url);
 		await createAddressBook(page, user.identity);
-		await page.getByRole('tab', { name: 'Settings' }).click();
+		await page.getByRole('link', { name: 'Settings' }).click();
 		// the DID appears once OrbitDB has started
 		await expect(page.getByLabel('DID', { exact: true })).not.toHaveValue('', { timeout: 30000 });
 		user.did = await page.getByLabel('DID', { exact: true }).inputValue();
-		await page.getByRole('tab', { name: 'My Address' }).click();
+		await page.getByRole('link', { name: 'My card' }).click();
 		await fillForm(page, user);
 		await page.getByRole('button', { name: 'Add' }).click({ timeout: 50000 });
 		return page;

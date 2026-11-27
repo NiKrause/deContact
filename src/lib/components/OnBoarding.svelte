@@ -208,6 +208,7 @@
 
 <style>
     .onboarding {
+        margin: 3rem;
         max-width: 40rem;
         display: flex;
         flex-direction: column;
@@ -216,6 +217,7 @@
     /* a phone: the page has no side margin there (+page.svelte), the form keeps 16 px */
     @media (max-width: 41.98rem) {
         .onboarding {
+            margin: 1rem 0;
             padding-inline: 1rem;
         }
     }

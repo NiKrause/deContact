@@ -51,7 +51,7 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 			await expect(share).toBeEnabled();
 			await expect(bob.page.getByRole('button', { name: 'Save only' })).toBeVisible();
 			await share.click();
-			await expect(bob.page.getByRole('tab', { name: 'Contacts' })).toBeVisible();
+			await expect(bob.page.getByRole('link', { name: 'Contacts' })).toBeVisible();
 			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText('Waiting for the phone of the person who invited you…');
 			// his app tries again, with the same token, while Alice's does not answer
 			const asked = `could not deliver the request of the invitation link to ${alice.did}`;
@@ -103,7 +103,7 @@ test('Save only; a second person with the same link is asked for', async ({ brow
 		await test.step('Bob saves only, with his email alone: nothing of his reaches Alice', async () => {
 			await fillOnboardingCard(bob.page, { email: people.bob.email });
 			await bob.page.getByRole('button', { name: 'Save only' }).click();
-			await expect(bob.page.getByRole('tab', { name: 'Contacts' })).toBeVisible();
+			await expect(bob.page.getByRole('link', { name: 'Contacts' })).toBeVisible();
 			await expect.poll(() => bob.saw(`declined the request of ${alice.did}: we saved our card only`), { timeout: 30000 }).toBe(true);
 			// his own card: the email, no DID in a name
 			const own = await bob.page.evaluate(async () => {
@@ -175,8 +175,8 @@ test('the QR dialog says what the code does, and shows the contact address for a
 	const alice = await newPerson(browser, people.alice);
 	try {
 		const { page } = alice;
-		await page.getByRole('tab', { name: 'Contacts' }).click();
-		await page.getByRole('button', { name: 'QR Code' }).click();
+		await page.getByRole('link', { name: 'Exchange' }).click();
+		await page.getByRole('button', { name: 'Show my code' }).click();
 		await expect(page.getByRole('heading', { name: 'Share your contact' })).toBeVisible();
 		const qrCode = page.locator('img.qrcode');
 		const summary = page.getByTestId('qr-summary');

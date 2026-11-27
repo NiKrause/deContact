@@ -119,6 +119,9 @@
     const routes = {
         '/': Home,
         '': Home,
+        '/contacts': Home,
+        '/card': Home,
+        '/settings': Home,
         '/onboarding': OnBoarding
     }
     const View = $derived(routes[$hash] ?? Home)

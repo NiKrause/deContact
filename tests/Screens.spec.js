@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
 	addVirtualAuthenticator,
+	askByAddress,
 	addCard,
 	contactAddressOf,
 	createAddressBook,
@@ -31,7 +32,7 @@ const DEVICES = [
 ];
 /** where the pictures go; one file per screen and width: <screen>-<width>.png */
 const OUT = process.env.SCREENS_DIR || path.join('test-results', 'screens');
-/** the width the tour clicks at: the tabs are a list below Carbon's md breakpoint */
+/** the width the tour clicks at: a desktop's, with the places in a rail */
 const CLICK_AT = DEVICES.at(-1);
 
 const people = {
@@ -62,15 +63,15 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			alice = { page, did, close: () => context.close() };
 			await openTab(page, 'Contacts');
 			await shoot(page, '03-contacts-empty', 'Contacts, empty');
-			await openTab(page, 'My Address');
-			await shoot(page, '04-my-address', 'My Address');
+			await openTab(page, 'My card');
+			await shoot(page, '04-my-card', 'My card, before the first card');
 			await addCard(page, people.alice);
 		});
 
 		const { page } = alice;
-		await test.step('the QR dialog, Statistics and Settings', async () => {
-			await openTab(page, 'Contacts');
-			await page.getByRole('button', { name: 'QR Code' }).click();
+		await test.step('Exchange and its QR dialog, and Settings', async () => {
+			await openTab(page, 'Exchange');
+			await page.getByRole('button', { name: 'Show my code' }).click();
 			// the pointer off the dialog: over its close button, Carbon shows a tooltip, and the
 			// first Escape closes that tooltip instead of the dialog (WCAG 1.4.13)
 			await page.mouse.move(0, 0);
@@ -78,8 +79,8 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await shoot(page, '05-qr-dialog', 'The QR dialog', { dialog: true });
 			await page.keyboard.press('Escape');
 			await expect(page.locator('img.qrcode')).toHaveCount(0);
-			await openTab(page, 'Statistics');
-			await shoot(page, '06-statistics', 'Statistics');
+			await openTab(page, 'Exchange');
+			await shoot(page, '06-exchange', 'Exchange, the start screen');
 			await openTab(page, 'Settings');
 			await shoot(page, '07-settings', 'Settings');
 		});
@@ -98,7 +99,7 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await bob.page
 				.getByRole('button', { name: `Save and share with ${people.alice.first}` })
 				.click();
-			await expect(bob.page.getByRole('tab', { name: 'Contacts' })).toBeVisible({ timeout: 60000 });
+			await expect(bob.page.getByRole('link', { name: 'Contacts' })).toBeVisible({ timeout: 60000 });
 			await expect
 				.poll(() => names(page), { timeout: 90000, message: "Bob's card in Alice's book" })
 				.toContain(fullName(people.bob));
@@ -108,9 +109,7 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 		await test.step('the request dialog: Carol asks Alice by her contact address', async () => {
 			carol = await newPerson(browser, people.carol);
 			await carol.page.setViewportSize(size(CLICK_AT));
-			await openTab(carol.page, 'Contacts');
-			await carol.page.getByTestId('scan-field').fill(await contactAddressOf(page));
-			await carol.page.getByRole('button', { name: 'Scan' }).click();
+			await askByAddress(carol.page, await contactAddressOf(page));
 			const send = page.getByRole('button', { name: 'Share and ask for theirs' });
 			await expect(send).toBeVisible({ timeout: 90000 });
 			await shoot(page, '11-request-dialog', 'The request dialog', { dialog: true });
@@ -148,11 +147,11 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 
 const size = ({ width, height }) => ({ width, height });
 
-/** a tab of the home screen, clicked where the tabs are tabs */
+/** one of the four places (#110), through the navigation, at the width the tour clicks at */
 async function openTab(page, name) {
 	await page.setViewportSize(size(CLICK_AT));
-	await page.getByRole('tab', { name }).click();
-	await expect(page.getByRole('tab', { name, selected: true })).toBeVisible();
+	await page.getByRole('link', { name }).click();
+	await expect(page.getByRole('link', { name })).toHaveAttribute('aria-current', 'page');
 }
 
 /**
@@ -163,7 +162,7 @@ async function openTab(page, name) {
 async function shoot(page, screen, title, { dialog = false } = {}) {
 	for (const device of DEVICES) {
 		await page.setViewportSize(size(device));
-		// Carbon lays some parts out again after a resize (the tabs become a list on a phone)
+		// some parts lay out again after a resize (the navigation moves to the bottom on a phone)
 		await page.waitForTimeout(400);
 		const file = `${screen}-${device.width}.png`;
 		await page.screenshot({

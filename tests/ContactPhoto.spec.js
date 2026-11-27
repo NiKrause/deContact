@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, everythingStoredAsText, newPerson } from './helpers/passkeys.js';
+import { contactAddressOf, everythingStoredAsText, newPerson, askByAddress } from './helpers/passkeys.js';
 import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboarding.js';
 import { bytesOfDataUrl, metadataOf, withExif } from './helpers/exif.js';
 
@@ -61,7 +61,8 @@ test("Bob sees Alice's photo after the onboarding; a third peer sees no image by
 		await test.step('Bob saves: her photo in his contact list and in her details', async () => {
 			await fillOnboardingCard(bob.page, people.bob);
 			await bob.page.getByRole('button', { name: `Save and share with ${people.alice.first}` }).click();
-			await expect(bob.page.getByRole('tab', { name: 'Contacts' })).toBeVisible();
+			// saved: his app opens on Exchange; her card is under Contacts
+			await bob.page.getByRole('link', { name: 'Contacts' }).click();
 			const row = rowOf(bob.page, people.alice.last);
 			await expect(row.getByTestId('contact-photo')).toHaveAttribute('src', photo, { timeout: 60000 });
 			await row.getByRole('button', { name: 'Expand current row' }).click();
@@ -138,9 +139,7 @@ test("the request dialog shows a small copy of the asker's photo", async ({ brow
 		});
 
 		await test.step("she asks Alice: Alice's dialog shows it, 64 pixels wide and a few KB", async () => {
-			await carol.page.getByRole('tab', { name: 'Contacts' }).click();
-			await carol.page.getByTestId('scan-field').fill(await contactAddressOf(alice.page));
-			await carol.page.getByRole('button', { name: 'Scan' }).click();
+			await askByAddress(carol.page, await contactAddressOf(alice.page));
 			const shown = alice.page.getByTestId('request-photo');
 			await expect(shown).toBeVisible({ timeout: 90000 });
 			const src = await shown.getAttribute('src');
@@ -206,7 +205,7 @@ function rowOf(page, lastName) {
 
 /** our own card: My Address opens it (#110) */
 async function openCard(page, lastName) {
-	await page.getByRole('tab', { name: 'My Address' }).click();
+	await page.getByRole('link', { name: 'My card' }).click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 
