@@ -57,7 +57,8 @@ export default {
 		scan: 'Scan',
 		scanLabel: 'Contact address',
 		qrCode: 'QR Code',
-		waiting: "Waiting for {name}'s phone…"
+		waiting: "Waiting for {name}'s phone…",
+		waitingNameless: 'Waiting for the phone of the person who invited you…'
 	},
 	// the camera that reads a contact's QR code (QrScanner.svelte, <qr-scanner> of
 	// @le-space/libp2p-webrtc-qr)
@@ -199,6 +200,12 @@ export default {
 		countryPlaceholder: 'Enter country...',
 		addAddress: 'Add address',
 		saveAndShare: 'Save and share with {name}',
+		saveAndShareNameless: 'Save and share',
+		// until the inviter's card is here: their name is not known yet, and the DID is no name (#110)
+		onTheWay: 'The card of the person who invited you is on its way…',
+		inviter: 'The person who invited you',
+		saving: 'Saving your card…',
+		savingAndSharing: 'Saving your card and sending it…',
 		saveOnly: 'Save only',
 		save: 'Save',
 		problem: 'Your card could not be saved. Please try again.'

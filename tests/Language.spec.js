@@ -142,7 +142,7 @@ test('the onboarding in German, switched on the first screen', async ({ browser 
 			await carol.page.goto(link);
 			await expect(carol.page.getByRole('button', { name: 'Already have a deContact passkey? Sign in' })).toBeVisible();
 			await carol.page.getByTestId('onboarding-language-de').click();
-			await expect(carol.page.getByRole('heading', { name: 'Kontaktdaten wurden mit dir geteilt' })).toBeVisible();
+			await expect(carol.page.getByTestId('waiting-for-phone')).toHaveText('Die Karte der Person, die dich eingeladen hat, ist unterwegs …');
 			await expect(carol.page.getByRole('button', { name: 'Du hast schon einen deContact-Passkey? Anmelden' })).toBeVisible();
 			expect(await htmlLang(carol.page)).toBe('de');
 			expect(await takeCeremonies(carol.page)).toEqual([]);
