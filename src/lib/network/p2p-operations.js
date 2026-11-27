@@ -1010,10 +1010,16 @@ export async function saveOwnCard(card) {
 
 /**
  * Our contact data changed: replace our card in every address book we were invited into.
+ *
+ * The books are looked up again first. The list was made when we last answered or opened
+ * a request; a contact's card that arrived since (with the address of their book) was not
+ * in it, so a change of ours did not reach them until the app was opened again.
+ *
  * @param ownCard our card as shown in our own address book
  */
 export async function writeMyCardIntoFollowedBooks(ownCard) {
     const me = _orbitdb?.identity?.id
+    if (me) await initReplicationBackup(me)
     for (const followed of _followList ?? []) {
         if (!followed.db) continue
         try {

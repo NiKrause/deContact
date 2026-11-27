@@ -73,6 +73,8 @@ test('Alice moves: Bob gets her new address, also when his app was closed meanwh
 				.toContain(secondMove.street);
 		});
 	} finally {
+		// what Bob's app did after it was opened again
+		console.log(`Bob: ${JSON.stringify(bob.lines.filter((line) => /vault|address book|our card|sync|join|error|could not/i.test(line)).slice(-30), null, 1)}`);
 		await Promise.all([aliceClosed ? undefined : alice.close(), bob.close()]);
 	}
 });
@@ -91,7 +93,11 @@ async function move(page, lastName, { street, postalCode, city }) {
 /** the address on the card of `did` in this browser's own book */
 function addressIn(page, did) {
 	return page.evaluate(async (did) => {
-		const card = (await window.mydb.all()).map((record) => record.value).find((value) => value.owner === did && value.firstName !== 'invited');
+		// the book is not open yet right after unlocking
+		if (!window.mydb) return undefined;
+		const card = (await window.mydb.all()).map((record) => record.value)
+			// their card: not our placeholder for them, not the record of their book (subscriber)
+			.find((value) => value.owner === did && value.firstName !== 'invited' && !value.subscriber);
 		return card ? { street: card.street, postalCode: card.postalCode, city: card.city } : undefined;
 	}, did);
 }

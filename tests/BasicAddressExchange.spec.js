@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { addVirtualAuthenticator, confirmExperimental, contactAddressOf, createAddressBook } from './helpers/passkeys.js';
+/** the console of both pages */
+const lines = [];
+
 test.describe('Simple exchange of address between Alice and Bob', async () => {
 	let pageAlice, pageBob;
 
@@ -13,7 +16,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 	test('Alice and Bob can exchange addresses', async () => {
 		// the request goes to Alice's device, peer to peer: directly when pubsub peer discovery
 		// announced her (every 10 s), else through the relay; resent after 10 s, 20 s, ...
-		test.setTimeout(120000);
+		test.setTimeout(240000);
 
 		const connect =  pageAlice.getByRole('img', { name: 'Swarm connected' })
 		await expect(connect, 'connection Alice').toBeEnabled({ timeout: 15000 });
@@ -34,6 +37,12 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		const button2 = pageBob.getByRole('button', { name: 'Send My Contact Data' })
 		await expect(button2, "Exchange of Bobs's contact information was successful").toBeEnabled({ timeout: 60000 });
 		await button2.click();
+
+		// the exchange is done once each book holds the other's card: only then can an update reach it
+		await expect.poll(() => cardOf(pageAlice, users[1].did), { timeout: 90000, message: "Bob's card in Alice's book" })
+			.toMatchObject({ lastName: users[1].lastname });
+		await expect.poll(() => cardOf(pageBob, users[0].did), { timeout: 90000, message: "Alice's card in Bob's book" })
+			.toMatchObject({ lastName: users[0].lastname });
 
 
 		//await pageAlice.getByRole('button', { name: 'Cancel' }).click();
@@ -78,6 +87,14 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 	});
 	
 
+	// Playwright needs the fixtures as a pattern, even when none are used
+	// eslint-disable-next-line no-empty-pattern
+	test.afterEach(async ({}, testInfo) => {
+		if (testInfo.status === testInfo.expectedStatus) return;
+		const relevant = lines.filter((line) => /request|card|invited|sync error|could not|deliver|updated|answered/i.test(line));
+		console.log(JSON.stringify(relevant.slice(-40), null, 1));
+	});
+
 	test.afterAll(async () => {
 		await Promise.all([
 			pageAlice.close(),
@@ -88,7 +105,9 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 /** the card of `did` in this browser's own book, as it opens */
 function cardOf(page, did) {
 	return page.evaluate(async (did) => {
-		const card = (await window.mydb.all()).map((record) => record.value).find((value) => value.owner === did && value.firstName !== 'invited');
+		const card = (await window.mydb.all()).map((record) => record.value)
+			// their card: not our placeholder for them, not the record of their book (subscriber)
+			.find((value) => value.owner === did && value.firstName !== 'invited' && !value.subscriber);
 		return card ? { lastName: card.lastName, street: card.street, city: card.city } : undefined;
 	}, did);
 }
@@ -115,6 +134,8 @@ async function initializeNewPage(browser, user) {
 		const context = await browser.newContext();
 		const page = await context.newPage();
 		const page_url = process.env.PAGE_URL;
+		// what each side did, printed when a test of this file fails (test.afterEach)
+		page.on('console', (message) => lines.push(`${user.identity}: ${message.text()}`.slice(0, 300)));
 
 
 		// a passkey per person (#60): its vault holds the identity
