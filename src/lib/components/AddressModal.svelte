@@ -69,7 +69,6 @@ Opens a confirmation modal on Bob's device when Alice is requesting his contact 
 
     <ModalFooter
             primaryButtonDisabled
-            selectorPrimaryFocus=".bx--btn--primary"
             secondaryButtons={[
                 { text: cancelText($_) },{ text: sendText($_) }
             ]}

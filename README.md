@@ -90,7 +90,6 @@ The app finds Le Space's relays on Aleph by itself. To try it with two people:
   - The vault record is public. It is published over OrbitDB (and the relays) under a name only a slot's holder can work out; it names each passkey's credential id and label.
   - Browsers that used the seed phrase lose it on the first start; their old DID and address book are not carried over.
 - **Patched OrbitDB.** deContact applies [orbitdb/orbitdb#1260](https://github.com/orbitdb/orbitdb/pull/1260), not yet released, to `@orbitdb/core` 4.0.0, so that entries reach a browser connected only through a relay ([how](docs/how-it-works.md#orbitdb-sync-patch)).
-- **Patched Carbon.** A few accessibility errors of carbon-components-svelte 0.82 are patched until Carbon is updated ([how](docs/how-it-works.md#accessibility)).
 - **WebRTC.** In automated headless tests, browsers only reach each other through the relay. Direct WebRTC between real browsers still needs confirming.
 
 ## Contributing

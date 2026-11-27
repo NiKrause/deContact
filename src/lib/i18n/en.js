@@ -86,8 +86,18 @@ export default {
 		name: 'Name',
 		firstName: 'Firstname',
 		search: 'Search...',
+		searchLabel: 'Search contacts',
 		clearSearch: 'Clear search input',
-		selectRow: 'Open this contact in My Address',
+		// what Carbon's table says to a screen reader (its translateWithId)
+		table: {
+			selectRow: 'Open this contact in My Address',
+			selectAll: 'Select all contacts',
+			expandRow: 'Expand current row',
+			collapseRow: 'Collapse current row',
+			expandAll: 'Expand all rows',
+			collapseAll: 'Collapse all rows',
+			expandColumn: 'Expand rows'
+		},
 		invited: 'invited',
 		canceled: 'request canceled',
 		nextPage: 'Next page',

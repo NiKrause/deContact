@@ -17,7 +17,6 @@
     import ContactList from "#lib/components/ContactList.svelte";
     import Settings from "#lib/components/Settings.svelte";
     import Statistics from "#lib/components/Statistics.svelte";
-    import TabLabels from "#lib/components/TabLabels.svelte";
 
     import {
         orbitdb,
@@ -79,8 +78,6 @@
         <Tab label={tabLabels[1]} data-cy="address"/>
         <Tab label={tabLabels[2]}  data-cy="statistics"/>
         <Tab label={tabLabels[3]}  data-cy="settings"/>
-        <!-- the dropdown on a phone names the tab in the language on screen too -->
-        <TabLabels labels={tabLabels}/>
         <svelte:fragment slot="content">
             <TabContent>
                 <Grid fullWidth class="scan-bar">

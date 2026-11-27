@@ -89,7 +89,7 @@
         </Row>
         <Row>
             <Column><Dropdown
-                    titleText={$_('form.category')}
+                    labelText={$_('form.category')}
                     bind:selectedId={$selectedAddr.category}
                     translateWithId={menuText($_)}
                     items={categoryItems($_)}

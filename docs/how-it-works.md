@@ -77,14 +77,8 @@ The patch applies to every OrbitDB in this repository, the E2E tests' local rela
   - Every field has a label. Where it is hidden, a screen reader still reads it.
   - The theme switch is named in the language on screen.
   - The peer icon's colour and number have a hidden text that says both. It is not a live region, because the number changes too often to read it out each time.
-  - A row of the contact list is chosen with a radio button named "Open this contact in My Address".
-- **Patched Carbon.** carbon-components-svelte 0.82 has a few accessibility errors, which later versions fix. deContact patches them as a pnpm patch ([`patches/carbon-components-svelte@0.82.11.patch`](../patches/carbon-components-svelte@0.82.11.patch)):
-  - a tab's list item could take focus, so it was no longer "presentation", and the tab sat in a list item instead of the tab list;
-  - on a phone, the tab menu's trigger was a "listbox" without options, named "listbox", with a link inside; now it is a button named by the tab it shows;
-  - a row's radio button or checkbox had no name (`selectRowLabel`);
-  - an expand cell pointed its `headers` at a header that does not exist.
-
-  The patch goes away with an update of Carbon.
+  - A row of the contact list is chosen with a radio button named "Open this contact in My Address". The table's other hidden texts (expand a row, the search field) are in the language on screen too (Carbon's `translateWithId`).
+- **Carbon 0.114, unpatched.** Until [#110](https://github.com/NiKrause/deContact/issues/110), deContact patched a few accessibility errors of carbon-components-svelte 0.82. Carbon 0.114 fixes them itself: a tab's list item is "presentation" again, a row's radio button has a name, an expand cell points at a header that exists, and on a phone the tabs stay tabs (a row that scrolls sideways) instead of a menu whose trigger was a "listbox" without options.
 
 ## Identity: passkeys and the vault
 

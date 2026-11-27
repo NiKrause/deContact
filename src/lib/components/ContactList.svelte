@@ -52,6 +52,9 @@
         ...(narrow ? [] : [{ key: "firstName", value: tr("contacts.firstName"), display: (value, row) => firstNameOf(row, tr) }])
     ]
 
+    /** what Carbon's table says to a screen reader, in the language on screen (a new function with each switch) */
+    const tableTexts = (tr) => (id) => tr(`contacts.table.${id}`)
+
     /** Carbon's pagination texts, in the language on screen (new functions with each switch) */
     const paginationTexts = (tr) => ({
         forwardText: tr("contacts.nextPage"),
@@ -69,7 +72,7 @@
         {pageSize}
         {page}
         radio
-        selectRowLabel={$_('contacts.selectRow')}
+        translateWithId={tableTexts($_)}
         sortable
         on:click={event => {
                 if (event?.detail?.cell?.key === 'qr') {
@@ -84,6 +87,8 @@
                 <ToolbarSearch
                         persistent
                         value=""
+                        labelText={$_("contacts.searchLabel")}
+                        hideLabel
                         placeholder={$_("contacts.search")}
                         closeButtonLabelText={$_("contacts.clearSearch")}
                         shouldFilterRows={matches}
@@ -101,7 +106,7 @@
             {cell.display ? cell.display(cell.value, row) : cell.value}
         {/if}
     </svelte:fragment>
-    <svelte:fragment slot="expanded-row" let:row>
+    <svelte:fragment slot="expandedRow" let:row>
         <ContactPhoto photo={row.photo} size={128} testid="contact-details-photo" />
         <pre>{JSON.stringify(withoutPhoto(row), null, 2)}</pre>
     </svelte:fragment>

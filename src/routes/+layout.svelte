@@ -130,7 +130,7 @@
 
     <Header
         class="header-title"
-        company="deContact"
+        companyName="deContact"
         platformName={$_('app.tagline')}
         href="./#/">
 

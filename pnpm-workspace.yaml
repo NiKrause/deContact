@@ -1,2 +1,7 @@
 packages:
   - 'packages/*'
+
+# carbon-components-svelte's postinstall sends usage data to IBM (@ibm/telemetry-js):
+# it never runs here
+ignoredBuiltDependencies:
+  - carbon-components-svelte

@@ -29,9 +29,6 @@ patchedDependencies:
   '@orbitdb/core@4.0.0':
     hash: c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa
     path: patches/@orbitdb__core@4.0.0.patch
-  carbon-components-svelte@0.82.11:
-    hash: 7e7b3c8e9f965d380541eb3d14c0eb7f6351facda82e8d6547700290d10afd40
-    path: patches/carbon-components-svelte@0.82.11.patch
 
 importers:
 
@@ -122,8 +119,8 @@ importers:
         specifier: 4.0.1
         version: 4.0.1
       carbon-icons-svelte:
-        specifier: ^12.4.2
-        version: 12.13.0
+        specifier: ^13.18.2
+        version: 13.18.2
       datastore-level:
         specifier: 13.0.1
         version: 13.0.1
@@ -168,8 +165,8 @@ importers:
         specifier: 8.56.0
         version: 8.56.0
       carbon-components-svelte:
-        specifier: ^0.82.7
-        version: 0.82.11(patch_hash=7e7b3c8e9f965d380541eb3d14c0eb7f6351facda82e8d6547700290d10afd40)
+        specifier: ^0.114.9
+        version: 0.114.9
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -438,6 +435,10 @@ packages:
   '@humanwhocodes/object-schema@2.0.3':
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
     deprecated: Use @eslint/object-schema instead
+
+  '@ibm/telemetry-js@1.12.0':
+    resolution: {integrity: sha512-tNgmk2k8loNDTnPInlu7yMP9YOCr9UMwSnXN7SCEsGIV8xHfTawhXlDnp1PV0Lbv+2GoLQKSgkShlJeGPi4jTg==}
+    hasBin: true
 
   '@ipld/dag-cbor@10.0.2':
     resolution: {integrity: sha512-1eCD4YMTlkx5i36oQUmeAojLS/wu+XCd1Gs31BA0afk0TaVkhnyMofIAT/pi0wV3HS3/G7QSN/1NibhiksMyZQ==}
@@ -1376,11 +1377,11 @@ packages:
   canonicalize@2.0.0:
     resolution: {integrity: sha512-ulDEYPv7asdKvqahuAY35c1selLdzDwHqugK92hfkzvlDCwXRRelDkR+Er33md/PtnpqHemgkuDPanZ4fiYZ8w==}
 
-  carbon-components-svelte@0.82.11:
-    resolution: {integrity: sha512-jCCQz7W+fEqPj7FsS8P4lG+SVWhruO+5GHWjqbzq6hDMfo9A0yBUcrTPqrpsOSus7S96x5sPQvIECP195Xkrew==}
+  carbon-components-svelte@0.114.9:
+    resolution: {integrity: sha512-c2mRwbRdDTp/ZiqqyHKfVs86FxtTq/M4+csay+UeKtmgh0IZVFiPg4ceTqJScx7sqLQJMWoDRs6b01/bZA26aA==}
 
-  carbon-icons-svelte@12.13.0:
-    resolution: {integrity: sha512-Tkp5Aa34GgAIQ5XSpD0JIKZTqiTUgtIt43SZxXuSDYvQjQ+HQVKNgYiDZ3oAA5etdcGT4O8+vDsVdGeL90Eezg==}
+  carbon-icons-svelte@13.18.2:
+    resolution: {integrity: sha512-PrCD7TzKZNzGVBmUIy7tex/42tJ4mTRvqUpE5vpv3S1KL463dwiE6E3BnaBZVKaDMNLIp/NT4dIdAfnY7vTEGA==}
 
   cbor-extract@2.2.3:
     resolution: {integrity: sha512-zTOCEYwiQDChj5DV/sUqccv3jhdZqbhymztwcrW2LncIG2fPPkb1ceK5rmr0bdtxzJCXoWzZ95shA+uaSH8cKw==}
@@ -1792,9 +1793,6 @@ packages:
   flat-cache@3.2.0:
     resolution: {integrity: sha512-CYcENa+FtcUKLmhhqyctpclsq7QF38pKjZHsGNiSQF5r4FtoKDWabFDl3hzaEQMvT1LHEysw5twgLvpYYb4vbw==}
     engines: {node: ^10.12.0 || >=12.0.0}
-
-  flatpickr@4.6.9:
-    resolution: {integrity: sha512-F0azNNi8foVWKSF+8X+ZJzz8r9sE1G4hl06RyceIaLvyltKvDl6vqk9Lm/6AUUCi5HWaIjiUbk7UpeE/fOXOpw==}
 
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
@@ -3792,6 +3790,8 @@ snapshots:
 
   '@humanwhocodes/object-schema@2.0.3': {}
 
+  '@ibm/telemetry-js@1.12.0': {}
+
   '@ipld/dag-cbor@10.0.2':
     dependencies:
       cborg: 6.2.1
@@ -5343,11 +5343,11 @@ snapshots:
 
   canonicalize@2.0.0: {}
 
-  carbon-components-svelte@0.82.11(patch_hash=7e7b3c8e9f965d380541eb3d14c0eb7f6351facda82e8d6547700290d10afd40):
+  carbon-components-svelte@0.114.9:
     dependencies:
-      flatpickr: 4.6.9
+      '@ibm/telemetry-js': 1.12.0
 
-  carbon-icons-svelte@12.13.0: {}
+  carbon-icons-svelte@13.18.2: {}
 
   cbor-extract@2.2.3:
     dependencies:
@@ -5830,8 +5830,6 @@ snapshots:
       flatted: 3.4.4
       keyv: 4.5.4
       rimraf: 3.0.2
-
-  flatpickr@4.6.9: {}
 
   flatted@3.4.4: {}
 
