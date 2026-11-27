@@ -54,6 +54,8 @@ export const recordsSynced = writable(0)
 
 export const showNotification =  writable()
 export const notificationMessage = writable()
+/** @type {Writable<'success' | 'warning' | 'error'>} */
+export const notificationKind = writable('success')
 
 export const useWebRTC = writable(window.localStorage.getItem('useWebRTC') !== null ? window.localStorage.getItem('useWebRTC') === 'true' : true);
 

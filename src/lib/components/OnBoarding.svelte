@@ -19,6 +19,7 @@
     } from '#lib/network/p2p-operations.js'
     import { sha256 } from '../../utils/utils.js'
     import ContactPhoto from './ContactPhoto.svelte'
+    import { _, t } from '#lib/i18n/index.js'
 
     // #/onboarding/<the inviter's DID>?onBoardingToken=<their one-time token>
     const inviter = ($did ?? '').trim()
@@ -33,7 +34,8 @@
     let twoWay = $state(false)
     let linkChecked = $state(false)
     let saving = $state(false)
-    let problem = $state('')
+    /** what went wrong, read in the language on screen @type {(() => string) | undefined} */
+    let problem = $state()
     let requested = false
     let prefilled = false
 
@@ -77,7 +79,7 @@
     /** @param {'share' | 'only' | 'save'} choice */
     async function save(choice) {
         saving = true
-        problem = ''
+        problem = undefined
         try {
             const fields = Object.fromEntries(Object.entries(card).map(([field, value]) => [field, value.trim()]))
             const next = { category: 'business', ...ownCard, ...fields, owner: me, own: true, sharedAddress: $dbMyAddressBook.address }
@@ -88,7 +90,7 @@
             window.location.hash = '/'
         } catch (error) {
             console.error('could not save the card:', error)
-            problem = 'Your card could not be saved. Please try again.'
+            problem = () => t('onboarding.problem')
         } finally {
             saving = false
         }
@@ -100,67 +102,67 @@
         <div class="inviter">
             <ContactPhoto photo={inviterCard.photo} size={96} testid="inviter-photo" />
             <h3 data-testid="inviter-card">
-                {[inviterCard.firstName, inviterCard.lastName].filter(Boolean).join(' ') || inviterCard.email || inviter} was added to your address book
+                {$_('onboarding.added', { name: [inviterCard.firstName, inviterCard.lastName].filter(Boolean).join(' ') || inviterCard.email || inviter })}
             </h3>
         </div>
     {:else}
-        <h3>Contact data have been shared with you</h3>
-        <p class="waiting" role="status" data-testid="waiting-for-phone">Waiting for {inviter}'s phone…</p>
+        <h3>{$_('onboarding.shared')}</h3>
+        <p class="waiting" role="status" data-testid="waiting-for-phone">{$_('home.waiting', { name: inviter })}</p>
     {/if}
 
     <form class="card" onsubmit={(event) => event.preventDefault()}>
-        <h4>Your contact details</h4>
-        <label class="bx--label" for="onboarding-email">Email</label>
-        <input id="onboarding-email" class="bx--text-input" type="email" autocomplete="email" placeholder="Enter email..." bind:value={card.email} />
+        <h4>{$_('onboarding.yourDetails')}</h4>
+        <label class="bx--label" for="onboarding-email">{$_('onboarding.email')}</label>
+        <input id="onboarding-email" class="bx--text-input" type="email" autocomplete="email" placeholder={$_('onboarding.emailPlaceholder')} bind:value={card.email} />
         <div class="names">
             <div>
-                <label class="bx--label" for="onboarding-first">First name</label>
-                <input id="onboarding-first" class="bx--text-input" autocomplete="given-name" placeholder="Enter firstname..." bind:value={card.firstName} />
+                <label class="bx--label" for="onboarding-first">{$_('onboarding.firstName')}</label>
+                <input id="onboarding-first" class="bx--text-input" autocomplete="given-name" placeholder={$_('onboarding.firstNamePlaceholder')} bind:value={card.firstName} />
             </div>
             <div>
-                <label class="bx--label" for="onboarding-last">Last name</label>
-                <input id="onboarding-last" class="bx--text-input" autocomplete="family-name" placeholder="Enter lastname..." bind:value={card.lastName} />
+                <label class="bx--label" for="onboarding-last">{$_('onboarding.lastName')}</label>
+                <input id="onboarding-last" class="bx--text-input" autocomplete="family-name" placeholder={$_('onboarding.lastNamePlaceholder')} bind:value={card.lastName} />
             </div>
         </div>
 
         {#if showAddress}
             <div class="names">
                 <div>
-                    <label class="bx--label" for="onboarding-street">Street</label>
-                    <input id="onboarding-street" class="bx--text-input" autocomplete="street-address" placeholder="Enter street..." bind:value={card.street} />
+                    <label class="bx--label" for="onboarding-street">{$_('onboarding.street')}</label>
+                    <input id="onboarding-street" class="bx--text-input" autocomplete="street-address" placeholder={$_('onboarding.streetPlaceholder')} bind:value={card.street} />
                 </div>
                 <div>
-                    <label class="bx--label" for="onboarding-zip">Zip code</label>
-                    <input id="onboarding-zip" class="bx--text-input" autocomplete="postal-code" placeholder="Enter zipcode..." bind:value={card.postalCode} />
+                    <label class="bx--label" for="onboarding-zip">{$_('onboarding.zipCode')}</label>
+                    <input id="onboarding-zip" class="bx--text-input" autocomplete="postal-code" placeholder={$_('onboarding.zipCodePlaceholder')} bind:value={card.postalCode} />
                 </div>
             </div>
             <div class="names">
                 <div>
-                    <label class="bx--label" for="onboarding-city">City</label>
-                    <input id="onboarding-city" class="bx--text-input" autocomplete="address-level2" placeholder="Enter city..." bind:value={card.city} />
+                    <label class="bx--label" for="onboarding-city">{$_('onboarding.city')}</label>
+                    <input id="onboarding-city" class="bx--text-input" autocomplete="address-level2" placeholder={$_('onboarding.cityPlaceholder')} bind:value={card.city} />
                 </div>
                 <div>
-                    <label class="bx--label" for="onboarding-country">Country</label>
-                    <input id="onboarding-country" class="bx--text-input" autocomplete="country-name" placeholder="Enter country..." bind:value={card.countryRegion} />
+                    <label class="bx--label" for="onboarding-country">{$_('onboarding.country')}</label>
+                    <input id="onboarding-country" class="bx--text-input" autocomplete="country-name" placeholder={$_('onboarding.countryPlaceholder')} bind:value={card.countryRegion} />
                 </div>
             </div>
         {:else}
-            <button type="button" class="bx--btn bx--btn--ghost bx--btn--sm add-address" onclick={() => (showAddress = true)}>Add address</button>
+            <button type="button" class="bx--btn bx--btn--ghost bx--btn--sm add-address" onclick={() => (showAddress = true)}>{$_('onboarding.addAddress')}</button>
         {/if}
 
         {#if linkChecked}
             <div class="buttons">
                 {#if twoWay}
                     <button type="button" class="bx--btn bx--btn--primary" disabled={!canSave} onclick={() => save('share')}>
-                        Save and share with {inviterName}
+                        {$_('onboarding.saveAndShare', { name: inviterName })}
                     </button>
-                    <button type="button" class="bx--btn bx--btn--secondary" disabled={!canSave} onclick={() => save('only')}>Save only</button>
+                    <button type="button" class="bx--btn bx--btn--secondary" disabled={!canSave} onclick={() => save('only')}>{$_('onboarding.saveOnly')}</button>
                 {:else}
-                    <button type="button" class="bx--btn bx--btn--primary" disabled={!canSave} onclick={() => save('save')}>Save</button>
+                    <button type="button" class="bx--btn bx--btn--primary" disabled={!canSave} onclick={() => save('save')}>{$_('onboarding.save')}</button>
                 {/if}
             </div>
         {/if}
-        {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+        {#if problem}<p class="problem" role="alert">{problem()}</p>{/if}
     </form>
 </div>
 

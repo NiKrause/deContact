@@ -16,6 +16,7 @@ import {
     prfInputForRelyingParty,
     readPrfOutput
 } from '@le-space/orbitdb-identity-provider-webauthn-did'
+import { t } from '#lib/i18n/index.js'
 
 const sameBytes = (a, b) => a.length === b.length && a.every((byte, i) => byte === b[i])
 
@@ -79,24 +80,24 @@ export async function discoverPasskeyPrf({ allow = [] } = {}) {
     return { rawCredentialId, prfOutput: new Uint8Array(first) }
 }
 
-/** what to tell the person when a passkey prompt failed */
+/** what to tell the person when a passkey prompt failed, in the language on screen (#89) */
 export function passkeyProblem(error) {
-    if (error?.name === 'NotAllowedError') return 'The passkey prompt was cancelled or timed out.'
-    if (error?.name === 'PasskeyStepCancelled') return 'Cancelled.'
-    if (error instanceof PrfUnavailableError || error?.code === 'PRF_UNAVAILABLE') {
-        return 'This passkey cannot derive a secret (no PRF support). Use another passkey, a password manager or a security key with PRF.'
-    }
+    if (error?.name === 'NotAllowedError') return t('passkeyProblem.cancelledOrTimedOut')
+    if (error?.name === 'PasskeyStepCancelled') return t('passkeyProblem.cancelled')
+    if (error instanceof PrfUnavailableError || error?.code === 'PRF_UNAVAILABLE') return t('passkeyProblem.noPrf')
     switch (error?.code) {
         case 'VAULT_SLOT_REMOVED':
-            return 'This passkey was removed from the address book kept here.'
+            return t('passkeyProblem.slotRemoved')
         case 'VAULT_LOCKED':
-            return 'This key does not open the address book.'
+            return t('passkeyProblem.locked')
         case 'VAULT_SLOT_EXISTS':
-            return 'This passkey already opens an address book here.'
+            return t('passkeyProblem.slotExists')
         case 'VAULT_SLOT_IN_USE':
-            return error.message
+            // the passkey or the recovery words that opened the vault would go (vault.js, the keeper)
+            return t('passkeyProblem.slotInUse')
         case 'VAULT_STORE_UNREADABLE':
-            return 'The vault kept in this browser cannot be read; it was left as it is.'
+            return t('passkeyProblem.storeUnreadable')
     }
+    // anything else is the browser's or a library's own message
     return error?.message ?? String(error)
 }

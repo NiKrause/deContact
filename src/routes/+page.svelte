@@ -24,12 +24,14 @@
         qrCodeData,
         showNotification,
         notificationMessage,
+        notificationKind,
         selectedTab,
         selectedRowIds,
         exchangesWaiting
     } from "../stores.js";
     import { loadContact } from "../operations.js";
     import { requestAddress } from "../lib/network/p2p-operations.js"
+    import { _ } from "#lib/i18n/index.js";
 
     $: $selectedRowIds.length>0?loadContact($selectedRowIds[0]):null; //as the datatable gets clicked we load the contact into the contact form
     let scannedAddress;
@@ -38,16 +40,16 @@
 <div class="content">
     <!-- an invitation link we opened: its inviter's phone has not answered yet (#86) -->
     {#each $exchangesWaiting as waiting (waiting.inviter)}
-        <p class="waiting" role="status" data-testid="waiting-for-phone">Waiting for {waiting.name ?? waiting.inviter}'s phone…</p>
+        <p class="waiting" role="status" data-testid="waiting-for-phone">{$_('home.waiting', { name: waiting.name ?? waiting.inviter })}</p>
     {/each}
 <!--    {#if $progressState!==6}
     <ProgressBar helperText={"("+$progressState+"/6) "+$progressText} status={$progressState===6?"finished":"active"} />
     {/if}-->
     <Tabs class="tabs" bind:selected={$selectedTab}>
-        <Tab label="Contacts" data-cy="contacts"/>
-        <Tab label="My Address" data-cy="address"/>
-        <Tab label="Statistics"  data-cy="statistics"/>
-        <Tab label="Settings"  data-cy="settings"/>
+        <Tab label={$_('tabs.contacts')} data-cy="contacts"/>
+        <Tab label={$_('tabs.myAddress')} data-cy="address"/>
+        <Tab label={$_('tabs.statistics')}  data-cy="statistics"/>
+        <Tab label={$_('tabs.settings')}  data-cy="settings"/>
         <svelte:fragment slot="content">
             <TabContent>
                 <Grid fullWidth>
@@ -58,13 +60,13 @@
                             <Column>
                                     <Button size="sm"
                                             on:click={async () => await requestAddress(scannedAddress)}>
-                                        <Scan size="16"/> &nbsp; Scan
+                                        <Scan size="16"/> &nbsp; {$_('home.scan')}
                                     </Button>
                                     <Button size="sm" on:click={() => {
                                         $qrCodeData = $orbitdb?.identity?.id;
                                         $qrCodeOpen = !$qrCodeOpen;
                                     }}>
-                                    <QrCode size="16" /> &nbsp; QR Code
+                                    <QrCode size="16" /> &nbsp; {$_('home.qrCode')}
                                 </Button>
                         </Column>
                     </Row>
@@ -79,9 +81,10 @@
 </div>
 {#if $showNotification}
     <ToastNotification class="toast"
-                       kind={$notificationMessage?.indexOf("error")!==-1?'error':'success'}
-                       title={$notificationMessage?.indexOf("Error")!==-1?'error':'success'}
-                       subtitle={$notificationMessage} />
+                       kind={$notificationKind}
+                       title={$_(`toast.${$notificationKind}`)}
+                       subtitle={$notificationMessage}
+                       closeButtonDescription={$_('toast.close')} />
 {/if}
 <style>
     :global(.content) {

@@ -18,6 +18,8 @@
     import { passkeyProblem, passkeysSupported } from '#lib/identity/passkeys.js'
     import { parseVaultRecord } from '#lib/identity/vault.js'
     import { notify } from '../../utils/utils.js'
+    import { _, t } from '#lib/i18n/index.js'
+    import LanguageSwitch from './LanguageSwitch.svelte'
 
     /** onboarding: somebody opened an invitation link; handedOver: a device link brought a vault record */
     let { onboarding = false, handedOver = false } = $props()
@@ -25,7 +27,8 @@
     const supported = passkeysSupported()
     const kept = vaultKeptHere()
     let busy = $state(false)
-    let problem = $state('')
+    /** what went wrong, read in the language on screen @type {(() => string) | undefined} */
+    let problem = $state()
     /** a passkey opened nothing here or on the network: ask before making an address book */
     let askNew = $state(false)
     let showWords = $state(false)
@@ -35,13 +38,13 @@
 
     async function run(action) {
         busy = true
-        problem = ''
+        problem = undefined
         try {
             await action()
         } catch (error) {
             console.log('unlock failed:', error?.code ?? error?.name, error?.message)
             if (error?.code === 'VAULT_NO_SLOT') askNew = true
-            else problem = passkeyProblem(error)
+            else problem = () => passkeyProblem(error)
         } finally {
             busy = false
         }
@@ -53,7 +56,7 @@
         run(async () => {
             await unlockWithWords(wordsText)
             wordsText = ''
-            notify('opened with the recovery words - add a passkey for this device in Settings')
+            notify(t('notify.openedWithWords'))
         })
     const confirmNew = () =>
         run(async () => {
@@ -63,7 +66,7 @@
     function cancelNew() {
         askNew = false
         forgetPendingPasskey()
-        problem = 'No address book was created. Open a device link, import a vault file or use your recovery words.'
+        problem = () => t('gate.noneCreated')
     }
 
     async function importFile(event) {
@@ -71,83 +74,74 @@
         if (!file) return
         const record = parseVaultRecord(await file.text())
         if (!record) {
-            problem = 'This file holds no deContact vault.'
+            problem = () => t('gate.noVault')
             return
         }
         handRecord(record)
         imported = true
-        problem = ''
+        problem = undefined
     }
 </script>
 
 <div class="gate" data-testid="passkey-gate">
-    <h3>{onboarding ? 'Contact data have been shared with you' : 'Your deContact address book'}</h3>
+    <h3>{onboarding ? $_('onboarding.shared') : $_('gate.title')}</h3>
 
     {#if $legacySeedRemoved}
         <div class="bx--inline-notification bx--inline-notification--info" role="status" data-testid="legacy-reset">
             <div class="bx--inline-notification__details">
-                <p class="bx--inline-notification__subtitle">
-                    deContact now opens your identity with a passkey. The seed phrase stored in this browser was removed;
-                    its DID and address book are not carried over.
-                </p>
+                <p class="bx--inline-notification__subtitle">{$_('gate.legacySeedRemoved')}</p>
             </div>
         </div>
     {/if}
 
     {#if !supported}
-        <p class="problem" role="alert">This browser cannot use passkeys.</p>
+        <p class="problem" role="alert">{$_('gate.unsupported')}</p>
     {:else if askNew}
         <div class="choice" role="dialog" aria-labelledby="ask-new" data-testid="ask-new">
-            <h4 id="ask-new">This passkey opens no address book we could find</h4>
-            <p>
-                If you created your deContact address book with this passkey, continue: the same identity and address book
-                come back from the network. Otherwise cancel, and open a device link, import a vault file or use your
-                recovery words.
-            </p>
-            <button class="bx--btn bx--btn--primary" disabled={busy} onclick={confirmNew}>Continue with this passkey</button>
-            <button class="bx--btn bx--btn--secondary" disabled={busy} onclick={cancelNew}>Cancel</button>
+            <h4 id="ask-new">{$_('gate.askNewTitle')}</h4>
+            <p>{$_('gate.askNewText')}</p>
+            <button class="bx--btn bx--btn--primary" disabled={busy} onclick={confirmNew}>{$_('gate.continueWithPasskey')}</button>
+            <button class="bx--btn bx--btn--secondary" disabled={busy} onclick={cancelNew}>{$_('common.cancel')}</button>
         </div>
     {:else}
         {#if onboarding}
-            <p>Create a passkey to open your own address book, then the contact data arrive.</p>
+            <p>{$_('gate.onboardingHint')}</p>
         {/if}
         {#if handedOver || imported}
-            <p data-testid="vault-handed-over">
-                A vault from another device is at hand: open it with one of its passkeys or with the recovery words.
-            </p>
+            <p data-testid="vault-handed-over">{$_('gate.handedOver')}</p>
         {/if}
 
         {#if kept}
-            <button class="bx--btn bx--btn--primary" disabled={busy} onclick={() => unlock(false)}>Unlock with passkey</button>
-            <button class="bx--btn bx--btn--tertiary" disabled={busy} onclick={() => unlock(true)}>Use another passkey</button>
+            <button class="bx--btn bx--btn--primary" disabled={busy} onclick={() => unlock(false)}>{$_('gate.unlock')}</button>
+            <button class="bx--btn bx--btn--tertiary" disabled={busy} onclick={() => unlock(true)}>{$_('gate.anotherPasskey')}</button>
         {:else}
             <div class="new">
-                <label class="bx--label" for="passkey-label">Name of the new passkey (optional)</label>
-                <input id="passkey-label" class="bx--text-input" placeholder="e.g. Laptop" bind:value={label} />
-                <button class="bx--btn bx--btn--primary" disabled={busy} onclick={create}>Create a new address book</button>
+                <label class="bx--label" for="passkey-label">{$_('gate.passkeyName')}</label>
+                <input id="passkey-label" class="bx--text-input" placeholder={$_('gate.passkeyNamePlaceholder')} bind:value={label} />
+                <button class="bx--btn bx--btn--primary" disabled={busy} onclick={create}>{$_('gate.create')}</button>
             </div>
-            <button class="bx--btn bx--btn--tertiary" disabled={busy} onclick={() => unlock(true)}>
-                Sign in with an existing passkey
-            </button>
+            <button class="bx--btn bx--btn--tertiary" disabled={busy} onclick={() => unlock(true)}>{$_('gate.signIn')}</button>
         {/if}
 
-        <button class="bx--btn bx--btn--ghost" disabled={busy} onclick={() => (showWords = !showWords)}>Restore with recovery words</button>
+        <button class="bx--btn bx--btn--ghost" disabled={busy} onclick={() => (showWords = !showWords)}>{$_('gate.restoreWords')}</button>
         {#if showWords}
             <div class="words">
-                <label class="bx--label" for="recovery-words">Your 24 recovery words</label>
+                <label class="bx--label" for="recovery-words">{$_('gate.wordsLabel')}</label>
                 <textarea id="recovery-words" class="bx--text-area" rows="4" autocomplete="off" spellcheck="false" bind:value={wordsText}></textarea>
-                <button class="bx--btn bx--btn--primary" disabled={busy || !wordsText.trim()} onclick={restoreWords}>Open with recovery words</button>
+                <button class="bx--btn bx--btn--primary" disabled={busy || !wordsText.trim()} onclick={restoreWords}>{$_('gate.openWithWords')}</button>
             </div>
         {/if}
 
         <div class="file">
-            <label class="bx--label" for="vault-file">Or import a vault file from another device</label>
+            <label class="bx--label" for="vault-file">{$_('gate.importFile')}</label>
             <input id="vault-file" type="file" accept="application/json,.json" onchange={importFile} />
         </div>
     {/if}
 
-    {#if busy}<p role="status">Opening the vault…</p>{/if}
-    {#if problem}<p class="problem" role="alert" data-testid="passkey-problem">{problem}</p>{/if}
+    {#if busy}<p role="status">{$_('gate.opening')}</p>{/if}
+    {#if problem}<p class="problem" role="alert" data-testid="passkey-problem">{problem()}</p>{/if}
+
+    <LanguageSwitch testid="gate-language" />
 </div>
 
 <style>

@@ -1,6 +1,8 @@
 <script>
     import { TextInput, Button, Column, Grid, Row, Toggle } from "carbon-components-svelte";
     import PasskeySettings from "./PasskeySettings.svelte";
+    import LanguageSwitch from "./LanguageSwitch.svelte";
+    import { _ } from "#lib/i18n/index.js";
     import {
         libp2p,
         connectedPeers,
@@ -20,8 +22,12 @@
 -->
 <Grid>
     <Row>
-        <Column sm={3}><TextInput labelText="DID"
-                                  helperText="Derived from your passkey vault: the same for each of your passkeys"
+        <Column sm={3}><LanguageSwitch /></Column>
+    </Row>
+
+    <Row>
+        <Column sm={3}><TextInput labelText={$_('settings.did')}
+                                  helperText={$_('settings.didHelp')}
                                   size="sm"
                                   readonly
                                   value={$orbitdb?.identity?.id} /></Column>
@@ -32,15 +38,15 @@
     </Row>
 
     <Row>
-        <Column sm={3}><TextInput labelText="PeerId (LibP2P)"
-                                  helperText="Every device has a unique peer id independent from your identity"
+        <Column sm={3}><TextInput labelText={$_('settings.peerId')}
+                                  helperText={$_('settings.peerIdHelp')}
                                   readonly size="sm"
                                   value={$libp2p?.peerId?.toString()} /></Column>
     </Row>
 
     <Row class="custom-row">
-        <Column sm={3}><TextInput labelText="Connected Peers"
-                                  helperText="This is the amount of peers which are connected in our peer-to-peer network"
+        <Column sm={3}><TextInput labelText={$_('settings.peers')}
+                                  helperText={$_('settings.peersHelp')}
                                   readonly
                                   size="sm"
                                   value={$connectedPeers} /></Column>
@@ -48,7 +54,7 @@
     <Row>
         <Column sm={3}>
             <!-- off: other browsers are reached only through the relay; read when the network starts -->
-            <Toggle id="webrtc-toggle" labelText="WebRTC (applies after reload)" bind:toggled={$useWebRTC} /></Column>
+            <Toggle id="webrtc-toggle" labelText={$_('settings.webrtc')} labelA={$_('common.off')} labelB={$_('common.on')} bind:toggled={$useWebRTC} /></Column>
     </Row>
     <Row class="custom-row">
         <Column sm={1}><Button data-cy="DropFollowerDBs" size="sm" on:click={async () => {
@@ -67,7 +73,7 @@
             console.log("addressRecords",addressRecords)
             selectedAddr.set({})
             selectedTab.set(0)
-        }}>Drop Followed & Follower DBs</Button></Column>
+        }}>{$_('settings.dropFollowers')}</Button></Column>
         <Column>&nbsp;</Column>
         <Column sm={1}><Button data-cy="DropAddressDB" size="sm" on:click={async () => {
             console.log("dropping address db!")
@@ -76,7 +82,7 @@
             console.log("addressRecords",addressRecords)
             selectedAddr.set({})
             selectedTab.set(0)
-        }}>Drop AddressDB</Button></Column>
+        }}>{$_('settings.dropAddressBook')}</Button></Column>
     </Row>
 
 </Grid>

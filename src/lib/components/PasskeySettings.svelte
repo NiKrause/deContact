@@ -16,9 +16,11 @@
     } from '#lib/identity/session.js'
     import { passkeyProblem } from '#lib/identity/passkeys.js'
     import { notify } from '../../utils/utils.js'
+    import { _, formatDate, t } from '#lib/i18n/index.js'
 
     let busy = $state(false)
-    let problem = $state('')
+    /** what went wrong, read in the language on screen @type {(() => string) | undefined} */
+    let problem = $state()
     let label = $state('')
     /** the slot whose removal waits for a second click */
     let removing = $state()
@@ -28,15 +30,17 @@
     let link = $state('')
 
     const hasWords = $derived($session?.slots.some((slot) => slot.words) ?? false)
+    /** the slot of the recovery words has a stored English label (vault.js WORDS_LABEL): shown in the language on screen */
+    const labelOf = (slot) => (slot.words ? t('passkeys.recoveryWords') : slot.label)
 
     async function run(action) {
         busy = true
-        problem = ''
+        problem = undefined
         try {
             await action()
         } catch (error) {
             console.log('vault change failed:', error?.code ?? error?.name, error?.message)
-            problem = passkeyProblem(error)
+            problem = () => passkeyProblem(error)
         } finally {
             busy = false
         }
@@ -46,14 +50,14 @@
         run(async () => {
             await addNewPasskey({ label: label.trim() || 'deContact' })
             label = ''
-            notify('added a passkey: it opens the same address book')
+            notify(t('notify.passkeyAdded'))
         })
 
     const remove = (kid) =>
         run(async () => {
             removing = undefined
             await removeVaultSlot(kid)
-            notify('removed from the vault')
+            notify(t('notify.slotRemoved'))
         })
 
     function startWords() {
@@ -64,7 +68,7 @@
         run(async () => {
             await keepRecoveryWords(draft)
             draft = undefined
-            notify('the recovery words now open the vault')
+            notify(t('notify.wordsKept'))
         })
 
     const base64url = (text) =>
@@ -87,20 +91,20 @@
 </script>
 
 <section class="passkeys" data-testid="passkey-settings">
-    <h4>Passkeys and recovery words</h4>
-    <p class="hint">Each of them opens the same vault, and with it the same identity and address book.</p>
+    <h4>{$_('passkeys.title')}</h4>
+    <p class="hint">{$_('passkeys.hint')}</p>
 
     <ul class="slots">
         {#each $session?.slots ?? [] as slot (slot.kid)}
             <li data-testid="vault-slot" data-kid={slot.kid}>
-                <span>{slot.label}{slot.current ? ' (opened this session)' : ''}</span>
-                {#if slot.addedAt}<span class="when">added {new Date(slot.addedAt).toLocaleDateString()}</span>{/if}
+                <span>{slot.current ? $_('passkeys.openedNow', { label: labelOf(slot) }) : labelOf(slot)}</span>
+                {#if slot.addedAt}<span class="when">{$_('passkeys.added', { date: formatDate(slot.addedAt) })}</span>{/if}
                 {#if !slot.current}
                     {#if removing === slot.kid}
-                        <button class="bx--btn bx--btn--danger bx--btn--sm" disabled={busy} onclick={() => remove(slot.kid)}>Really remove {slot.label}</button>
-                        <button class="bx--btn bx--btn--ghost bx--btn--sm" onclick={() => (removing = undefined)}>Keep</button>
+                        <button class="bx--btn bx--btn--danger bx--btn--sm" disabled={busy} onclick={() => remove(slot.kid)}>{$_('passkeys.reallyRemove', { label: labelOf(slot) })}</button>
+                        <button class="bx--btn bx--btn--ghost bx--btn--sm" onclick={() => (removing = undefined)}>{$_('passkeys.keep')}</button>
                     {:else}
-                        <button class="bx--btn bx--btn--ghost bx--btn--sm" disabled={busy} onclick={() => (removing = slot.kid)}>Remove {slot.label}</button>
+                        <button class="bx--btn bx--btn--ghost bx--btn--sm" disabled={busy} onclick={() => (removing = slot.kid)}>{$_('passkeys.remove', { label: labelOf(slot) })}</button>
                     {/if}
                 {/if}
             </li>
@@ -108,41 +112,38 @@
     </ul>
 
     <div class="row">
-        <label class="bx--label" for="new-passkey-label">Name of the new passkey (optional)</label>
-        <input id="new-passkey-label" class="bx--text-input" placeholder="e.g. Security key" bind:value={label} />
-        <button class="bx--btn bx--btn--primary bx--btn--sm" disabled={busy} onclick={add}>Add a passkey</button>
+        <label class="bx--label" for="new-passkey-label">{$_('passkeys.name')}</label>
+        <input id="new-passkey-label" class="bx--text-input" placeholder={$_('passkeys.namePlaceholder')} bind:value={label} />
+        <button class="bx--btn bx--btn--primary bx--btn--sm" disabled={busy} onclick={add}>{$_('passkeys.add')}</button>
     </div>
 
     {#if draft}
         <div class="words" data-testid="recovery-words">
-            <p>Write these 24 words down, in this order, and keep them safe. They are shown only now and are not stored anywhere.</p>
+            <p>{$_('passkeys.writeDown')}</p>
             <ol>
                 {#each draft as word, i (i)}<li>{word}</li>{/each}
             </ol>
-            <label><input type="checkbox" bind:checked={wroteDown} /> I have written the words down</label>
-            <button class="bx--btn bx--btn--primary bx--btn--sm" disabled={busy || !wroteDown} onclick={keepWords}>Keep these recovery words</button>
-            <button class="bx--btn bx--btn--ghost bx--btn--sm" onclick={() => (draft = undefined)}>Cancel</button>
+            <label><input type="checkbox" bind:checked={wroteDown} /> {$_('passkeys.wroteDown')}</label>
+            <button class="bx--btn bx--btn--primary bx--btn--sm" disabled={busy || !wroteDown} onclick={keepWords}>{$_('passkeys.keepWords')}</button>
+            <button class="bx--btn bx--btn--ghost bx--btn--sm" onclick={() => (draft = undefined)}>{$_('common.cancel')}</button>
         </div>
     {:else}
         <button class="bx--btn bx--btn--tertiary bx--btn--sm" disabled={busy} onclick={startWords}>
-            {hasWords ? 'Replace the recovery words' : 'Set up recovery words'}
+            {hasWords ? $_('passkeys.replaceWords') : $_('passkeys.setUpWords')}
         </button>
     {/if}
 
     <div class="row">
-        <button class="bx--btn bx--btn--tertiary bx--btn--sm" disabled={busy} onclick={showLink}>Link another device</button>
-        <button class="bx--btn bx--btn--ghost bx--btn--sm" disabled={busy} onclick={download}>Download vault file</button>
+        <button class="bx--btn bx--btn--tertiary bx--btn--sm" disabled={busy} onclick={showLink}>{$_('passkeys.linkDevice')}</button>
+        <button class="bx--btn bx--btn--ghost bx--btn--sm" disabled={busy} onclick={download}>{$_('passkeys.download')}</button>
     </div>
     {#if link}
-        <p class="hint">
-            Open this link on the other device, then unlock there with one of the passkeys or the recovery words. The vault
-            record holds no secret.
-        </p>
-        <input class="bx--text-input" readonly value={link} aria-label="Device link" data-testid="device-link" />
+        <p class="hint">{$_('passkeys.linkHint')}</p>
+        <input class="bx--text-input" readonly value={link} aria-label={$_('passkeys.deviceLink')} data-testid="device-link" />
         {#if link.length < 2900}<QrCode value={link} />{/if}
     {/if}
 
-    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+    {#if problem}<p class="problem" role="alert">{problem()}</p>{/if}
 </section>
 
 <style>

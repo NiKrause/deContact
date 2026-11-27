@@ -6,6 +6,7 @@
     import { orbitdb } from "../../stores.js";
     import { notify } from "../../utils/utils.js";
     import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
+    import { _ } from "#lib/i18n/index.js";
 
     const page_url = import.meta.env.VITE_PAGE_URL?import.meta.env.VITE_PAGE_URL+'/#':'https://deContact.xyz/#';
 
@@ -31,8 +32,9 @@
 </script>
 
     <Modal bind:open={ qrCodeOpen }
-       modalHeading="Scan (DID) - Decentralized Identity"
-       primaryButtonText="OK"
+       modalHeading={$_('qr.heading')}
+       primaryButtonText={$_('common.ok')}
+       iconDescription={$_('common.close')}
        secondaryButtonText=""
        on:click:button--primary={ () => dispatch('close') }
        on:click:button--secondary={ () => dispatch('close') }
@@ -41,16 +43,14 @@
         <Row>
             <Column>
                 <Toggle
-                    labelText="Scan DID or URL?"
-                    labelA="DID only"
-                    labelB="URL"
+                    labelText={$_('qr.scanWhat')}
+                    labelA={$_('qr.didOnly')}
+                    labelB={$_('qr.url')}
                     bind:toggled={fullDeContactUrl}/>
             </Column>
             <Column>
-                <Checkbox id="two-way-exchange" labelText="Two-way exchange" bind:checked={twoWay} />
-                <div class="bx--form__helper-text">
-                    Whoever scans this code can also share their contact details with you. They decide whether to.
-                </div>
+                <Checkbox id="two-way-exchange" labelText={$_('qr.twoWay')} bind:checked={twoWay} />
+                <div class="bx--form__helper-text">{$_('qr.twoWayHelp')}</div>
             </Column>
         </Row>
         <Row>
@@ -59,7 +59,7 @@
                     <div class="container" on:click={async () => {
                             await navigator.clipboard.writeText(linkUrl);
                             dispatch('close')
-                            notify(`copied invitation`);
+                            notify($_('notify.invitationCopied'));
                         }}>
                         <QrCode  value={linkUrl} />
                     </div>

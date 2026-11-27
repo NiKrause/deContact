@@ -19,6 +19,10 @@
     import { confirmExperimentalUse } from "./confirmExperimentalUse.js";
     import Home from './+page.svelte'
     import OnBoarding from "#lib/components/OnBoarding.svelte";
+    import { _, language, passkeyStepStrings, startLocale } from "#lib/i18n/index.js";
+
+    // the language before the first screen: a choice made earlier, else the browser's (#89)
+    startLocale()
 
     let theme = "g90";
 
@@ -49,7 +53,9 @@
 
     let stepDialog
     onMount( async () => {
-        // every passkey prompt after the first of an action says what it is for
+        // every passkey prompt after the first of an action says what it is for, in the
+        // language on screen (its lang attribute) and in deContact's words
+        stepDialog.strings = passkeyStepStrings()
         connectPasskeyStepDialog(stepDialog)
         if($hash!=='/onboarding') await confirmExperimentalUse();
 
@@ -70,7 +76,6 @@
     onDestroy(close)
 
     let isSideNavOpen
-    let title = "   - the cloud we are!"
 
     const routes = {
         '/': Home,
@@ -89,23 +94,23 @@
         persistentHamburgerMenu={true}
         bind:isSideNavOpen
         company="deContact.xyz"
-        platformName={title}
+        platformName={$_('app.tagline')}
         href="./#/">
 
         <HeaderNav>
             <div class="flags">
                  {#if ($connectedPeers===0) }
-                     <ConnectionSignalOff title="No network or connecting..." class="statusRed" />&nbsp;{$connectedPeers}
+                     <ConnectionSignalOff title={$_('header.peers.none')} class="statusRed" />&nbsp;{$connectedPeers}
                  {:else if $connectedPeers===1}
-                     <ConnectionSignal title="Seed Node connected" class="statusYellow" />&nbsp;{$connectedPeers}
+                     <ConnectionSignal title={$_('header.peers.seed')} class="statusYellow" />&nbsp;{$connectedPeers}
                  {:else}
-                     <ConnectionSignal title="Swarm connected" class="statusGreen" />&nbsp;{$connectedPeers}
+                     <ConnectionSignal title={$_('header.peers.swarm')} class="statusGreen" />&nbsp;{$connectedPeers}
                  {/if}
             </div>
         </HeaderNav>
 
         <HeaderUtilities>
-            <HeaderGlobalAction aria-label="dark-mode">
+            <HeaderGlobalAction aria-label={$_('header.theme')}>
                 <Theme
                         bind:theme
                         render="toggle"
@@ -130,7 +135,7 @@
 {:else}
     <PasskeyGate onboarding={ $hash==='/onboarding' } { handedOver } />
 {/if}
-<passkey-step-dialog bind:this={ stepDialog }></passkey-step-dialog>
+<passkey-step-dialog bind:this={ stepDialog } lang={ $language }></passkey-step-dialog>
 <style>
     :global(.bx--toast-notification) {
         z-index: 1;

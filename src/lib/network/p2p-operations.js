@@ -24,6 +24,7 @@ import {
 
 import { confirm } from "../components/addressModal.js"
 import { notify, sha256 } from "../../utils/utils.js";
+import { t } from "#lib/i18n/index.js";
 import { getIdentityAndCreateOrbitDB } from "#lib/network/getIdendityAndCreateOrbitDB.js";
 import AddressBookAccessController, { contactKey, createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 import { sealedBook } from "../encryption/sealed-book.js";
@@ -248,6 +249,18 @@ function processMessageQueue() {
 }
 
 /**
+ * The words the person reads (#89) for why an invitation link of a request was not good:
+ * the reasons of redeemOnboardingToken (contact-messages.js), which the log keeps as they are.
+ */
+const LINK_PROBLEMS = {
+    'is malformed': 'malformed',
+    'is not signed by us': 'notOurs',
+    'has expired': 'expired',
+    'was not issued on this device': 'notIssuedHere',
+    'was already used': 'alreadyUsed'
+}
+
+/**
  * A verified request: write our card into the sender's address book - right away for a
  * valid invitation link of ours, otherwise after the user confirmed. A request of an
  * inviter whose link we opened is answered by our choice instead (#86).
@@ -293,7 +306,7 @@ async function answerRequest(request) {
             return
         }
         console.log(`rejected the invitation link of ${sender}: it ${redeemed.reason}`)
-        notify(`the invitation link ${redeemed.reason} - please confirm the request`);
+        notify(t(`notify.invitationLink.${LINK_PROBLEMS[redeemed.reason] ?? 'other'}`), 'warning');
     }
 
     await askToConfirm(request, requesterDB)
@@ -341,7 +354,7 @@ async function decline(requesterDB, invitation) {
         if (placeholder && placeholder.value?.invitation === undefined) {
             const canceled = { _id: contactKey(me), owner: me, firstName: "request canceled", lastName: me, invitation }
             const hash = await requesterDB.put(canceled)
-            notify(`wrote canceled request with hash ${hash}`);
+            notify(t('notify.requestDeclined', { hash }));
         }
     } catch (error) {
         console.error('could not decline the request:', error);
@@ -703,7 +716,7 @@ export const requestAddress = async (_scannedAddress,nopingpong, onBoardingToken
         await _libp2p.services.pubsub.publish(CONTENT_TOPIC+"/"+scannedAddress, new TextEncoder().encode(msg))
 
         startInvitationCheckWorker()
-        notify(`sent SEND_ADDRESS_REQUEST to ${scannedAddress}`);
+        notify(t('notify.requestSent', { did: scannedAddress }));
     } catch (error) {
         console.error('Error in requestAddress:', error);
     }
@@ -816,7 +829,7 @@ export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { w
             if (placeholder.length === 0) console.log(`no placeholder for us in ${requesterDB.address} yet - writing our card anyway`)
         }
         const hash = await requesterDB.put(cardFor(card, invitation))
-        notify(`wrote my address into requesters db with hash ${hash}`);
+        notify(t('notify.cardWritten', { hash }));
         return hash
     } catch (error) {
         console.error('Error in writeMyAddressIntoRequesterDB:', error);
