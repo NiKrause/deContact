@@ -65,6 +65,21 @@ test('German after switching in Settings: kept after a reload, and in the reques
 			await expect(alice.page.getByLabel('DID', { exact: true })).toHaveValue(alice.did);
 		});
 
+		await test.step("on a phone, the tabs' dropdown names the tab in German too", async () => {
+			const page = alice.page;
+			const desktop = page.viewportSize();
+			// below 42rem Carbon shows the tabs as a dropdown, labelled with the selected tab
+			await page.setViewportSize({ width: 390, height: 844 });
+			const trigger = page.locator('.bx--tabs-trigger');
+			const shown = trigger.locator('.bx--tabs-trigger-text');
+			await expect(trigger).toBeVisible();
+			await expect(shown).toHaveText('Einstellungen');
+			await trigger.click();
+			await page.getByRole('tab', { name: 'Kontakte' }).click();
+			await expect(shown).toHaveText('Kontakte');
+			await page.setViewportSize(desktop);
+		});
+
 		await test.step('the choice is kept after a reload', async () => {
 			await alice.page.reload();
 			await expect(alice.page.getByRole('heading', { name: 'Dein deContact-Adressbuch' })).toBeVisible();
