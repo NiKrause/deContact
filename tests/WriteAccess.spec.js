@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { names, newPerson } from './helpers/passkeys.js';
+import { contactAddressOf, names, newPerson } from './helpers/passkeys.js';
 import { times } from './helpers/onboarding.js';
 
 // Who may write into an address book, through the app and the relay (#81), and what
@@ -200,7 +200,7 @@ test("a removed contact's card stays out until they are invited again", async ({
  */
 async function exchangeCards(from, to) {
 	await from.page.getByRole('tab', { name: 'Contacts' }).click();
-	await from.page.getByRole('textbox', { role: 'scanContact' }).fill(to.did);
+	await from.page.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(to.page));
 	await from.page.getByRole('button', { name: 'Scan' }).click();
 	await expect(to.page.getByTestId('request-from')).toBeVisible({ timeout: 90000 });
 	await to.page.getByRole('button', { name: 'Send My Contact Data' }).click({ timeout: 90000 });
