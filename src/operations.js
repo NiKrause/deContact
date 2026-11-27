@@ -38,7 +38,8 @@ export async function addContact() {
     _selectedAddr.sharedAddress = _dbMyAddressBook?.address
     _selectedAddr._id = await sha256(JSON.stringify(_selectedAddr))
     const hash = await _dbMyAddressBook.put(_selectedAddr)
-    notify(t('notify.contactAdded', { hash }));
+    console.log('saved a card:', hash)
+    notify(t('notify.contactAdded'));
     closeForm()
     // our first card: it names this device, so that contacts reach it (devices.js)
     await ensureOwnDevice()
@@ -55,8 +56,8 @@ export async function updateContact() {
     await _dbMyAddressBook.put(_selectedAddr)
     newAddrBook.push(_selectedAddr)
     myAddressBook.set(newAddrBook)
-    const name = [_selectedAddr.firstName, _selectedAddr.lastName].filter(Boolean).join(' ')
-    notify(t('notify.contactUpdated', { name }))
+    // our own card goes to everybody who has it; one we keep by hand stays here
+    notify(t(_selectedAddr.own ? 'notify.cardUpdated' : 'notify.contactUpdated'))
     if(_selectedAddr.owner === _orbitdb?.identity?.id){ //only send update requests if my own address was changed
         await writeMyCardIntoFollowedBooks(_selectedAddr)
     }
@@ -70,12 +71,16 @@ export async function updateContact() {
  */
 export async function deleteContact() {
     const owner = _selectedAddr.owner
+    // a placeholder has their DID as its last name: no name for a notice
+    const name = _selectedAddr.lastName === owner ? '' : [_selectedAddr.firstName, _selectedAddr.lastName].filter(Boolean).join(' ')
     if (owner && owner !== _orbitdb?.identity?.id) {
         await removeContact(owner)
-        notify(t('notify.contactRemoved', { owner }))
+        console.log(`removed ${owner}`)
+        notify(name ? t('notify.contactRemoved', { name }) : t('notify.contactRemovedNameless'))
     } else {
         const hash = await _dbMyAddressBook.del(_selectedAddr._id)
-        notify(t('notify.contactDeleted', { hash }))
+        console.log('deleted a card:', hash)
+        notify(name ? t('notify.contactDeleted', { name }) : t('notify.contactDeletedNameless'))
     }
     closeForm()
 }

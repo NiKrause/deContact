@@ -391,7 +391,7 @@ async function answerRequest(request) {
             console.log(`accepted the invitation link of ${sender}`)
             // two-way exchange (#86): the invitation they asked for, in case they share their card
             if (request.twoWay && redeemed.twoWay) await sendInvitation(sender, request.onBoardingToken)
-            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation);
+            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { to: request.from });
             // their book, so that later changes of our card reach it
             await rememberTheirBook(sender, data.sharedAddress)
             initReplicationBackup(me) //init replication of all subscriber ids
@@ -430,10 +430,10 @@ async function askToConfirm(request, requesterDB) {
             //1) update his contact data in her address book
             //2) keep a backup of her data
             await rememberTheirBook(sender, data.sharedAddress)
-            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation); //Bob writes his address into Alice address book
+            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { to: request.from }); //Bob writes his address into Alice address book
         }
         else {
-            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation);
+            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { to: request.from });
             await requestAddress(sender, true)
         }
         initReplicationBackup(me) //init replication of all subscriber ids
@@ -456,7 +456,8 @@ async function decline(requesterDB, invitation) {
         if (placeholder && placeholder.value?.invitation === undefined) {
             const canceled = { _id: contactKey(me), owner: me, firstName: "request canceled", lastName: me, invitation }
             const hash = await requesterDB.put(canceled)
-            notify(t('notify.requestDeclined', { hash }));
+            console.log(`declined the request in ${requesterDB.address}:`, hash)
+            notify(t('notify.requestDeclined'));
         }
     } catch (error) {
         console.error('could not decline the request:', error);
@@ -485,7 +486,7 @@ async function answerInviter(request, requesterDB, exchange) {
         case 'share': {
             // their answer to our link comes without a placeholder for us in their book
             const answersOurLink = request.onBoardingToken === exchange.token
-            if (await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { waitForPlaceholder: !answersOurLink })) {
+            if (await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { waitForPlaceholder: !answersOurLink, to: request.from })) {
                 exchanges().shared(sender)
                 console.log(`shared our card with ${sender}`)
                 initReplicationBackup(me)
@@ -847,11 +848,11 @@ export const requestAddress = async (_scannedAddress, nopingpong, onBoardingToke
         if (result.delivered) {
             delivered.add(scannedAddress)
             console.log(`sent a request to ${scannedAddress}`)
-            notify(t('notify.requestSent', { did: scannedAddress }));
+            notify(t('notify.requestSent'));
         } else {
             // their app is in the background, or not reachable yet: the worker tries again
             console.log(`could not deliver the request to ${scannedAddress}: ${result.error}`)
-            notify(t('notify.requestNotDelivered', { did: scannedAddress }), 'warning');
+            notify(t('notify.requestNotDelivered'), 'warning');
         }
         startInvitationCheckWorker()
     } catch (error) {
@@ -968,11 +969,13 @@ async function waitForOurEntries(requesterDB, timeoutMs = SYNC_WAIT_MS) {
 }
 
 /**
- * @param {{ waitForPlaceholder?: boolean }} options false: the requester wrote no
- *   placeholder for us (the answer to our invitation link, #86)
+ * @param {{ waitForPlaceholder?: boolean, to?: { firstName?: string, lastName?: string } }} options
+ *   waitForPlaceholder false: the requester wrote no placeholder for us (the answer to our
+ *   invitation link, #86); to: the name their request carries, for the notice
+ *   ("Your card is on its way to Carol.")
  * @returns {Promise<string | undefined>} the entry's hash, if we wrote one
  */
-export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { waitForPlaceholder = true } = {}) {
+export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { waitForPlaceholder = true, to } = {}) {
     try {
         const card = ownCard()
         if (!card) {
@@ -989,7 +992,10 @@ export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { w
             if (placeholder.length === 0) console.log(`no placeholder for us in ${requesterDB.address} yet - writing our card anyway`)
         }
         const hash = await requesterDB.put(cardFor(card, invitation))
-        notify(t('notify.cardWritten', { hash }));
+        console.log(`wrote our card into ${requesterDB.address}:`, hash)
+        // the name their signed request carries
+        const name = to?.firstName || to?.lastName
+        notify(name ? t('notify.cardWritten', { name }) : t('notify.cardWrittenNameless'));
         return hash
     } catch (error) {
         console.error('Error in writeMyAddressIntoRequesterDB:', error);

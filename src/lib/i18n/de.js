@@ -306,32 +306,34 @@ export default {
 		connected: 'Seed-Node verbunden / Schwarm verbunden'
 	},
 	notify: {
-		contactAdded: 'Kontakt gespeichert! {hash}',
-		contactUpdated: 'Kontakt aktualisiert – deine Follower bekommen die Änderung! {name}',
-		contactRemoved: 'Kontakt entfernt: {owner} bekommt keine Updates mehr von dir',
-		contactDeleted: 'Kontakt gelöscht! {hash}',
-		invitationCopied: 'Einladungslink kopiert',
-		addressCopied: 'Kontaktadresse kopiert',
-		requestSent: 'Kontaktanfrage an {did} gesendet',
-		requestNotDelivered: '{did} ist noch nicht erreichbar – die App versucht es weiter',
+		contactAdded: 'Im Adressbuch gespeichert.',
+		cardUpdated: 'Deine Karte ist aktualisiert. Deine Kontakte bekommen die neue Fassung von selbst.',
+		contactUpdated: 'Gespeichert.',
+		contactRemoved: '{name} entfernt: Die Person bekommt keine Änderungen mehr von dir.',
+		contactRemovedNameless: 'Entfernt: Die Person bekommt keine Änderungen mehr von dir.',
+		contactDeleted: '{name} gelöscht.',
+		contactDeletedNameless: 'Gelöscht.',
+		invitationCopied: 'Einladungslink kopiert.',
+		addressCopied: 'Kontaktadresse kopiert.',
+		requestSent: 'Anfrage gesendet. Die Karte kommt, sobald die Person antwortet.',
+		requestNotDelivered: 'Noch nicht erreicht. Die App versucht es weiter, solange sie offen ist.',
 		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',
 		noContactAddress: 'Das ist keine Kontaktadresse. Scanne den QR-Code der Person, die du fragen willst.',
-		cardWritten: 'Deine Karte steht jetzt im Adressbuch der anfragenden Person (Hash {hash})',
-		requestDeclined: 'Anfrage abgelehnt (Hash {hash})',
-		openedWithWords:
-			'Mit den Wiederherstellungswörtern geöffnet – leg in den Einstellungen einen Passkey für dieses Gerät an',
-		passkeyAdded: 'Passkey hinzugefügt: Er öffnet dasselbe Adressbuch',
-		slotRemoved: 'Aus dem Tresor entfernt',
-		wordsKept: 'Die Wiederherstellungswörter öffnen jetzt den Tresor',
-		secured: 'Dein Adressbuch ist mit einem Passkey gesichert',
+		cardWritten: 'Deine Karte ist unterwegs zu {name}.',
+		cardWrittenNameless: 'Deine Karte ist unterwegs.',
+		requestDeclined: 'Abgelehnt. Die Person bekommt deine Karte nicht.',
+		openedWithWords: 'Mit deinen Wiederherstellungswörtern geöffnet. Leg in den Einstellungen einen Passkey für dieses Gerät an.',
+		passkeyAdded: 'Passkey hinzugefügt. Er öffnet dasselbe Adressbuch.',
+		slotRemoved: 'Entfernt: Das öffnet dein Adressbuch nicht mehr.',
+		wordsKept: 'Deine Wiederherstellungswörter öffnen jetzt auch dein Adressbuch.',
+		secured: 'Dein Adressbuch ist mit einem Passkey gesichert.',
 		invitationLink: {
-			malformed: 'Der Einladungslink ist fehlerhaft – bitte bestätige die Anfrage',
-			notOurs: 'Der Einladungslink ist nicht von uns signiert – bitte bestätige die Anfrage',
-			expired: 'Der Einladungslink ist abgelaufen – bitte bestätige die Anfrage',
-			notIssuedHere:
-				'Der Einladungslink wurde nicht auf diesem Gerät erstellt – bitte bestätige die Anfrage',
-			alreadyUsed: 'Der Einladungslink wurde schon benutzt – bitte bestätige die Anfrage',
-			other: 'Der Einladungslink lässt sich nicht verwenden – bitte bestätige die Anfrage'
+			malformed: 'Eine Anfrage kam mit einem fehlerhaften Einladungslink, darum entscheidest du selbst.',
+			notOurs: 'Eine Anfrage kam mit einem Einladungslink, der nicht von dir ist, darum entscheidest du selbst.',
+			expired: 'Eine Anfrage kam mit einem abgelaufenen Einladungslink, darum entscheidest du selbst.',
+			notIssuedHere: 'Eine Anfrage kam mit einem Einladungslink von einem anderen Gerät, darum entscheidest du selbst.',
+			alreadyUsed: 'Eine Anfrage kam mit einem schon benutzten Einladungslink, darum entscheidest du selbst.',
+			other: 'Eine Anfrage kam mit einem Einladungslink, der sich nicht verwenden lässt, darum entscheidest du selbst.'
 		}
 	}
 };
