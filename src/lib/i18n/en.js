@@ -55,10 +55,34 @@ export default {
 		card: 'My card',
 		settings: 'Settings'
 	},
+	// the checklist of Show my code (#110, readiness.js)
+	readiness: {
+		title: 'Getting ready',
+		book: 'Address book open',
+		network: 'Network started',
+		relay: 'Relay found and connected',
+		reachable: 'Reachable for the other phone',
+		link: 'Invitation link signed',
+		card: 'Your card has a name',
+		fillCard: 'Fill in my card',
+		ready: 'Ready · reachable through the relay',
+		gettingReady: 'Getting your code ready…',
+		notReachable:
+			'Not reachable yet. They can scan now, and the exchange completes as soon as you are both online (the link works for 24 hours).',
+		state: {
+			done: 'done',
+			waiting: 'in progress',
+			problem: 'needs attention'
+		}
+	},
 	// the start screen (#110)
 	exchange: {
 		ready: 'Ready to exchange',
 		connecting: 'Connecting…',
+		notReachable: 'Not reachable through a relay yet',
+		fillCard: 'Fill in your card: people get your name with it',
+		// not "my card": the navigation's link has that name
+		fillCardNow: 'Fill it in now',
 		showCode: 'Show my code',
 		scan: 'Scan a code',
 		paste: 'Paste a contact address instead',

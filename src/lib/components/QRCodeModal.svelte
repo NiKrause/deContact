@@ -1,7 +1,9 @@
 <script>
     import { Modal, Checkbox, RadioButtonGroup, RadioButton } from 'carbon-components-svelte';
     import QrCodeImage from "./QrCodeImage.svelte"
-    import { libp2p, orbitdb } from "../../stores.js";
+    import { dbMyAddressBook, libp2p, myAddressBook, networkState, orbitdb } from "../../stores.js";
+    import ReadinessList from "./ReadinessList.svelte";
+    import { LATE_AFTER_MS, readinessOf } from "#lib/network/readiness.js";
     import { notify } from "../../utils/utils.js";
     import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
     import { _, language } from "#lib/i18n/index.js";
@@ -41,6 +43,29 @@
             .then((token) => { if (issue === issuing) onBoardingToken = token })
             .catch((error) => console.log("could not create an invitation link:", error?.message))
     }
+    // the relay may take a while; after LATE_AFTER_MS the dialog says the code works anyway
+    let late = $state(false)
+    $effect(() => {
+        if (!qrCodeOpen) return
+        late = false
+        const timer = setTimeout(() => (late = true), LATE_AFTER_MS)
+        return () => clearTimeout(timer)
+    })
+    const me = $derived($orbitdb?.identity?.id)
+    /** the checklist (readiness.js): the code shows once book, network, link and card are there */
+    const readiness = $derived(readinessOf({
+        bookOpen: Boolean(me && $dbMyAddressBook?.address),
+        network: $networkState,
+        linkSigned: shareNow ? Boolean(onBoardingToken) : undefined,
+        ownCard: me ? $myAddressBook?.find((card) => card.owner === me && card.own) : undefined,
+        late
+    }))
+    /** "Fill in my card": to My card, the dialog closes */
+    function fillCard() {
+        onclose()
+        window.location.hash = '#/card'
+    }
+
     // requests go to this device, peer to peer (contact-protocol.js): the code names it
     const peer = $derived($libp2p?.peerId?.toString())
     // the invitation link leads back to this app, wherever it runs, to the page of the
@@ -60,7 +85,8 @@
        iconDescription={$_('common.close')}
        on:close={() => onclose()}>
     <div class="qr-dialog">
-        {#if qrCodeData && qrCodeOpen}
+        <ReadinessList {readiness} onfillcard={fillCard} />
+        {#if qrCodeData && qrCodeOpen && readiness.codeReady}
             <!-- a tap copies what the code holds, for sending it another way -->
             <button type="button" class="qr-copy" aria-label={$_(shareNow ? 'qr.copyLink' : 'qr.copyAddress')} onclick={async () => {
                     await navigator.clipboard.writeText(linkUrl);
@@ -71,6 +97,8 @@
             </button>
             <p class="summary" data-testid="qr-summary">{$_(summary)}</p>
             <p class="hint">{$_(shareNow ? 'qr.copyLink' : 'qr.copyAddress')}</p>
+        {:else if qrCodeOpen && readiness.steps.card !== 'problem'}
+            <p class="getting-ready" role="status">{$_('readiness.gettingReady')}</p>
         {/if}
         <div class="options">
             <RadioButtonGroup legendText={$_('qr.mode')} name="qr-mode" bind:selected={mode}>
@@ -103,6 +131,10 @@
     }
     .summary {
         text-align: center;
+    }
+    .getting-ready {
+        text-align: center;
+        color: var(--cds-text-secondary, #c6c6c6);
     }
     .hint {
         text-align: center;

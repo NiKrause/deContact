@@ -10,7 +10,8 @@
     import QrCode from "carbon-icons-svelte/lib/QrCode.svelte";
     import Scan from "carbon-icons-svelte/lib/Scan.svelte";
     import QrScanner from "./QrScanner.svelte";
-    import { connectedPeers, exchangesWaiting, orbitdb, qrCodeData, qrCodeOpen } from "../../stores.js";
+    import { dbMyAddressBook, exchangesWaiting, myAddressBook, networkState, orbitdb, qrCodeData, qrCodeOpen } from "../../stores.js";
+    import { LATE_AFTER_MS, readinessOf } from "#lib/network/readiness.js";
     import { requestAddress } from "#lib/network/p2p-operations.js";
     import { parseContactAddress } from "#lib/network/contact-address.js";
     import { notify } from "../../utils/utils.js";
@@ -21,8 +22,28 @@
     let pasting = $state(false);
     let pasted = $state("");
 
-    /** ready once a peer (a relay, at least) is connected; the checklist of Show my code says more */
-    const ready = $derived($connectedPeers > 0);
+    const me = $derived($orbitdb?.identity?.id);
+    // the relay may take a while: "Connecting…" first, "not reachable" only after LATE_AFTER_MS
+    let late = $state(false);
+    $effect(() => {
+        const timer = setTimeout(() => (late = true), LATE_AFTER_MS);
+        return () => clearTimeout(timer);
+    });
+    /** the states of Show my code's checklist (readiness.js), in one line */
+    const readiness = $derived(readinessOf({
+        bookOpen: Boolean(me && $dbMyAddressBook?.address),
+        network: $networkState,
+        ownCard: me ? $myAddressBook?.find((card) => card.owner === me && card.own) : undefined,
+        late
+    }));
+    const ready = $derived(readiness.allDone);
+    /** what the status line says: ready, a card without a name, not reachable yet, or still starting */
+    const status = $derived(
+        readiness.allDone ? "exchange.ready"
+            : readiness.steps.card === "problem" ? "exchange.fillCard"
+            : readiness.steps.network === "done" && late ? "exchange.notReachable"
+            : "exchange.connecting"
+    );
 
     function showCode() {
         $qrCodeData = $orbitdb?.identity?.id;
@@ -54,8 +75,11 @@
     <h2 class="bx--visually-hidden">{$_("nav.exchange")}</h2>
     <p class="status" class:ready role="status" data-testid="exchange-status">
         <span class="dot" aria-hidden="true"></span>
-        {$_(ready ? "exchange.ready" : "exchange.connecting")}
+        {$_(status)}
     </p>
+    {#if status === "exchange.fillCard"}
+        <a class="fill-card" href="#/card" data-testid="fill-card">{$_("exchange.fillCardNow")}</a>
+    {/if}
 
     <!-- an invitation link we opened: its inviter's phone has not answered yet (#86) -->
     {#each $exchangesWaiting as waiting (waiting.inviter)}
@@ -122,6 +146,9 @@
     }
     .waiting {
         overflow-wrap: anywhere;
+    }
+    .fill-card {
+        align-self: flex-start;
     }
     .spacer {
         flex: 1 1 auto;

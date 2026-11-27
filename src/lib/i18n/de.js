@@ -54,9 +54,31 @@ export default {
 		card: 'Meine Karte',
 		settings: 'Einstellungen'
 	},
+	readiness: {
+		title: 'Vorbereitung',
+		book: 'Adressbuch offen',
+		network: 'Netzwerk gestartet',
+		relay: 'Relay gefunden und verbunden',
+		reachable: 'Für das andere Handy erreichbar',
+		link: 'Einladungslink signiert',
+		card: 'Deine Karte hat einen Namen',
+		fillCard: 'Meine Karte ausfüllen',
+		ready: 'Bereit · über das Relay erreichbar',
+		gettingReady: 'Dein Code wird vorbereitet …',
+		notReachable:
+			'Noch nicht erreichbar. Die Person kann jetzt scannen; der Austausch klappt, sobald ihr beide online seid (der Link gilt 24 Stunden).',
+		state: {
+			done: 'erledigt',
+			waiting: 'läuft',
+			problem: 'braucht dich'
+		}
+	},
 	exchange: {
 		ready: 'Bereit zum Austausch',
 		connecting: 'Verbinde …',
+		notReachable: 'Noch nicht über ein Relay erreichbar',
+		fillCard: 'Füll deine Karte aus: Damit bekommen andere deinen Namen',
+		fillCardNow: 'Jetzt ausfüllen',
 		showCode: 'Meinen Code zeigen',
 		scan: 'Code scannen',
 		paste: 'Stattdessen eine Kontaktadresse einfügen',
