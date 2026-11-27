@@ -131,7 +131,8 @@ export default {
 		add: 'Hinzufügen'
 	},
 	qr: {
-		heading: 'Scannen (DID) – dezentrale Identität',
+		heading: 'Lass deinen Code scannen',
+		copy: 'Tippe auf den Code, um ihn zu kopieren',
 		scanWhat: 'Kontaktadresse oder Link?',
 		didOnly: 'Kontaktadresse',
 		url: 'Link',
@@ -234,7 +235,8 @@ export default {
 		download: 'Tresordatei herunterladen',
 		linkHint:
 			'Öffne diesen Link auf dem anderen Gerät und entsperre dort mit einem der Passkeys oder den Wiederherstellungswörtern. Die Tresordaten im Link enthalten kein Secret.',
-		deviceLink: 'Geräte-Link'
+		deviceLink: 'Geräte-Link',
+		deviceLinkQr: 'QR-Code des Geräte-Links'
 	},
 	// der Passkey nach dem Austausch (#97): bis dahin eine vorläufige Identität
 	secure: {

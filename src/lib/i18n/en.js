@@ -131,7 +131,8 @@ export default {
 		add: 'Add'
 	},
 	qr: {
-		heading: 'Scan (DID) - Decentralized Identity',
+		heading: 'Let them scan your code',
+		copy: 'Tap the code to copy it',
 		scanWhat: 'Contact address or link?',
 		didOnly: 'Contact address',
 		url: 'Link',
@@ -233,7 +234,8 @@ export default {
 		download: 'Download vault file',
 		linkHint:
 			'Open this link on the other device, then unlock there with one of the passkeys or the recovery words. The vault record holds no secret.',
-		deviceLink: 'Device link'
+		deviceLink: 'Device link',
+		deviceLinkQr: 'QR code of the device link'
 	},
 	// the passkey after the exchange (#97): a temporary identity until it is secured
 	secure: {

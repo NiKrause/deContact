@@ -1,7 +1,7 @@
 <script>
-    import {createEventDispatcher, onMount} from "svelte";
-    import { Column, Modal, Toggle, Grid, Row, Checkbox } from 'carbon-components-svelte';
-    import QrCode from "svelte-qrcode"
+    import { createEventDispatcher } from "svelte";
+    import { Modal, Toggle, Checkbox } from 'carbon-components-svelte';
+    import QrCodeImage from "./QrCodeImage.svelte"
     const dispatch = createEventDispatcher();
     import { libp2p, orbitdb } from "../../stores.js";
     import { notify } from "../../utils/utils.js";
@@ -39,40 +39,64 @@
         : contactAddress(qrCodeData, peer)
 </script>
 
-    <Modal bind:open={ qrCodeOpen }
+<!-- What the person shows: the code first and as large as the screen allows, the options below -->
+<Modal bind:open={ qrCodeOpen }
+       passiveModal
+       size="sm"
        modalHeading={$_('qr.heading')}
-       primaryButtonText={$_('common.ok')}
        iconDescription={$_('common.close')}
-       secondaryButtonText=""
-       on:click:button--primary={ () => dispatch('close') }
-       on:click:button--secondary={ () => dispatch('close') }
-       on:close={()=>dispatch('close')}>
-    <Grid>
-        <Row>
-            <Column>
-                <Toggle
-                    labelText={$_('qr.scanWhat')}
-                    labelA={$_('qr.didOnly')}
-                    labelB={$_('qr.url')}
-                    bind:toggled={fullDeContactUrl}/>
-            </Column>
-            <Column>
+       on:close={() => dispatch('close')}>
+    <div class="qr-dialog">
+        {#if qrCodeData && qrCodeOpen}
+            <!-- a tap copies what the code holds, for sending it another way -->
+            <button type="button" class="qr-copy" aria-label={$_('qr.copy')} on:click={async () => {
+                    await navigator.clipboard.writeText(linkUrl);
+                    dispatch('close')
+                    notify($_('notify.invitationCopied'));
+                }}>
+                <QrCodeImage value={linkUrl} />
+            </button>
+            <p class="hint">{$_('qr.copy')}</p>
+        {/if}
+        <div class="options">
+            <Toggle
+                labelText={$_('qr.scanWhat')}
+                labelA={$_('qr.didOnly')}
+                labelB={$_('qr.url')}
+                bind:toggled={fullDeContactUrl}/>
+            <div>
                 <Checkbox id="two-way-exchange" labelText={$_('qr.twoWay')} bind:checked={twoWay} />
                 <div class="bx--form__helper-text">{$_('qr.twoWayHelp')}</div>
-            </Column>
-        </Row>
-        <Row>
-            <Column>
-                {#if qrCodeData && qrCodeOpen}
-                    <div class="container" on:click={async () => {
-                            await navigator.clipboard.writeText(linkUrl);
-                            dispatch('close')
-                            notify($_('notify.invitationCopied'));
-                        }}>
-                        <QrCode  value={linkUrl} />
-                    </div>
-                {/if}
-            </Column>
-        </Row>
-    </Grid>
+            </div>
+        </div>
+    </div>
 </Modal>
+
+<style>
+    .qr-dialog {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .qr-copy {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: none;
+        cursor: pointer;
+    }
+    .hint {
+        text-align: center;
+        opacity: 0.75;
+        font-size: 0.875rem;
+    }
+    .options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 2rem;
+    }
+    .options > div {
+        flex: 1 1 14rem;
+    }
+</style>

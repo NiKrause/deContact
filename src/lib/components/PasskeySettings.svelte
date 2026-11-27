@@ -5,7 +5,7 @@
      * (link, QR code, file). Every slot opens the same root, so every passkey writes as
      * the same DID.
      */
-    import QrCode from 'svelte-qrcode'
+    import QrCodeImage from './QrCodeImage.svelte'
     import {
         addNewPasskey,
         draftRecoveryWords,
@@ -123,7 +123,7 @@
     {#if link}
         <p class="hint">{$_('passkeys.linkHint')}</p>
         <input class="bx--text-input" readonly value={link} aria-label={$_('passkeys.deviceLink')} data-testid="device-link" />
-        {#if link.length < 2900}<QrCode value={link} />{/if}
+        {#if link.length < 2900}<QrCodeImage value={link} label={$_('passkeys.deviceLinkQr')} />{/if}
     {/if}
 
     {#if problem}<p class="problem" role="alert">{problem()}</p>{/if}
