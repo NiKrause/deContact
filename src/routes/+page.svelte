@@ -32,11 +32,26 @@
     import { loadContact } from "../operations.js";
     import { requestAddress } from "../lib/network/p2p-operations.js"
     import { parseContactAddress } from "#lib/network/contact-address.js"
+    import QrScanner from "#lib/components/QrScanner.svelte"
     import { notify } from "../utils/utils.js";
     import { _ } from "#lib/i18n/index.js";
 
     $: $selectedRowIds.length>0?loadContact($selectedRowIds[0]):null; //as the datatable gets clicked we load the contact into the contact form
     let scannedAddress;
+    let scanner;
+    /** a contact address pasted into the field, else the camera */
+    function scanOrOpenCamera() {
+        if (scannedAddress?.trim()) return scan()
+        return scanner.open()
+    }
+    /** what the camera read: an invitation link opens here, a contact address is asked */
+    function scannedByCamera(target) {
+        if (target.kind === 'link') {
+            window.location.hash = target.hash
+            return
+        }
+        return requestAddress(target.did, false, target.onBoardingToken, target.peer)
+    }
     /** a contact address or an invitation link: whom to ask, on which device (contact-address.js) */
     function scan() {
         const address = parseContactAddress(scannedAddress)
@@ -66,11 +81,11 @@
                 <Grid fullWidth>
                     <Row>
                         <Column>
-                            <TextInput role="scanContact" size="sm" bind:value={scannedAddress} on:keydown={(e) => e.code==='Enter'?scan():null} />
+                            <TextInput role="scanContact" size="sm" placeholder={$_('scanner.hint')} bind:value={scannedAddress} on:keydown={(e) => e.code==='Enter'?scan():null} />
                         </Column>
                             <Column>
                                     <Button size="sm"
-                                            on:click={async () => await scan()}>
+                                            on:click={async () => await scanOrOpenCamera()}>
                                         <Scan size="16"/> &nbsp; {$_('home.scan')}
                                     </Button>
                                     <Button size="sm" on:click={() => {
@@ -83,6 +98,7 @@
                     </Row>
                 </Grid>
                 <ContactList/>
+                <QrScanner bind:this={scanner} onscan={scannedByCamera} />
             </TabContent>
             <TabContent><ContactForm/></TabContent>
             <TabContent><Statistics/></TabContent>

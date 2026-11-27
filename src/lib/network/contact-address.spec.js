@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { multiaddr } from '@multiformats/multiaddr'
-import { contactAddress, parseContactAddress } from './contact-address.js'
+import { contactAddress, parseContactAddress, scanTarget } from './contact-address.js'
 import { circuitAddresses, isPeerId } from './contact-protocol.js'
 
 // made-up, in the formats of a did:key and a libp2p peer id
@@ -30,6 +30,24 @@ describe('what a QR code holds and the Scan field takes (contact-address.js)', (
         expect(parseContactAddress('')).toBeNull()
         expect(parseContactAddress('https://example.com/')).toBeNull()
         expect(parseContactAddress(undefined)).toBeNull()
+    })
+})
+
+describe('what a scanned code asks for (contact-address.js scanTarget)', () => {
+    it('an invitation link opens in this app, whatever address it was made for', () => {
+        const link = `https://example.com/deContact/de/#/onboarding/${did}?onBoardingToken=${token}&peer=${peer}`
+        expect(scanTarget(link)).toEqual({ kind: 'link', hash: `#/onboarding/${did}?onBoardingToken=${token}&peer=${peer}` })
+    })
+
+    it('a contact address or a DID becomes a request', () => {
+        expect(scanTarget(contactAddress(did, peer))).toEqual({ kind: 'contact', did, peer })
+        expect(scanTarget(did)).toEqual({ kind: 'contact', did })
+    })
+
+    it('anything else is not for deContact', () => {
+        expect(scanTarget('https://example.com/menu')).toBeNull()
+        expect(scanTarget('WIFI:S:example;T:WPA;P:secret;;')).toBeNull()
+        expect(scanTarget(undefined)).toBeNull()
     })
 })
 

@@ -17,6 +17,22 @@ export function contactAddress(did, peer) {
 }
 
 /**
+ * What a scanned QR code asks for: an invitation link opens in this app (its onboarding
+ * view, `hash`), a contact address or a DID becomes a request.
+ *
+ * @param {string} text what the camera read
+ * @returns {{ kind: 'link', hash: string } | { kind: 'contact', did: string, peer?: string, onBoardingToken?: string } | null}
+ */
+export function scanTarget(text) {
+    if (typeof text !== 'string') return null
+    const address = parseContactAddress(text)
+    if (!address) return null
+    const at = text.indexOf('#/onboarding/')
+    if (at !== -1) return { kind: 'link', hash: text.slice(at).trim() }
+    return { kind: 'contact', ...address }
+}
+
+/**
  * Reads a contact address, an invitation link or a DID.
  *
  * @param {string} text what was scanned or pasted

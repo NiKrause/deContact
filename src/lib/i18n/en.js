@@ -38,6 +38,23 @@ export default {
 		qrCode: 'QR Code',
 		waiting: "Waiting for {name}'s phone…"
 	},
+	// the camera that reads a contact's QR code (QrScanner.svelte, <qr-scanner> of
+	// @le-space/libp2p-webrtc-qr)
+	scanner: {
+		label: "Scan a contact's QR code",
+		close: 'Close',
+		unsupported: 'This browser cannot open a camera. Paste the contact address into the field instead.',
+		insecure: 'A camera is only allowed on a secure page (https). Paste the contact address into the field instead.',
+		denied: 'The camera was refused. Allow it in the address bar and press Scan again.',
+		noDevice: 'No camera answered. If another app is using it, close that first.',
+		starting: 'Starting the camera…',
+		looking: 'Looking for a code… hold it steady and fill about half of the frame.',
+		stillLooking: 'Still looking… {attempts} attempts. Move a little closer and avoid reflections.',
+		notContact: 'That is no deContact contact or invitation.',
+		animated: 'Animated code: {received} of {total} parts. Keep holding steady.',
+		animatedUnknown: 'Animated code. Keep holding steady.',
+		hint: 'Scan with the camera, or paste a contact address and press Scan'
+	},
 	toast: {
 		success: 'Done',
 		warning: 'Note',

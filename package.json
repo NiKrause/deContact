@@ -52,6 +52,7 @@
 		"@helia/libp2p": "2.1.5",
 		"@ipld/dag-cbor": "9.2.5",
 		"@le-space/aleph-bootstrap": "0.12.15",
+		"@le-space/libp2p-webrtc-qr": "0.14.4",
 		"@le-space/orbitdb-access-controller-decontact": "workspace:*",
 		"@le-space/orbitdb-identity-provider-webauthn-did": "0.14.0",
 		"@libp2p/autonat": "3.0.33",
