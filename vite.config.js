@@ -6,7 +6,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 // the address search engines and link previews are given (src/hooks.server.js, lib/seo.js):
 // GitHub Pages, unless a build names another
-process.env.PUBLIC_SITE_URL ||= 'https://nikrause.github.io/deContact/';
+process.env.VITE_SITE_URL ||= 'https://nikrause.github.io/deContact/';
 
 // what the app says about its build (lib/components/AppInfo.svelte): the version, the
 // commit, and when it was built, which for GitHub Pages is when it was published
