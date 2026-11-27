@@ -39,6 +39,7 @@ import {
     verifyOnboardingToken
 } from "./contact-messages.js";
 import { EXCHANGE_RETRY_MS, createExchangeStore, exchangeNeeds } from "./exchanges.js";
+import { liftRevocation, removedUs, revoke, withoutRevoked } from "./revocations.js";
 
 let blockstore = new LevelBlockstore("./helia-blocks")
 let datastore = new LevelDatastore("./helia-data")
@@ -170,6 +171,8 @@ export async function startAddressBook(signer, keys) {
     await sealWhatWasPlain(_dbMyAddressBook)
     dbMyAddressBook.set(_dbMyAddressBook)
     window.mydb = _dbMyAddressBook
+    // the end-to-end tests' hook (#81): only in a build for them, never in production
+    if (import.meta.env.VITE_E2E === 'true') (await import('./e2e-hook.js')).installE2EHook(_orbitdb)
     await getAddressRecords()
 
     initReplicationBackup(_orbitdb.identity.id)
@@ -422,7 +425,7 @@ async function rememberTheirBook(owner, sharedAddress) {
  */
 async function getAddressRecords() {
     try {
-        const addressRecords = (await _dbMyAddressBook.all()).filter((record) => {
+        const addressRecords = (await countingRecords()).filter((record) => {
             if (!record.value?.unreadable) return true
             console.log(`could not open ${record.key} in our address book: not sealed to us`)
             return false
@@ -446,6 +449,16 @@ async function getAddressRecords() {
 }
 
 /**
+ * The documents of our address book that count: a revocation and the card of a contact we
+ * removed do not (#82, revocations.js), whenever they write it.
+ */
+async function countingRecords() {
+    const { visible, ignored } = withoutRevoked(await _dbMyAddressBook.all())
+    for (const did of ignored) console.log(`ignored the card of ${did}: we removed them`)
+    return visible
+}
+
+/**
  * Loop through our address book and open all other address books of the people we follow (and replicate them in order to keep a backup)
  * We back up the dbs of the people (the addresses) we follow.
  *
@@ -463,7 +476,7 @@ async function getAddressRecords() {
  */
 async function initReplicationBackup(ourDID) {
 
-    const addressRecords = await _dbMyAddressBook.all();
+    const addressRecords = await countingRecords();
     const addresses = new Set()
     _followList = addressRecords.filter((addr)=> {
         //sharedAddress undefined for all not decentralized addresses
@@ -741,7 +754,8 @@ function startInvitationCheckWorker() {
     const executeWorker = async () => {
         console.log("Checking for 'invited' contacts to resend requests...");
 
-        const allContacts = await _dbMyAddressBook.all();
+        // a card of somebody we removed is no placeholder, whatever it says: a resend would invite them again (#82)
+        const allContacts = await countingRecords();
         // the links we opened resend by themselves (retryExchanges)
         const invitedContacts = allContacts.filter(contact => contact.value.firstName === 'invited' && !exchanges().get(contact.value.owner));
 
@@ -855,6 +869,11 @@ export async function writeMyCardIntoFollowedBooks(ownCard) {
     for (const followed of _followList ?? []) {
         if (!followed.db) continue
         try {
+            // its owner removed us (#82): our card stays out, the one we have of theirs stays here
+            if (await removedUs(followed.db, me)) {
+                console.log(`not updating our card in ${followed.db.address}: its owner removed us`)
+                continue
+            }
             const ours = await followed.db.get(contactKey(me))
             const invitation = ours?.value?.invitation
             if (!invitation) continue // never invited into this book
@@ -869,14 +888,20 @@ export async function writeMyCardIntoFollowedBooks(ownCard) {
 /**
  * We remove a contact (#59): our card leaves their address book, so no later change of
  * ours reaches them, and their card, placeholder and the record of their book leave ours.
- * What they already received stays with them. Their invitation into our book stays valid:
- * revoking it needs the access controller (a follow-up of #59).
+ * What they already received stays with them.
+ *
+ * Their invitation into our book is revoked first (#82, revocations.js): a card they write
+ * back with it does not count, until we invite them again.
  *
  * @param did the contact's DID
  */
 export async function removeContact(did) {
     const me = _orbitdb?.identity?.id
     if (!did || did === me) return
+    await revoke(_dbMyAddressBook, did, { owner: me })
+    console.log(`revoked the invitation of ${did}`)
+    // a link of theirs we opened is resent no more: each resend would invite them again
+    exchanges().forget(did)
     const records = (await _dbMyAddressBook.all()).filter((record) => record.value?.owner === did)
     const addresses = new Set(records.map((record) => record.value.sharedAddress).filter((address) => typeof address === 'string'))
     for (const address of addresses) {
@@ -906,9 +931,17 @@ function cardFor(ownCard, invitation) {
     return { ...card, _id: contactKey(me), owner: me, invitation }
 }
 
-/** an invitation for `did` to write their card into our address book */
+/**
+ * An invitation for `did` to write their card into our address book. Inviting somebody
+ * we removed lifts the revocation (#82): their card counts again.
+ */
 async function invite(did) {
-    return createInvitation(await signer(), _orbitdb.identity.id, did)
+    const invitation = await createInvitation(await signer(), _orbitdb.identity.id, did)
+    if (await liftRevocation(_dbMyAddressBook, did)) {
+        console.log(`lifted the revocation of ${did}: we invite them again`)
+        await getAddressRecords()
+    }
+    return invitation
 }
 
 

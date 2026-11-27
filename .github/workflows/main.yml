@@ -19,6 +19,9 @@ jobs:
       run: pnpm install --frozen-lockfile
     - name: Install Playwright Chromium
       run: pnpm exec playwright install --with-deps chromium
+    # the build users get has no test hook (#81); the end-to-end tests build their own
+    - name: Production build without test hook
+      run: pnpm run check:production-build
     # unit tests, then the end-to-end tests against their own relay and build
     - name: Test
       run: pnpm test
@@ -52,6 +55,9 @@ jobs:
       run: |
         pnpm install --frozen-lockfile
         pnpm run build
+    # the very directory Pages publishes has no test hook (#81)
+    - name: No test hook in the build
+      run: node scripts/check-production-build.mjs build
     - uses: actions/upload-pages-artifact@v5
       with:
         path: ./build
