@@ -1,5 +1,5 @@
 import {notify, sha256} from "./utils/utils.js";
-import { removeContact, writeMyCardIntoFollowedBooks } from "./lib/network/p2p-operations.js";
+import { ensureOwnDevice, removeContact, writeMyCardIntoFollowedBooks } from "./lib/network/p2p-operations.js";
 import { t } from "#lib/i18n/index.js";
 import {
     myAddressBook,
@@ -40,6 +40,8 @@ export async function addContact() {
     const hash = await _dbMyAddressBook.put(_selectedAddr)
     notify(t('notify.contactAdded', { hash }));
     closeForm()
+    // our first card: it names this device, so that contacts reach it (devices.js)
+    await ensureOwnDevice()
 }
 
 /**

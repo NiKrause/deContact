@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, confirmExperimental, createAddressBook } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, confirmExperimental, contactAddressOf, createAddressBook } from './helpers/passkeys.js';
 test.describe('Simple exchange of address between Alice and Bob', async () => {
 	let pageAlice, pageBob;
 
@@ -11,8 +11,8 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 	});
 
 	test('Alice and Bob can exchange addresses', async () => {
-		// libp2p 2+ dials discovered peers only when pubsub peer discovery announces them
-		// (every 10 s), and the address request is resent after 10 s, 20 s, ...
+		// the request goes to Alice's device, peer to peer: directly when pubsub peer discovery
+		// announced her (every 10 s), else through the relay; resent after 10 s, 20 s, ...
 		test.setTimeout(120000);
 
 		const connect =  pageAlice.getByRole('img', { name: 'Swarm connected' })
@@ -23,7 +23,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 
 		await pageBob.getByRole('tab', { name: 'Contacts' }).click();
 		await pageBob.getByRole('textbox', { role: 'scanContact' }).click();
-		await pageBob.getByRole('textbox', { role: 'scanContact' }).fill(users[0].did);
+		await pageBob.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(pageAlice));
 		await pageBob.getByRole('button', { name: 'Scan' }).click();
 
 

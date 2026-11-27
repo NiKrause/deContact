@@ -3,11 +3,12 @@
     import { Column, Modal, Toggle, Grid, Row, Checkbox } from 'carbon-components-svelte';
     import QrCode from "svelte-qrcode"
     const dispatch = createEventDispatcher();
-    import { orbitdb } from "../../stores.js";
+    import { libp2p, orbitdb } from "../../stores.js";
     import { notify } from "../../utils/utils.js";
     import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
     import { _, language } from "#lib/i18n/index.js";
     import { appUrlIn } from "#lib/app-url.js";
+    import { contactAddress } from "#lib/network/contact-address.js";
 
 
     export let qrCodeData
@@ -28,9 +29,14 @@
             .then((token) => { if (issue === issuing) onBoardingToken = token })
             .catch((error) => console.log("could not create an invitation link:", error?.message))
     }
+    // requests go to this device, peer to peer (contact-protocol.js): the code names it
+    $: peer = $libp2p?.peerId?.toString()
     // the invitation link leads back to this app, wherever it runs, to the page of the
-    // language on screen: a messenger's preview of it is in that language (app-url.js, seo.js)
-    $: linkUrl = (fullDeContactUrl && onBoardingToken)?`${appUrlIn($language)}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}`:qrCodeData
+    // language on screen: a messenger's preview of it is in that language (app-url.js,
+    // seo.js); without it, the contact address for the Scan field (contact-address.js)
+    $: linkUrl = (fullDeContactUrl && onBoardingToken)
+        ? `${appUrlIn($language)}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}&peer=${peer}`
+        : contactAddress(qrCodeData, peer)
 </script>
 
     <Modal bind:open={ qrCodeOpen }

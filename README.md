@@ -30,7 +30,7 @@ deContact gives every person a self-owned address book. It lives in the browser 
 ## Features
 - 🔑 **Self-sovereign identity, opened with a passkey.** A passkey opens a vault that holds one root; your `did:key` (Ed25519) and OrbitDB identity are derived from it. No account, no seed phrase, no server-side login ([how](docs/how-it-works.md#identity-passkeys-and-the-vault)).
 - 📇 **Your own address book.** An OrbitDB documents database for your card and the cards others write into it (private, business or other).
-- 🤝 **Exchange cards by DID.** Scan a QR code or paste a DID. The other person confirms, and each side writes their card into the other's book. Whoever opens an invitation link from a QR code first gets the card without a confirmation and decides whether to share theirs ([how](docs/how-it-works.md#invitation-links)). On a phone without deContact the form shows at once; the passkey comes after the exchange ([how](docs/how-it-works.md#starting-without-a-passkey)).
+- 🤝 **Exchange cards, peer to peer.** Scan a QR code with the camera, or paste the contact address it shows. The request goes straight to the other person's device over libp2p, with no topic a relay or a third peer could listen on ([how](docs/how-it-works.md#requests)). The other person confirms, and each side writes their card into the other's book. Whoever opens an invitation link from a QR code first gets the card without a confirmation and decides whether to share theirs ([how](docs/how-it-works.md#invitation-links)). On a phone without deContact the form shows at once; the passkey comes after the exchange ([how](docs/how-it-works.md#starting-without-a-passkey)).
 - 📲 **An app to install, with link previews.** deContact installs as a PWA and starts without a network. Its link previews and search results are in English at the app's address and in German below `de/`; an invitation link points to the page of the inviter's language ([how](docs/how-it-works.md#pwa-and-link-previews)).
 - 🖼️ **A photo on your card.** Take or pick one under **My Address**: it is cropped square, scaled to 256 × 256 and stored as a small WebP (at most 30 KB) inside the sealed card, without the original's EXIF data or location. Your contacts see it in their list and right after scanning your code ([how](docs/how-it-works.md#what-a-card-holds)).
 - 🔄 **Updates follow you.** A changed card is rewritten in every book you were invited into.
@@ -44,7 +44,7 @@ deContact gives every person a self-owned address book. It lives in the browser 
 - 🗣️ **English and German.** The app follows your browser's language and can be switched under **Settings** (or on the first screen); both work offline.
 
 ## How it works
-1. Bob scans Alice's DID (QR code or text) and sends her a request over libp2p. The request carries the address of his book and a signed invitation.
+1. Bob scans Alice's QR code (her DID and her device) and sends her a request over libp2p, peer to peer. The request carries the address of his book and a signed invitation.
 2. Alice confirms and writes her card into Bob's book. Bob does the same in hers.
 3. When either of them changes their card, it is rewritten in every book they were invited into.
 4. An [orbitdb-relay](docs/relays.md) connects the browsers when WebRTC can't and keeps a replica for when someone is offline. It checks every entry with the same access controller as the browsers.
@@ -61,7 +61,7 @@ pnpm dev
 The app finds Le Space's relays on Aleph by itself. To try it with two people:
 1. Open the app in two separate browsers or browser profiles.
 2. In each, choose **Continue**, then **Create a new address book** (your browser asks for a passkey twice), then enter your card under **My Address**.
-3. In browser A, copy the DID from **Settings**. In browser B, paste it under **Contacts** and press **Scan**.
+3. In browser A, open **Contacts → QR Code**, switch to *Contact address* and click the code to copy it. In browser B, paste it under **Contacts** and press **Scan**.
 4. Confirm **Send My Contact Data** in both browsers.
 5. Each contact list now shows the other person's card.
 
@@ -76,7 +76,8 @@ The app finds Le Space's relays on Aleph by itself. To try it with two people:
 
 ## Known limitations
 - **Experimental.** Data formats and protocols may still change; the address book format changed in 0.5.0.
-- **Metadata is visible.** Cards and requests are encrypted, but who exchanged cards with whom, and when, is not: a book's address follows from its owner's DID, and whoever opens it sees which DIDs wrote into it. A request shows its recipient and its time.
+- **Metadata is visible.** Cards and requests are encrypted, but who exchanged cards with whom, and when, is not: a book's address follows from its owner's DID, and whoever opens it sees which DIDs wrote into it. A request travels peer to peer: a relay carrying the circuit sees which two peers talk, and when.
+- **A device to ask.** Requests go to a device: the one in the QR code, or for a contact the devices their card names. A stranger's DID alone reaches nobody.
 - **Passkeys with PRF.** The browser and the passkey must support the WebAuthn PRF extension (recent Chrome, Safari, Edge; iCloud Keychain, Google Password Manager, 1Password, YubiKey 5). Without it the vault does not open.
 - **Security notes.**
   - Nothing secret is stored in the clear: the browser keeps only the sealed vault record, and OrbitDB's keystore lives in memory. While the app is open, the root, the identity's key and its X25519 key are in the page's memory, so a script running in the page could use them.

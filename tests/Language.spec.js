@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, didOf, newPerson, names, recordCeremonies, takeCeremonies } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, contactAddressOf, didOf, newPerson, names, recordCeremonies, takeCeremonies } from './helpers/passkeys.js';
 
 // The app in English and German (#89). The suite runs its browsers in en-US
 // (playwright.config.js); here the language comes from the browser, from the switch in
@@ -78,7 +78,7 @@ test('German after switching in Settings: kept after a reload, and in the reques
 		await test.step("Bob's request reaches Alice as a German dialog", async () => {
 			bob = await newPerson(browser, people.bob);
 			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByRole('textbox', { role: 'scanContact' }).fill(alice.did);
+			await bob.page.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(alice.page));
 			await bob.page.getByRole('button', { name: 'Scan' }).click();
 			const send = alice.page.getByRole('button', { name: 'Meine Kontaktdaten senden' });
 			await expect(send).toBeVisible({ timeout: 90000 });

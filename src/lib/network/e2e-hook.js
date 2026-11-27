@@ -11,8 +11,14 @@
  * instead of throwing, so the test can tell a refused write from a broken page.
  */
 
-/** @param {any} orbitdb the page's OrbitDB */
-export function installE2EHook(orbitdb) {
+/**
+ * @param {any} orbitdb the page's OrbitDB
+ * @param {{ pauseRequests: () => void, resumeRequests: () => void, deliver: (peer: string, text: string) => Promise<object> }} requests
+ *   pauseRequests: the app answers no contact request, as an app in the background
+ *   (tests/Onboarding.spec.js); deliver: a message of the test's own making, sent as the
+ *   app sends requests (tests/ContactRequestSecurity.spec.js)
+ */
+export function installE2EHook(orbitdb, requests) {
     const open = (address) => orbitdb.open(address, { type: 'documents', sync: true })
     const attempt = async (write) => {
         try {
@@ -40,6 +46,7 @@ export function installE2EHook(orbitdb) {
         async entries(address) {
             const entries = await (await open(address)).log.values()
             return entries.map((entry) => entry.hash)
-        }
+        },
+        ...requests
     }
 }
