@@ -2,9 +2,25 @@ import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { configDefaults, defineConfig } from 'vitest/config';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 // the address search engines and link previews are given (src/hooks.server.js, lib/seo.js):
 // GitHub Pages, unless a build names another
 process.env.PUBLIC_SITE_URL ||= 'https://nikrause.github.io/deContact/';
+
+// what the app says about its build (lib/components/AppInfo.svelte): the version, the
+// commit, and when it was built, which for GitHub Pages is when it was published
+process.env.VITE_APP_VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
+process.env.VITE_COMMIT ||= process.env.GITHUB_SHA || gitCommit();
+process.env.VITE_BUILT_AT ||= new Date().toISOString();
+
+function gitCommit() {
+	try {
+		return execSync('git rev-parse HEAD', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+	} catch {
+		return '';
+	}
+}
 
 export default defineConfig({
 	plugins: [

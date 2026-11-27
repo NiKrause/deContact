@@ -2,7 +2,7 @@
 // und DID bleiben stehen (der Passkey, der Relay, der Token, das Secret).
 export default {
 	app: {
-		tagline: '– die Cloud sind wir!'
+		tagline: '– dein Adressbuch, Peer-to-Peer'
 	},
 	// was Suchmaschinen und Link-Vorschauen lesen (seo.js), und das Bild der Vorschau
 	// (scripts/brand/og-image.html): die Seite jeder Sprache hat ihre eigenen
@@ -15,6 +15,13 @@ export default {
 		imageLead: 'Dein Adressbuch,<br />lokal und Peer-to-Peer.',
 		noscript: 'Ein Adressbuch, das bei dir liegt und Peer-to-Peer läuft. deContact läuft in deinem Browser und braucht JavaScript.',
 		source: 'Quellcode und Dokumentation auf GitHub'
+	},
+	// was die App über ihren Build sagt (AppInfo.svelte)
+	about: {
+		version: 'Version {version}',
+		published: 'veröffentlicht {date}',
+		commit: 'Commit {commit}',
+		source: 'Quellcode auf GitHub'
 	},
 	language: {
 		label: 'Sprache',

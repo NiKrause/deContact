@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 // deContact as a PWA, and what search engines and link previews read.
 // 1. Chrome's own verdict: the app can be installed. The manifest's icons exist in the
@@ -95,6 +96,20 @@ for (const { locale, page, title, image, ogLocale } of pages) {
 		expect(data).toMatchObject({ '@type': 'WebApplication', name: 'deContact', url, inLanguage: locale });
 	});
 }
+
+test('every screen says which build runs: version, publication, commit, source', async ({ page }) => {
+	const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+	await page.goto(process.env.PAGE_URL);
+	const info = page.getByTestId('app-info');
+	await expect(info).toContainText(`Version ${version}`);
+	await expect(info).toContainText('published');
+	const commit = page.getByTestId('app-commit');
+	await expect(commit).toHaveAttribute('href', /^https:\/\/github\.com\/NiKrause\/deContact\/commit\/[0-9a-f]{40}$/);
+	expect((await commit.textContent()).trim()).toMatch(/^commit [0-9a-f]{7}$/);
+	await expect(info.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', 'https://github.com/NiKrause/deContact');
+	// the header names the app and what it is, no more "the cloud we are"
+	await expect(page.getByRole('link', { name: /deContact/ }).first()).toContainText('your address book, peer to peer');
+});
 
 test('the German page runs the app', async ({ browser }) => {
 	test.setTimeout(120000);

@@ -2,7 +2,7 @@
 // English. Placeholders like {name} are filled in by t().
 export default {
 	app: {
-		tagline: '- the cloud we are!'
+		tagline: '– your address book, peer to peer'
 	},
 	// what search engines and link previews read (seo.js), and the picture of the preview
 	// (scripts/brand/og-image.html): the page of each language has its own
@@ -15,6 +15,13 @@ export default {
 		imageLead: 'A local-first,<br />peer-to-peer address book.',
 		noscript: 'A local-first, peer-to-peer address book. deContact runs in your browser and needs JavaScript.',
 		source: 'Source code and documentation on GitHub'
+	},
+	// what the app says about its build (AppInfo.svelte)
+	about: {
+		version: 'Version {version}',
+		published: 'published {date}',
+		commit: 'commit {commit}',
+		source: 'Source on GitHub'
 	},
 	language: {
 		label: 'Language',

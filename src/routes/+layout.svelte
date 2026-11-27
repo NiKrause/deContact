@@ -10,6 +10,7 @@
     import QRCodeModal from "#lib/components/QRCodeModal.svelte";
     import PasskeyGate from "#lib/components/PasskeyGate.svelte";
     import SecureOffer from "#lib/components/SecureOffer.svelte";
+    import AppInfo from "#lib/components/AppInfo.svelte";
     import { myDal, qrCodeOpen, qrCodeData, helia, orbitdb, myAddressBook } from "../stores.js";
 
     import { startNetwork, startAddressBook, close } from "../lib/network/p2p-operations.js"
@@ -173,6 +174,7 @@
 {:else}
     <PasskeyGate onboarding={ $hash==='/onboarding' } { handedOver } />
 {/if}
+<AppInfo />
 <passkey-step-dialog bind:this={ stepDialog } lang={ $language }></passkey-step-dialog>
 <style>
     :global(.bx--toast-notification) {
