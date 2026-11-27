@@ -45,6 +45,7 @@ import { answerContactRequests, deliverContactRequest } from "./contact-protocol
 import { devicesOf, withDevice } from "./devices.js";
 // localStorage, held in memory while the identity is temporary (#97)
 import { deviceStorage } from "#lib/identity/held-storage.js";
+import { thumbnailOf } from "#lib/photo/photo.js";
 
 let blockstore = new LevelBlockstore("./helia-blocks")
 let datastore = new LevelDatastore("./helia-data")
@@ -644,7 +645,24 @@ async function signer() {
 async function addressRequest(recipient, { onBoardingToken, nopingpong, twoWay, resentOf, now = Date.now() } = {}) {
     const data = { sharedAddress: _dbMyAddressBook.address, invitation: await invite(recipient) }
     const from = ownCard()
-    return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, from, onBoardingToken, nopingpong, twoWay, resentOf }, { now })
+    const photo = await requestPhotoOf(from)
+    return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, from, photo, onBoardingToken, nopingpong, twoWay, resentOf }, { now })
+}
+
+/** the last thumbnail made for a request, and the card photo it was made from */
+let requestPhoto = { of: undefined, thumbnail: undefined }
+/** a small copy of our card's photo for the request dialog (#110); made once per photo */
+async function requestPhotoOf(card) {
+    const photo = card?.photo
+    if (!photo) return undefined
+    if (requestPhoto.of !== photo) {
+        const thumbnail = await thumbnailOf(photo).catch((error) => {
+            console.log('no photo for the request:', error?.message)
+            return undefined
+        })
+        requestPhoto = { of: photo, thumbnail }
+    }
+    return requestPhoto.thumbnail
 }
 
 /** our own card as our address book shows it */

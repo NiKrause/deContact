@@ -41,6 +41,7 @@ import { generateKeyPairFromSeed } from '@libp2p/crypto/keys'
 import { base64url } from 'multiformats/bases/base64'
 import { publicKeyFromDid, verifyInvitation } from '@le-space/orbitdb-access-controller-decontact'
 import { encryptionKeyOfDid, isSeal, openSeal, seal } from '../encryption/sealing.js'
+import { isThumbnail } from '../photo/photo.js'
 
 export const REQUEST_ADDRESS = 'REQUEST_ADDRESS'
 
@@ -122,19 +123,22 @@ function fromOf(card) {
  * A signed message sealed to its recipient, ready to publish.
  *
  * @param signer from createSigner; its DID is the sender
- * @param {{ command: string, recipient: string, data: { sharedAddress: string, invitation: object }, from?: object, onBoardingToken?: string, nopingpong?: boolean, twoWay?: boolean, resentOf?: number }} fields
+ * @param {{ command: string, recipient: string, data: { sharedAddress: string, invitation: object }, from?: object, photo?: string, onBoardingToken?: string, nopingpong?: boolean, twoWay?: boolean, resentOf?: number }} fields
  *   from: the sender's card; only its name (FROM_FIELDS) goes along;
+ *   photo: a thumbnail of the sender's card photo (photo.js thumbnailOf), at the top level and
+ *   not in `from`, whose fields an older app checks and would refuse the whole request for;
  *   resentOf: this repeats our request of that timestamp (answered.js); an older app ignores it;
  *   twoWay: with an onBoardingToken, ask the inviter for an invitation into their book
  * @returns {Promise<string>}
  */
-export async function sealMessage(signer, { command, recipient, data, from, onBoardingToken, nopingpong, twoWay, resentOf }, { now = Date.now() } = {}) {
+export async function sealMessage(signer, { command, recipient, data, from, photo, onBoardingToken, nopingpong, twoWay, resentOf }, { now = Date.now() } = {}) {
     const recipientKey = encryptionKeyOfDid(recipient)
     if (!recipientKey) throw new Error(`${recipient} is not a did:key we can seal to`)
     if (twoWay === true && onBoardingToken === undefined) throw new Error('a two-way exchange needs an invitation link')
     const fields = { command, sender: signer.did, recipient, timestamp: now, nonce: randomNonce(), data }
     const name = fromOf(from)
     if (name) fields.from = name
+    if (isThumbnail(photo)) fields.photo = photo
     if (onBoardingToken !== undefined) fields.onBoardingToken = onBoardingToken
     if (nopingpong === true) fields.nopingpong = true
     if (twoWay === true) fields.twoWay = true
@@ -224,6 +228,8 @@ async function openSigned(text, { me, now }) {
     if (!(await verifyInvitation(message.data.invitation, { owner: sender, invitee: me }))) {
         return { ok: false, reason: 'invitation is not from the sender for us', sender }
     }
+    // a photo we do not show (too large, not WebP or JPEG, not a data URL) goes; the request stays
+    if (message.photo !== undefined && !isThumbnail(message.photo)) delete message.photo
     return { ok: true, message }
 }
 

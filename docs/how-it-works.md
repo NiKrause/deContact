@@ -232,7 +232,7 @@ sequenceDiagram
 
 ### Requests
 
-Every request is signed with the sender's `did:key`, the identity of their vault, then sealed to the recipient ([above](#encryption-sealed-to-the-reader)). The signature covers the sender, the recipient, the time, a random nonce, the sender's book address, the invitation, the sender's name and, for an [invitation link](#invitation-links), its token and whether the sender asks for an invitation (`twoWay`) ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
+Every request is signed with the sender's `did:key`, the identity of their vault, then sealed to the recipient ([above](#encryption-sealed-to-the-reader)). The signature covers the sender, the recipient, the time, a random nonce, the sender's book address, the invitation, the sender's name, a small copy of their photo and, for an [invitation link](#invitation-links), its token and whether the sender asks for an invitation (`twoWay`) ([`contact-messages.js`](../src/lib/network/contact-messages.js)). The recipient drops, without a dialog:
 
 - anything that is not sealed to them, or does not have the shape of a request (`twoWay` without a token, for example);
 - a request whose signature does not belong to the DID it names as sender;
@@ -240,6 +240,8 @@ Every request is signed with the sender's `did:key`, the identity of their vault
 - a request whose book is not the sender's own (the owner in the book's manifest) or whose invitation is not the sender's.
 
 From each sender only the newest request waits for an answer.
+
+**The asker's photo** ([#110](https://github.com/NiKrause/deContact/issues/110)). When the sender's card has a [photo](#what-a-card-holds), the request carries a small copy of it, 64 × 64 pixels, WebP (JPEG where the browser makes no WebP), at most 6 KB ([`photo.js`](../src/lib/photo/photo.js) `thumbnailOf`). It is a field of its own at the top level of the signed request, `photo`, not part of the name (`from`): an app from before checks the name field by field and would drop the whole request for an unknown one, while it ignores an unknown top-level field. The request stays far below the 16 KB a signed request may have, so older apps still take it. The recipient shows the photo next to the name in the request dialog only when it is a WebP or JPEG data URL within the limit (`isThumbnail`), as an `<img>` like a card's photo; anything else is dropped, and the request still counts. Like the name, the photo is what the sender put on their own card: it says who they claim to be, not who they are.
 
 **Peer to peer.** A request goes to the recipient's device on deContact's own libp2p protocol, `/decontact/request/1.0.0` ([`contact-protocol.js`](../src/lib/network/contact-protocol.js)): one stream, over WebRTC or a relay's circuit, carrying the sealed request and, back, a receipt that it arrived and opened. There is no topic per DID any more, so no relay subscribes to anything for it and no third peer sees a request go by. A relay that carries the circuit sees that two peers talk, when and how much; the request itself is sealed end to end.
 

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { everythingStoredAsText, newPerson } from './helpers/passkeys.js';
+import { contactAddressOf, everythingStoredAsText, newPerson } from './helpers/passkeys.js';
 import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboarding.js';
 import { bytesOfDataUrl, metadataOf, withExif } from './helpers/exif.js';
 
@@ -12,6 +12,8 @@ import { bytesOfDataUrl, metadataOf, withExif } from './helpers/exif.js';
 // 3. Carol, a third peer, replicates Bob's book as a follower or relay does: no byte of the
 //    photo stands in the clear there, nor in any of the three browsers' storage.
 // 4. Alice removes her photo: it goes from Bob's list too.
+// 5. Carol, with a photo on her card, asks Alice by contact address: Alice's request dialog
+//    shows a small copy of it, which Carol's signed request carries (#110).
 
 const people = {
 	alice: { first: 'Alice', last: 'Bildermacher', city: 'Musterstadt' },
@@ -117,6 +119,39 @@ test("Bob sees Alice's photo after the onboarding; a third peer sees no image by
 		});
 	} finally {
 		await Promise.all([alice, bob, carol].filter(Boolean).map((person) => person.close()));
+	}
+});
+
+test("the request dialog shows a small copy of the asker's photo", async ({ browser }) => {
+	test.setTimeout(300000);
+	const alice = await newPerson(browser, people.alice);
+	const carol = await newPerson(browser, people.carol);
+	try {
+		await test.step('Carol chooses a photo', async () => {
+			await openCard(carol.page, people.carol.last);
+			const chooser = carol.page.waitForEvent('filechooser');
+			await carol.page.getByRole('button', { name: 'Choose photo' }).click();
+			await (await chooser).setFiles({ name: 'portrait.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(await madeUpPortrait(carol.page)) });
+			await expect(carol.page.getByTestId('form-photo')).toBeVisible();
+			await carol.page.getByRole('button', { name: 'Update' }).click();
+			await expect.poll(() => ownPhoto(carol.page), { timeout: 30000 }).toMatch(/^data:image\/webp;base64,/);
+		});
+
+		await test.step("she asks Alice: Alice's dialog shows it, 64 pixels wide and a few KB", async () => {
+			await carol.page.getByRole('tab', { name: 'Contacts' }).click();
+			await carol.page.getByTestId('scan-field').fill(await contactAddressOf(alice.page));
+			await carol.page.getByRole('button', { name: 'Scan' }).click();
+			const shown = alice.page.getByTestId('request-photo');
+			await expect(shown).toBeVisible({ timeout: 90000 });
+			const src = await shown.getAttribute('src');
+			expect(src).toMatch(/^data:image\/(webp|jpeg);base64,/);
+			expect(bytesOfDataUrl(src).length).toBeLessThanOrEqual(6 * 1024);
+			expect(await shown.evaluate((image) => [image.complete, image.naturalWidth, image.naturalHeight])).toEqual([true, 64, 64]);
+			await expect(alice.page.getByTestId('request-from')).toContainText(`${people.carol.first} ${people.carol.last}`);
+			await alice.page.getByRole('button', { name: 'Decline' }).click();
+		});
+	} finally {
+		await Promise.all([alice.close(), carol.close()]);
 	}
 });
 

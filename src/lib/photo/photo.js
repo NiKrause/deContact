@@ -25,6 +25,13 @@ export const MAX_PHOTO_BYTES = 30 * 1024
  * would load from elsewhere, an SVG), is not shown.
  */
 export const MAX_SHOWN_PHOTO_BYTES = 64 * 1024
+/** the side of the photo a contact request carries, in pixels (#110) */
+export const THUMBNAIL_SIDE = 64
+/**
+ * the most a request's photo may hold: as a data URL about 8 KiB, so the signed request
+ * stays well below MAX_MESSAGE_LENGTH (16 KiB) and older apps still accept it
+ */
+export const MAX_THUMBNAIL_BYTES = 6 * 1024
 
 /** what we encode to, in this order */
 const TYPES = ['image/webp', 'image/jpeg']
@@ -112,9 +119,58 @@ function dataUrlOf(blob) {
  * @returns {value is string}
  */
 export function isPhoto(value) {
-    if (typeof value !== 'string' || value.length > 32 + Math.ceil(MAX_SHOWN_PHOTO_BYTES / 3) * 4) return false
+    return isImageUrl(value, MAX_SHOWN_PHOTO_BYTES)
+}
+
+/**
+ * Whether a contact request's `photo` may be shown (#110): a WebP or JPEG data URL of at most
+ * MAX_THUMBNAIL_BYTES. Anything else is dropped; the request itself still counts.
+ *
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+export function isThumbnail(value) {
+    return isImageUrl(value, MAX_THUMBNAIL_BYTES)
+}
+
+/** a WebP or JPEG data URL of at most `maxBytes`, nothing else (no SVG, no link) */
+function isImageUrl(value, maxBytes) {
+    if (typeof value !== 'string' || value.length > 32 + Math.ceil(maxBytes / 3) * 4) return false
     const base64 = PHOTO_URL.exec(value)?.[1]
-    return base64 !== undefined && base64.length % 4 === 0 && bytesOfBase64(base64) <= MAX_SHOWN_PHOTO_BYTES
+    return base64 !== undefined && base64.length % 4 === 0 && bytesOfBase64(base64) <= maxBytes
+}
+
+/**
+ * A small copy of a card's photo for a contact request (#110): THUMBNAIL_SIDE pixels wide,
+ * WebP or JPEG, at most MAX_THUMBNAIL_BYTES. Undefined without a photo. Runs in the browser.
+ *
+ * @param {unknown} photo the card's photo, as isPhoto accepts it
+ * @param {{ types?: string[], qualities?: number[], maxBytes?: number }} options for the tests
+ * @returns {Promise<string | undefined>} a data URL
+ */
+export async function thumbnailOf(photo, options) {
+    if (!isPhoto(photo)) return undefined
+    const [head, base64] = photo.split(',')
+    const type = head.slice('data:'.length, head.indexOf(';'))
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+    const image = await createImageBitmap(new Blob([bytes], { type }))
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = THUMBNAIL_SIDE
+    try {
+        const context = canvas.getContext('2d')
+        context.fillStyle = '#fff'
+        context.fillRect(0, 0, THUMBNAIL_SIDE, THUMBNAIL_SIDE)
+        context.imageSmoothingEnabled = true
+        context.imageSmoothingQuality = 'high'
+        context.drawImage(image, 0, 0, THUMBNAIL_SIDE, THUMBNAIL_SIDE)
+    } finally {
+        image.close()
+    }
+    const blob = await fitPhoto((type, quality) => new Promise((resolve) => canvas.toBlob(resolve, type, quality)), {
+        maxBytes: MAX_THUMBNAIL_BYTES,
+        ...options
+    })
+    return dataUrlOf(blob)
 }
 
 /** how many bytes a base64 text decodes to */

@@ -65,6 +65,21 @@ async function tamper(text, change) {
 	return sealedFor(JSON.stringify({ ...envelope, payload: JSON.stringify(payload) }));
 }
 
+/**
+ * A request `from` signs with exactly these extra fields, as a newer or another app may send
+ * them: sealMessage itself would leave out a photo it does not accept.
+ */
+async function signedWith(from, to, extra) {
+	const data = { sharedAddress: bookOf(from), invitation: await createInvitation(from.seed, from.did, to.did) };
+	const fields = { command: REQUEST_ADDRESS, sender: from.did, recipient: to.did, timestamp: now, nonce: 'A'.repeat(22), data, ...extra };
+	const payload = JSON.stringify(fields);
+	const sig = base64url.baseEncode(await from.signer.sign(new TextEncoder().encode(`decontact/message/v2\n${payload}`)));
+	return sealedFor(JSON.stringify({ v: 2, payload, sig }), to);
+}
+
+/** a data URL of `bytes` bytes, as a photo of that size would be */
+const imageUrl = (type, bytes) => `data:${type};base64,${Buffer.alloc(bytes, 7).toString('base64')}`;
+
 const memoryStorage = () => {
 	const items = new Map();
 	return { getItem: (key) => items.get(key) ?? null, setItem: (key, value) => items.set(key, value) };
@@ -272,6 +287,42 @@ describe('sealed requests (#59, finding 3 of #58)', () => {
 		const opened = await openMessage(await request(bob, alice, { from: card }), as(alice));
 		expect(opened.message.from).toEqual({ firstName: 'Bob', lastName: 'Stromwerk', city: 'Example City' });
 		expect((await openMessage(await request(bob, alice, { from: { firstName: '' } }), as(alice))).message.from).toBeUndefined();
+	});
+
+	it("carry a small photo of the sender's card at the top level, signed, never in `from` (#110)", async () => {
+		const photo = imageUrl('image/webp', 3000);
+		const card = { firstName: 'Carol', lastName: 'Beispiel', photo: 'data:image/webp;base64,AAAA' };
+		const text = await request(carol, alice, { from: card, photo });
+		const opened = await openMessage(text, as(alice));
+		expect(opened.ok).toBe(true);
+		expect(opened.message.photo).toBe(photo);
+		// an older app checks `from` field by field and would drop the whole request for a photo there
+		expect(opened.message.from).toEqual({ firstName: 'Carol', lastName: 'Beispiel' });
+		// the signature covers it: another photo is another request
+		expect((await openMessage(await tamper(text, (p) => (p.photo = imageUrl('image/webp', 2000))), as(alice))).ok).toBe(false);
+		// and the whole request stays far below what an older app accepts
+		expect(text.length).toBeLessThan(16 * 1024);
+	});
+
+	it('leave out a photo they would not show, and still count (#110)', async () => {
+		const unfit = [
+			['too large', imageUrl('image/webp', 7 * 1024)],
+			['an SVG', imageUrl('image/svg+xml', 100)],
+			['a PNG', imageUrl('image/png', 100)],
+			['a link', 'https://example.com/carol.webp'],
+			['not text', { src: imageUrl('image/webp', 100) }]
+		];
+		for (const [what, photo] of unfit) {
+			const opened = await openMessage(await signedWith(carol, alice, { photo }), as(alice));
+			expect(opened.ok, what).toBe(true);
+			expect(opened.message.photo, what).toBeUndefined();
+		}
+		// what the sender's own app would not send either
+		const opened = await openMessage(await request(carol, alice, { photo: imageUrl('image/png', 100) }), as(alice));
+		expect(opened.message.photo).toBeUndefined();
+		// one it would show stays
+		const kept = await openMessage(await signedWith(carol, alice, { photo: imageUrl('image/jpeg', 4000) }), as(alice));
+		expect(kept.message.photo).toBe(imageUrl('image/jpeg', 4000));
 	});
 
 	it('can only be made for a did:key', async () => {
