@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { addVirtualAuthenticator, confirmExperimental, contactAddressOf, createAddressBook } from './helpers/passkeys.js';
+/** the console of both pages */
+const lines = [];
+
 test.describe('Simple exchange of address between Alice and Bob', async () => {
 	let pageAlice, pageBob;
 
@@ -13,7 +16,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 	test('Alice and Bob can exchange addresses', async () => {
 		// the request goes to Alice's device, peer to peer: directly when pubsub peer discovery
 		// announced her (every 10 s), else through the relay; resent after 10 s, 20 s, ...
-		test.setTimeout(120000);
+		test.setTimeout(240000);
 
 		const connect =  pageAlice.getByRole('img', { name: 'Swarm connected' })
 		await expect(connect, 'connection Alice').toBeEnabled({ timeout: 15000 });
@@ -35,11 +38,18 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		await expect(button2, "Exchange of Bobs's contact information was successful").toBeEnabled({ timeout: 60000 });
 		await button2.click();
 
+		// the exchange is done once each book holds the other's card: only then can an update reach it
+		await expect.poll(() => cardOf(pageAlice, users[1].did), { timeout: 90000, message: "Bob's card in Alice's book" })
+			.toMatchObject({ lastName: users[1].lastname });
+		await expect.poll(() => cardOf(pageBob, users[0].did), { timeout: 90000, message: "Alice's card in Bob's book" })
+			.toMatchObject({ lastName: users[0].lastname });
+
 
 		//await pageAlice.getByRole('button', { name: 'Cancel' }).click();
 	});
 
 	test('Bob updates his address and Alice receives the update', async () => {
+		test.setTimeout(180000);
 
 		await pageBob.getByRole('row', { name: users[1].identity }).locator('label').click();
 		await pageBob.getByPlaceholder('Enter lastname...').click();
@@ -52,35 +62,38 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		await pageBob.getByPlaceholder('Enter city...').fill(users[2].city);
 		await pageBob.getByPlaceholder('Enter country...').fill(users[2].country);
 		await pageBob.getByRole('button', { name: 'Update' }).click();
-		//await page2.getByRole('row', { name: users[1].identity }).locator('span').click();
-		// const lastname = pageAlice.getByRole('row', { name: users[2].lastname }).locator('span')
-		//await expect(lastname).toHaveText('Bob update');
-})
-/*
-	test('Alice updates her address and Bob receives the update', async () => {
-
+		// in Alice's book and in her list, without a reload
+		await expect.poll(() => cardOf(pageAlice, users[1].did), { timeout: 90000, message: "Bob's update in Alice's book" })
+			.toMatchObject({ lastName: users[2].lastname, street: users[2].street, city: users[2].city });
 		await pageAlice.getByRole('tab', { name: 'Contacts' }).click();
-		await pageAlice.getByRole('row', { name: users[0].identity }).locator('label').click();
-		await pageAlice.getByPlaceholder('Enter lastname...').click();
+		await expect(pageAlice.getByRole('row', { name: new RegExp(users[2].lastname) })).toBeVisible({ timeout: 30000 });
+	});
+
+	test('Alice updates her address and Bob receives the update', async () => {
+		test.setTimeout(180000);
+		await pageAlice.getByRole('tab', { name: 'Contacts' }).click();
+		await pageAlice.getByRole('row', { name: new RegExp(users[0].lastname) }).first().locator('label').click();
+		await expect(pageAlice.getByPlaceholder('Enter lastname...')).toHaveValue(users[0].lastname);
 		await pageAlice.getByPlaceholder('Enter lastname...').fill(users[3].lastname);
-		await pageAlice.getByPlaceholder('Enter street...').click();
 		await pageAlice.getByPlaceholder('Enter street...').fill(users[3].street);
-		await pageAlice.getByPlaceholder('Enter zipcode...').click();
 		await pageAlice.getByPlaceholder('Enter zipcode...').fill(users[3].zipcode);
-		await pageAlice.getByPlaceholder('Enter city...').click();
 		await pageAlice.getByPlaceholder('Enter city...').fill(users[3].city);
 		await pageAlice.getByPlaceholder('Enter country...').fill(users[3].country);
 		await pageAlice.getByRole('button', { name: 'Update' }).click();
-		await pageAlice.getByRole('row', { name: users[0].identity }).locator('span').click();
-		
-		const lastname2 = page2.getByRole('row', { name: users[3].lastname }).locator('span')
-		
-		await expect(lastname2, "Alice update").toBeEnabled();
-		console.log("Alice update was successful")
-
-	})
-*/
+		await expect.poll(() => cardOf(pageBob, users[0].did), { timeout: 90000, message: "Alice's update in Bob's book" })
+			.toMatchObject({ lastName: users[3].lastname, street: users[3].street, city: users[3].city });
+		await pageBob.getByRole('tab', { name: 'Contacts' }).click();
+		await expect(pageBob.getByRole('row', { name: new RegExp(users[3].lastname) })).toBeVisible({ timeout: 30000 });
+	});
 	
+
+	// Playwright needs the fixtures as a pattern, even when none are used
+	// eslint-disable-next-line no-empty-pattern
+	test.afterEach(async ({}, testInfo) => {
+		if (testInfo.status === testInfo.expectedStatus) return;
+		const relevant = lines.filter((line) => /request|card|invited|sync error|could not|deliver|updated|answered/i.test(line));
+		console.log(JSON.stringify(relevant.slice(-40), null, 1));
+	});
 
 	test.afterAll(async () => {
 		await Promise.all([
@@ -89,6 +102,16 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		]);
 	});
 });
+/** the card of `did` in this browser's own book, as it opens */
+function cardOf(page, did) {
+	return page.evaluate(async (did) => {
+		const card = (await window.mydb.all()).map((record) => record.value)
+			// their card: not our placeholder for them, not the record of their book (subscriber)
+			.find((value) => value.owner === did && value.firstName !== 'invited' && !value.subscriber);
+		return card ? { lastName: card.lastName, street: card.street, city: card.city } : undefined;
+	}, did);
+}
+
 async function fillInput(page, placeholder, value) {
 	await page.click(`[placeholder="${placeholder}"]`);
 	await page.fill(`[placeholder="${placeholder}"]`, value);
@@ -111,6 +134,8 @@ async function initializeNewPage(browser, user) {
 		const context = await browser.newContext();
 		const page = await context.newPage();
 		const page_url = process.env.PAGE_URL;
+		// what each side did, printed when a test of this file fails (test.afterEach)
+		page.on('console', (message) => lines.push(`${user.identity}: ${message.text()}`.slice(0, 300)));
 
 
 		// a passkey per person (#60): its vault holds the identity
@@ -133,7 +158,7 @@ const users = [
 	{
 		identity: 'Alice',
 		firstname: 'Alice',
-		lastname: 'Maier',
+		lastname: 'Wolkenfabrik',
 		street: 'Schulgasse 5',
 		zipcode: '84444',
 		did: '',
@@ -143,7 +168,7 @@ const users = [
 	{
 		identity: 'Bob',
 		firstname: 'Bob',
-		lastname: 'Dylan',
+		lastname: 'Stromwerk',
 		street: 'Schulgasse 55',
 		zipcode: '565544',
 		did: '',
@@ -153,8 +178,8 @@ const users = [
 	{
 		identity: 'Bob',
 		firstname: 'Bob',
-		lastname: 'Fox',
-		street: 'Schulgasse 150',
+		lastname: 'Umzug',
+		street: 'Am Hafen 9',
 		zipcode: '1111111',
 		did: '',
 		city: 'Rom',
@@ -163,8 +188,8 @@ const users = [
 	{
 		identity: 'Alice',
 		firstname: 'Alice',
-		lastname: 'May',
-		street: 'Moosecker str 789',
+		lastname: 'Neubau',
+		street: 'Lindenweg 3',
 		zipcode: '84444',
 		did: '',
 		city: 'Rom',
