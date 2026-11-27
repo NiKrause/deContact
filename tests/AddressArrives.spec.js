@@ -26,8 +26,8 @@ for (const webRTC of [true, false]) {
 			await bob.page.getByRole('button', { name: 'Scan' }).click();
 
 			// Alice is asked and answers; Bob is asked back and answers
-			await alice.page.getByRole('button', { name: 'Send My Contact Data' }).click({ timeout: 90000 });
-			await bob.page.getByRole('button', { name: 'Send My Contact Data' }).click({ timeout: 90000 });
+			await alice.page.getByRole('button', { name: 'Share and ask for theirs' }).click({ timeout: 90000 });
+			await bob.page.getByRole('button', { name: 'Share mine' }).click({ timeout: 90000 });
 
 			try {
 				await expect.poll(() => names(alice.page), { timeout: 90000, message: "Bob's address in Alice's book" })
@@ -52,7 +52,7 @@ for (const webRTC of [true, false]) {
 			await bob.page.getByTestId('scan-field').fill(alice.did);
 			await bob.page.getByRole('button', { name: 'Scan' }).click();
 			await expect(alice.page.getByTestId('request-from')).toContainText(`${people.bob.first} ${people.bob.last}`, { timeout: 90000 });
-			await alice.page.getByRole('button', { name: 'Cancel' }).first().click();
+			await alice.page.getByRole('button', { name: 'Decline' }).click();
 		} finally {
 			await Promise.all([alice.close(), bob.close()]);
 		}

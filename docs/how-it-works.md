@@ -215,15 +215,15 @@ sequenceDiagram
 
     AB->>R: open Bob's book by its address
     R-->>AB: manifest + entries (from the relay's replica or from Bob)
-    AB->>Alice: "Bob requests your contact data"
-    Alice->>AB: Send my contact data
+    AB->>Alice: "Bob Stromwerk wants your contact details."
+    Alice->>AB: Share and ask for theirs
     AB->>AB: wait until the placeholder has synced
     AB->>BB: write card contact:did(Alice) + invitation into Bob's book,<br/>sealed to Bob (OrbitDB sync: directly or through the relay)
     Note over R: the relay checks the entry with the same<br/>access controller and keeps its replica (ciphertext)
 
     AB->>BB: REQUEST_ADDRESS {Alice's book address, invitation for Bob, Alice's name}, sealed to Bob,<br/>to the peer Bob's request came from
-    BB->>Bob: "Alice requests your contact data"
-    Bob->>BB: Send my contact data
+    BB->>Bob: "Alice shared their card with you and asks for yours."
+    Bob->>BB: Share mine
     BB->>AB: write card contact:did(Bob) + invitation into Alice's book, sealed to Alice
 
     Note over AB,BB: Later: Bob changes his address → BB rewrites contact:did(Bob)<br/>in every book he was invited into, using the stored invitation
@@ -281,7 +281,7 @@ sequenceDiagram
 ```
 
 - **The first person** who sends a request with the token gets Alice's card without a dialog. Anybody else, anybody after 24 hours, and a link created on another of Alice's devices make her app ask, as for any other request; the resends of a request she answered in the dialog ask her no second time.
-- **The form.** While Alice's card is on its way, Bob's app shows the form, and above it, with a spinner, "The card of the person who invited you is on its way…": her name is not known yet, and her DID is no name ([#110](https://github.com/NiKrause/deContact/issues/110)). Once it is there, her name and [photo](#what-a-card-holds) take that place. The form: email, first name and last name first, the address behind *Add address*. The email alone is enough. Bob chooses **Save and share with Alice** (*Save and share* until her name is known) or **Save only**, and a spinner says what his app does until his address book opens ("Saving your card and sending it…"); a link without a two-way exchange, or one whose token does not check out against the DID in it, offers only **Save**. No request dialog appears during the onboarding: a request of Alice's that arrives before Bob saves waits for his choice, and *Save only* declines it, as Cancel does in the dialog. Bob's app writes no placeholder card of his own (his DID as the last name) anywhere.
+- **The form.** While Alice's card is on its way, Bob's app shows the form, and above it, with a spinner, "The card of the person who invited you is on its way…": her name is not known yet, and her DID is no name ([#110](https://github.com/NiKrause/deContact/issues/110)). Once it is there, her name and [photo](#what-a-card-holds) take that place. The form: email, first name and last name first, the address behind *Add address*. The email alone is enough. Bob chooses **Save and share with Alice** (*Save and share* until her name is known) or **Save only**, and a spinner says what his app does until his address book opens ("Saving your card and sending it…"); a link without a two-way exchange, or one whose token does not check out against the DID in it, offers only **Save**. No request dialog appears during the onboarding: a request of Alice's that arrives before Bob saves waits for his choice, and *Save only* declines it, as *Decline* does in the dialog. Bob's app writes no placeholder card of his own (his DID as the last name) anywhere.
 - **Sharing back without being asked.** Bob may write into Alice's book only with an invitation she signed for his DID, and she cannot sign one before she knows it. So, when the token allows a two-way exchange, Bob's request carries `twoWay: true`: "send me an invitation, in case I share". For her own valid token and its first invitee, Alice's device answers without asking: a request with her invitation, `nopingpong` and the same token, which tells Bob's app what it answers. It writes no placeholder for Bob into her book and does not resend. Bob's app asks for the invitation together with the card, so that it is there while Alice still holds her phone, and uses it only if he shares. After *Save and share* it asks until the invitation has arrived.
 - **Waiting for Alice's phone.** A PWA in the background does not answer the protocol. Bob's app resends the request with the same token every 15 seconds until Alice's card (and, after *Save and share*, her invitation) has arrived, until the token expires, and says "Waiting for Alice's phone…" ("Waiting for the phone of the person who invited you…" until her card is there; never her DID). His choice is kept in `localStorage` (`decontact.exchanges.v1`; in memory until a [temporary identity](#starting-without-a-passkey) is secured) until the token expires: an invitation that comes after a reload is used, or declined, without asking him again ([`exchanges.js`](../src/lib/network/exchanges.js)).
 - **Both ways stay current.** Alice remembers Bob's book (a hidden record in hers), so a later change of her card reaches him even when he saved only. After *Save and share* his changes reach her the same way.

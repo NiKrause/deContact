@@ -203,8 +203,8 @@ async function exchangeCards(from, to) {
 	await from.page.getByTestId('scan-field').fill(await contactAddressOf(to.page));
 	await from.page.getByRole('button', { name: 'Scan' }).click();
 	await expect(to.page.getByTestId('request-from')).toBeVisible({ timeout: 90000 });
-	await to.page.getByRole('button', { name: 'Send My Contact Data' }).click({ timeout: 90000 });
-	await from.page.getByRole('button', { name: 'Send My Contact Data' }).click({ timeout: 90000 });
+	await to.page.getByRole('button', { name: 'Share and ask for theirs' }).click({ timeout: 90000 });
+	await from.page.getByRole('button', { name: 'Share mine' }).click({ timeout: 90000 });
 	const fromName = await firstAndLast(from.page);
 	const toName = await firstAndLast(to.page);
 	await expect.poll(() => names(from.page), { timeout: 90000, message: `${toName} in the book of ${fromName}` }).toContain(toName);

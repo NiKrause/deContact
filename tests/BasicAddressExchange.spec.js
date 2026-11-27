@@ -28,11 +28,11 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		await pageBob.getByRole('button', { name: 'Scan' }).click();
 
 
-		const button = pageAlice.getByRole('button', { name: 'Send My Contact Data' })
+		const button = pageAlice.getByRole('button', { name: 'Share and ask for theirs' })
 		await expect(button, "Exchange of Alice's contact information was successful").toBeEnabled({ timeout: 60000 }); //TODO what is that?
 		await button.click();
 
-		const button2 = pageBob.getByRole('button', { name: 'Send My Contact Data' })
+		const button2 = pageBob.getByRole('button', { name: 'Share mine' })
 		await expect(button2, "Exchange of Bobs's contact information was successful").toBeEnabled({ timeout: 60000 });
 		await button2.click();
 

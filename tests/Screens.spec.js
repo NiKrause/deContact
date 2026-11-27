@@ -114,13 +114,13 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await openTab(carol.page, 'Contacts');
 			await carol.page.getByTestId('scan-field').fill(await contactAddressOf(page));
 			await carol.page.getByRole('button', { name: 'Scan' }).click();
-			const send = page.getByRole('button', { name: 'Send My Contact Data' });
+			const send = page.getByRole('button', { name: 'Share and ask for theirs' });
 			await expect(send).toBeVisible({ timeout: 90000 });
 			await shoot(page, '11-request-dialog', 'The request dialog', { dialog: true });
 			await send.click();
 			// Alice asks back: Carol's card comes to her
 			await carol.page
-				.getByRole('button', { name: 'Send My Contact Data' })
+				.getByRole('button', { name: 'Share mine' })
 				.click({ timeout: 90000 });
 			await expect
 				.poll(() => names(page), { timeout: 90000, message: "Carol's card in Alice's book" })

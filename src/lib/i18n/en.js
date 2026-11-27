@@ -159,22 +159,22 @@ export default {
 		twoWay: 'Also ask for their contact details',
 		twoWayHelp: 'They decide whether to send theirs.'
 	},
+	// the request dialog (AddressModal.svelte): somebody asks for our card
 	request: {
-		label: 'deContact Protocol Action',
-		heading: 'deContact address request',
-		send: 'Send My Contact Data',
-		from: 'From:',
-		nameless: 'somebody without a name on their card',
-		owner: 'owner:',
-		askBack: 'Request contact data from {name}',
-		them: 'them',
-		details: 'View Transaction Details',
-		showDetails: 'Show the details',
-		hideDetails: 'Hide the details',
-		command: 'Command: {value}',
-		recipient: 'Recipient: {value}',
-		sender: 'Sender: {value}',
-		timestamp: 'TimeStamp: {value}'
+		label: 'Contact request',
+		wants: '{who} wants your contact details.',
+		wantsBack: '{who} shared their card with you and asks for yours.',
+		what: 'If you share, they get your card, and every later change of it by themselves.',
+		whatBack: 'Their card is in your address book. If you share yours, they get it, and every later change of it by themselves.',
+		nameAndCity: '{name} ({city})',
+		nameless: 'Somebody without a name on their card',
+		shareAndAsk: 'Share and ask for theirs',
+		onlyShare: 'Only share mine',
+		shareMine: 'Share mine',
+		decline: 'Decline',
+		details: 'Details',
+		asked: 'Asked on {value}',
+		sealed: 'The request is signed by their address book, and only you can read it.'
 	},
 	experimental: {
 		heading: 'Confirmation',

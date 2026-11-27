@@ -113,8 +113,8 @@ async function exchange(from, to) {
 	// the dialog names who asks, though it cannot read their book
 	const asking = to.page.getByTestId('request-from');
 	await expect(asking).toContainText(await firstAndLast(from.page), { timeout: 90000 });
-	await to.page.getByRole('button', { name: 'Send My Contact Data' }).click({ timeout: 90000 });
-	await from.page.getByRole('button', { name: 'Send My Contact Data' }).click({ timeout: 90000 });
+	await to.page.getByRole('button', { name: 'Share and ask for theirs' }).click({ timeout: 90000 });
+	await from.page.getByRole('button', { name: 'Share mine' }).click({ timeout: 90000 });
 }
 
 /** the name on this browser's own card */

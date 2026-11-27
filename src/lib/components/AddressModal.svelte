@@ -1,72 +1,91 @@
 <script>
-    import { ComposedModal, ModalHeader, ModalBody, ModalFooter, ExpandableTile, Column, Grid, Row, Checkbox } from "carbon-components-svelte";
+    import { Accordion, AccordionItem, Button, ComposedModal, ModalBody, ModalFooter, ModalHeader } from "carbon-components-svelte";
     import { _, formatDateTime } from "#lib/i18n/index.js";
 
     /**
-     * data: the request from Alice, opened and verified (contact-messages.js);
-     * onresult: what Bob chose (addressModal.js): true to share and ask back,
-     * "ONLY_HANDOUT" to share only, false to cancel.
+     * @component The request dialog (#110): somebody asks for our card. `data` is the request,
+     * opened and verified (contact-messages.js). `onresult` gets the choice (addressModal.js):
+     * true to share ours and ask for theirs, "ONLY_HANDOUT" to share ours only, false to
+     * decline. A request that answers one of ours (`nopingpong`: they shared their card and ask
+     * for ours in return) offers only "Share mine" and "Decline".
      * @type {{ data: any, onresult: (result: boolean | 'ONLY_HANDOUT') => void }}
      */
     let { data, onresult } = $props()
 
     /**
-     * Who asks: the name Alice's request carries. Her address book is sealed to her (#59),
-     * so we cannot look her card up there; the name is inside her signed request.
+     * Who asks: the name and city their request carries. Their address book is sealed to them
+     * (#59), so we cannot look their card up there; the name is inside their signed request.
      * @type {{ firstName?: string, lastName?: string, city?: string }}
      */
     const from = $derived(data.from ?? {})
     const name = $derived([from.firstName, from.lastName].filter(Boolean).join(' '))
-
-    /** label for the checkbox which requests the contact data from Alice after Bob received her data */
-    const checkboxLabel = (tr) => tr('request.askBack', { name: [name || tr('request.them'), from.city].filter(Boolean).join(' ') });
-    /** the two buttons, in the language on screen: read when shown and when clicked */
-    const sendText = (tr) => tr('request.send')
-    const cancelText = (tr) => tr('common.cancel')
-
-    /** if Alice receives a REQUEST_ADDRESS from Bob, he marks the pubsub message with nopingpong=true so Alice isn't requesting Bobs contact data again*/
-    let exchangeData = $derived(!data.nopingpong)
-    const dontRequestData = $derived(data.nopingpong)
+    /** "Carol Beispiel (Beispielstadt)", in the language on screen */
+    const who = (tr) => {
+        if (!name) return tr('request.nameless')
+        return from.city ? tr('request.nameAndCity', { name, city: from.city }) : name
+    }
+    const answersOurs = $derived(Boolean(data.nopingpong))
 </script>
-<!--
-@component
-Opens a confirmation modal on Bob's device when Alice is requesting his contact data.
--->
-<ComposedModal open on:close={() => onresult(false)} on:submit={() => onresult(true)}>
-    <ModalHeader label={$_('request.label')} title={$_('request.heading')} iconDescription={$_('common.close')} />
-    <ModalBody hasForm>
-        <ExpandableTile tileCollapsedIconText={$_('request.showDetails')} tileExpandedIconText={$_('request.hideDetails')}>
-            <div slot="above">
-                <div data-testid="request-from">{$_('request.from')}
-                    {name || $_('request.nameless')} {from.city ?? ''} <br/>
-                    {$_('request.owner')} {data.sender}<br/>
-                </div>
-                <p>&nbsp;</p>
-                {#if !dontRequestData}
-                    <Checkbox labelText={checkboxLabel($_)} data-testid="requestContactData"  bind:checked={exchangeData} />{/if}
-                <p>&nbsp;</p>
-                <div>{$_('request.details')}</div>
-            </div>
-            <div slot="below">
-                <Grid>
-                    {#if data.command}<Row><Column>{$_('request.command', { value: data.command })}</Column></Row>{/if}
-                    {#if data.text}<Row><Column>{data.text}</Column></Row>{/if}
-                    {#if data.recipient}<Row><Column>{$_('request.recipient', { value: data.recipient })}</Column></Row>{/if}
-                    {#if data.sender}<Row><Column>{$_('request.sender', { value: data.sender })}</Column></Row>{/if}
-                    {#if data.timestamp}<Row><Column>{$_('request.timestamp', { value: formatDateTime(data.timestamp) })}</Column></Row>{/if}
-                </Grid>
-            </div>
-        </ExpandableTile>
-    </ModalBody>
 
-    <ModalFooter
-            primaryButtonDisabled
-            secondaryButtons={[
-                { text: cancelText($_) },{ text: sendText($_) }
-            ]}
-            on:click:button--secondary={({ detail }) => {
-                if (detail.text === cancelText($_)) onresult(false);
-                if (detail.text === sendText($_)) onresult((dontRequestData || !exchangeData)?"ONLY_HANDOUT":true)
-            }}
-    />
+<ComposedModal open size="sm" class="request-dialog" data-testid="request-dialog" on:close={() => onresult(false)}>
+    <ModalHeader title={$_('request.label')} iconDescription={$_('common.close')} />
+    <ModalBody>
+        <p class="who" data-testid="request-from">{$_(answersOurs ? 'request.wantsBack' : 'request.wants', { who: who($_) })}</p>
+        <p class="what">{$_(answersOurs ? 'request.whatBack' : 'request.what')}</p>
+        <Accordion>
+            <AccordionItem title={$_('request.details')}>
+                {#if data.timestamp}<p>{$_('request.asked', { value: formatDateTime(data.timestamp) })}</p>{/if}
+                <p>{$_('request.sealed')}</p>
+            </AccordionItem>
+        </Accordion>
+    </ModalBody>
+    <!-- three choices, one per button: stacked at full width on a phone -->
+    <ModalFooter>
+        <div class="choices">
+            {#if answersOurs}
+                <Button kind="primary" on:click={() => onresult('ONLY_HANDOUT')}>{$_('request.shareMine')}</Button>
+            {:else}
+                <Button kind="primary" on:click={() => onresult(true)}>{$_('request.shareAndAsk')}</Button>
+                <Button kind="secondary" on:click={() => onresult('ONLY_HANDOUT')}>{$_('request.onlyShare')}</Button>
+            {/if}
+            <Button kind="ghost" on:click={() => onresult(false)}>{$_('request.decline')}</Button>
+        </div>
+    </ModalFooter>
 </ComposedModal>
+
+<style>
+    .who {
+        font-size: 1.25rem;
+        line-height: 1.4;
+        margin-bottom: 0.5rem;
+    }
+    .what {
+        margin-bottom: 1rem;
+    }
+    /* the buttons in a row, each as wide as its words; Carbon's footer has room for two */
+    :global(.request-dialog .bx--modal-footer) {
+        height: auto;
+        padding: 1rem;
+    }
+    .choices {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    .choices :global(.bx--btn) {
+        flex: 1 1 auto;
+        max-width: none;
+        margin: 0;
+    }
+    /* a phone: one below the other, at full width, the main one first */
+    @media (max-width: 41.98rem) {
+        .choices {
+            flex-direction: column;
+        }
+        .choices :global(.bx--btn) {
+            width: 100%;
+        }
+    }
+</style>
