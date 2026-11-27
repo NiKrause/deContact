@@ -60,13 +60,20 @@ describe('the catalogues (#89)', () => {
 		}
 	});
 
-	it('the agreed wording of the two-way exchange (#86)', () => {
-		expect(textIn('en', 'qr.twoWay')).toBe('Two-way exchange');
-		expect(textIn('de', 'qr.twoWay')).toBe('Gegenseitig austauschen');
-		expect(textIn('en', 'qr.twoWayHelp')).toBe(
-			'Whoever scans this code can also share their contact details with you. They decide whether to.'
+	it('the agreed wording of the QR dialog: what scanning the code does (#86)', () => {
+		expect(textIn('en', 'qr.shareNow')).toBe('Share right away');
+		expect(textIn('de', 'qr.shareNow')).toBe('Sofort teilen');
+		expect(textIn('en', 'qr.letThemAsk')).toBe('Let them ask first');
+		expect(textIn('de', 'qr.letThemAsk')).toBe('Erst anfragen lassen');
+		expect(textIn('en', 'qr.twoWay')).toBe('Also ask for their contact details');
+		expect(textIn('de', 'qr.twoWay')).toBe('Auch um ihre Kontaktdaten bitten');
+		expect(textIn('en', 'qr.summaryBoth')).toBe(
+			'The first person to scan gets your contact details right away and can send you theirs. The code works for 24 hours.'
 		);
-		expect(textIn('de', 'qr.twoWayHelp')).toMatch(/^Wer diesen Code scannt/);
+		expect(textIn('de', 'qr.summaryBoth')).toBe(
+			'Die erste Person, die scannt, bekommt deine Kontaktdaten sofort und kann dir ihre schicken. Der Code gilt 24 Stunden.'
+		);
+		expect(textIn('de', 'qr.summaryAsk')).toMatch(/^Nur in deContact scannbar: .* du entscheidest/);
 	});
 
 	it('switches at once and fills in the placeholders', () => {

@@ -17,7 +17,12 @@ import {
 
 // part of the data format (src/lib/identity/vault.js)
 const IDENTITY_INFO = 'decontact/identity/v1';
-export const TWO_WAY_HELP = 'Whoever scans this code can also share their contact details with you. They decide whether to.';
+/** what the QR dialog says the code does (i18n `qr.summary*`) */
+export const QR_SUMMARY = {
+	both: 'The first person to scan gets your contact details right away and can send you theirs. The code works for 24 hours.',
+	now: 'The first person to scan gets your contact details right away. The code works for 24 hours.',
+	ask: 'Only deContact can scan this code: the person sends you a request, and you decide whether to share your contact details.'
+};
 
 /**
  * An app in the background: its device does not answer contact requests (the end-to-end
@@ -28,17 +33,20 @@ export const answerRequests = (page, answering) =>
 
 /**
  * The invitation link in the QR code of `page`, pointing at the app under test.
- * "Two-way exchange" is on by default; `twoWay: false` turns it off first.
+ * "Share right away" and "Also ask for their contact details" are on by default;
+ * `twoWay: false` turns the second off first.
  */
 export async function invitationLink(page, { twoWay = true } = {}) {
 	await page.getByRole('tab', { name: 'Contacts' }).click();
 	await page.getByRole('button', { name: 'QR Code' }).click();
-	const option = page.getByRole('checkbox', { name: 'Two-way exchange' });
+	await expect(page.getByRole('radio', { name: 'Share right away' })).toBeChecked();
+	const option = page.getByRole('checkbox', { name: 'Also ask for their contact details' });
 	await expect(option).toBeChecked();
-	await expect(page.getByText(TWO_WAY_HELP)).toBeVisible();
+	await expect(page.getByTestId('qr-summary')).toHaveText(QR_SUMMARY.both);
 	if (!twoWay) {
-		await page.getByText('Two-way exchange', { exact: true }).click();
+		await page.getByText('Also ask for their contact details', { exact: true }).click();
 		await expect(option).not.toBeChecked();
+		await expect(page.getByTestId('qr-summary')).toHaveText(QR_SUMMARY.now);
 	}
 	// a token of 1.<nonce>.<expiry>.<two-way>.<signature>, issued again for the new choice
 	const qrCode = page.locator('img.qrcode');

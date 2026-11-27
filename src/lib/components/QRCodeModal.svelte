@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher } from "svelte";
-    import { Modal, Toggle, Checkbox } from 'carbon-components-svelte';
+    import { Modal, Checkbox, RadioButtonGroup, RadioButton } from 'carbon-components-svelte';
     import QrCodeImage from "./QrCodeImage.svelte"
     const dispatch = createEventDispatcher();
     import { libp2p, orbitdb } from "../../stores.js";
@@ -15,13 +15,22 @@
     export let qrCodeOpen
 
     let onBoardingToken
-    /** whoever scans the code may share their card with us in return (#86) */
+    /**
+     * What the code does:
+     * - 'now': an invitation link; the first person who opens it gets our card at once;
+     * - 'ask': our contact address; whoever scans it in deContact sends us a request, and we decide.
+     */
+    let mode = 'now'
+    /** with 'now': whoever opens the link may share their card with us in return (#86) */
     let twoWay = true
-    let fullDeContactUrl = true
+    $: shareNow = mode === 'now'
+    /** one sentence that says what happens when somebody scans the code */
+    $: summary = !shareNow ? 'qr.summaryAsk' : twoWay ? 'qr.summaryBoth' : 'qr.summaryNow'
 
-    // a new one-time token each time the dialog opens or the checkbox changes (it is signed in)
+    // a new one-time token each time the dialog opens, the link is chosen or the checkbox
+    // changes (it is signed in); the contact address needs none
     let issuing = 0
-    $: if (qrCodeOpen && $orbitdb) issueToken(twoWay)
+    $: if (qrCodeOpen && $orbitdb && shareNow) issueToken(twoWay)
     function issueToken(twoWay) {
         const issue = ++issuing
         onBoardingToken = undefined
@@ -33,13 +42,14 @@
     $: peer = $libp2p?.peerId?.toString()
     // the invitation link leads back to this app, wherever it runs, to the page of the
     // language on screen: a messenger's preview of it is in that language (app-url.js,
-    // seo.js); without it, the contact address for the Scan field (contact-address.js)
-    $: linkUrl = (fullDeContactUrl && onBoardingToken)
+    // seo.js); with 'ask', the contact address for the Scan field (contact-address.js)
+    $: linkUrl = (shareNow && onBoardingToken)
         ? `${appUrlIn($language)}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}&peer=${peer}`
         : contactAddress(qrCodeData, peer)
 </script>
 
-<!-- What the person shows: the code first and as large as the screen allows, the options below -->
+<!-- What the person shows: the code first and as large as the screen allows, what it does
+     in one sentence, the options below -->
 <Modal bind:open={ qrCodeOpen }
        passiveModal
        size="sm"
@@ -49,25 +59,27 @@
     <div class="qr-dialog">
         {#if qrCodeData && qrCodeOpen}
             <!-- a tap copies what the code holds, for sending it another way -->
-            <button type="button" class="qr-copy" aria-label={$_('qr.copy')} on:click={async () => {
+            <button type="button" class="qr-copy" aria-label={$_(shareNow ? 'qr.copyLink' : 'qr.copyAddress')} on:click={async () => {
                     await navigator.clipboard.writeText(linkUrl);
                     dispatch('close')
-                    notify($_('notify.invitationCopied'));
+                    notify($_(shareNow ? 'notify.invitationCopied' : 'notify.addressCopied'));
                 }}>
                 <QrCodeImage value={linkUrl} />
             </button>
-            <p class="hint">{$_('qr.copy')}</p>
+            <p class="summary" data-testid="qr-summary">{$_(summary)}</p>
+            <p class="hint">{$_(shareNow ? 'qr.copyLink' : 'qr.copyAddress')}</p>
         {/if}
         <div class="options">
-            <Toggle
-                labelText={$_('qr.scanWhat')}
-                labelA={$_('qr.didOnly')}
-                labelB={$_('qr.url')}
-                bind:toggled={fullDeContactUrl}/>
-            <div>
-                <Checkbox id="two-way-exchange" labelText={$_('qr.twoWay')} bind:checked={twoWay} />
-                <div class="bx--form__helper-text">{$_('qr.twoWayHelp')}</div>
-            </div>
+            <RadioButtonGroup legendText={$_('qr.mode')} name="qr-mode" bind:selected={mode}>
+                <RadioButton value="now" labelText={$_('qr.shareNow')} />
+                <RadioButton value="ask" labelText={$_('qr.letThemAsk')} />
+            </RadioButtonGroup>
+            {#if shareNow}
+                <div>
+                    <Checkbox id="two-way-exchange" labelText={$_('qr.twoWay')} bind:checked={twoWay} />
+                    <div class="bx--form__helper-text">{$_('qr.twoWayHelp')}</div>
+                </div>
+            {/if}
         </div>
     </div>
 </Modal>
@@ -85,6 +97,9 @@
         border: 0;
         background: none;
         cursor: pointer;
+    }
+    .summary {
+        text-align: center;
     }
     .hint {
         text-align: center;
