@@ -1,7 +1,7 @@
 <script>
      import { selectedAddr, orbitdb } from "../../stores.js";
      import { addContact, deleteContact, updateContact } from "../../operations.js";
-     import { Button, Checkbox, Column, Dropdown, Grid, Row, TextInput } from "carbon-components-svelte";
+     import { Button, Checkbox, Column, ConfirmModal, Dropdown, Grid, Row, TextInput } from "carbon-components-svelte";
      import ContactPhoto from "./ContactPhoto.svelte";
      import { photoFromFile } from "#lib/photo/photo.js";
      import { _ } from "#lib/i18n/index.js";
@@ -13,6 +13,16 @@
 
      /** our own card, or a new one: it may get a photo (#87) */
      const ours = $derived($selectedAddr.owner === $orbitdb?.identity?.id || !$selectedAddr._id)
+
+     /** Delete waits for its confirmation (#110) */
+     let confirmDelete = $state(false)
+     /** somebody else's card: deleting it removes them (operations.js deleteContact) */
+     const theirs = $derived(Boolean($selectedAddr.owner) && $selectedAddr.owner !== $orbitdb?.identity?.id)
+     /** the name for the question; a placeholder's last name is their DID, which is no name */
+     const nameOfCard = $derived($selectedAddr.lastName === $selectedAddr.owner ? '' : [$selectedAddr.firstName, $selectedAddr.lastName].filter(Boolean).join(' '))
+     const deleteTitle = (tr) => theirs
+          ? (nameOfCard ? tr('form.removeTitle', { name: nameOfCard }) : tr('form.removeTitleNameless'))
+          : (nameOfCard ? tr('form.deleteTitle', { name: nameOfCard }) : tr('form.deleteTitleNameless'))
 
      /** @type {HTMLInputElement | undefined} */
      let photoInput = $state()
@@ -108,7 +118,7 @@
                         <Button data-cy="updateContact" size="sm" on:click={() => updateContact()}>{$_('form.update')}</Button>
                         <Button data-cy="newContact" size="sm" on:click={() => $selectedAddr = {}}>{$_('form.new')}</Button>
                     {/if}
-                    <Button data-cy="deleteContact" size="sm" on:click={() => deleteContact()}>{$_('form.delete')}</Button>
+                    <Button data-cy="deleteContact" kind="danger-tertiary" size="sm" on:click={() => (confirmDelete = true)}>{$_('form.delete')}</Button>
 
                 {:else}
                     <Button data-cy="addContact" size="sm" on:click={() => addContact()}>{$_('form.add')}</Button>
@@ -118,6 +128,14 @@
     </Grid>
 
 </section>
+<ConfirmModal
+        bind:open={confirmDelete}
+        title={deleteTitle($_)}
+        confirmText={$_(theirs ? 'form.remove' : 'form.delete')}
+        cancelText={$_('common.cancel')}
+        confirm={deleteContact}>
+    <p>{$_(theirs ? 'form.removeText' : 'form.deleteText')}</p>
+</ConfirmModal>
 <style>
     .photo {
         display: flex;
