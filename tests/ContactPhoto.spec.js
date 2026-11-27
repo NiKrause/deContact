@@ -45,7 +45,7 @@ test("Bob sees Alice's photo after the onboarding; a third peer sees no image by
 
 		await test.step("Bob opens her link: the onboarding shows her photo once her card is there", async () => {
 			const link = await invitationLink(alice.page);
-			bob = await openLink(browser, link, 'Bob');
+			bob = await openLink(browser, link);
 			await expect(bob.page.getByTestId('inviter-card')).toHaveText(`${people.alice.first} ${people.alice.last} was added to your address book`, {
 				timeout: 120000
 			});

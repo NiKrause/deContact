@@ -40,6 +40,8 @@ import {
 } from "./contact-messages.js";
 import { EXCHANGE_RETRY_MS, createExchangeStore, exchangeNeeds } from "./exchanges.js";
 import { liftRevocation, removedUs, revoke, withoutRevoked } from "./revocations.js";
+// localStorage, held in memory while the identity is temporary (#97)
+import { deviceStorage } from "#lib/identity/held-storage.js";
 
 let blockstore = new LevelBlockstore("./helia-blocks")
 let datastore = new LevelDatastore("./helia-data")
@@ -555,7 +557,7 @@ function ownCard() {
 let _onboardingTokens
 /** the invitation link tokens issued on this device */
 function onboardingTokens() {
-    _onboardingTokens ??= createOnboardingTokenStore(localStorage)
+    _onboardingTokens ??= createOnboardingTokenStore(deviceStorage)
     return _onboardingTokens
 }
 
@@ -576,7 +578,7 @@ export async function issueOnboardingToken({ twoWay = true } = {}) {
 let _exchanges
 /** the invitation links we opened, as the invitee (exchanges.js) */
 function exchanges() {
-    _exchanges ??= createExchangeStore(localStorage)
+    _exchanges ??= createExchangeStore(deviceStorage)
     return _exchanges
 }
 

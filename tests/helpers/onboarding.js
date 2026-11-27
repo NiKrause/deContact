@@ -1,10 +1,19 @@
-// Invitation links in the E2E tests (#72, #86): the link in the QR code, somebody new who
-// opens it, their onboarding form, and what an address book ever held under a key.
+// Invitation links in the E2E tests (#72, #86, #97): the link in the QR code, somebody new
+// who opens it (the form at once, a passkey afterwards), their onboarding form, and what an
+// address book ever held under a key.
 import { expect } from '@playwright/test';
 import { deriveSubkey } from '@le-space/orbitdb-identity-provider-webauthn-did/vault';
 import { openCard } from '../../src/lib/encryption/cards.js';
 import { encryptionKeysFromSeed } from '../../src/lib/encryption/sealing.js';
-import { addVirtualAuthenticator, createAddressBook, prfOutputs, recordCeremonies } from './passkeys.js';
+import {
+	addVirtualAuthenticator,
+	continuePasskeyStep,
+	createAddressBook,
+	didOf,
+	prfOutputs,
+	recordCeremonies,
+	takeCeremonies
+} from './passkeys.js';
 
 // part of the data format (src/lib/identity/vault.js)
 const IDENTITY_INFO = 'decontact/identity/v1';
@@ -37,25 +46,76 @@ export async function invitationLink(page, { twoWay = true } = {}) {
 	return link;
 }
 
-/** somebody new opens an invitation link: a passkey, then the onboarding view */
-export async function openLink(browser, link, label = 'Invitee') {
+/** a browser of its own with a virtual authenticator, its console collected */
+export async function newBrowser(browser) {
 	const context = await browser.newContext();
 	const page = await context.newPage();
 	const lines = [];
 	page.on('console', (message) => lines.push(message.text()));
 	await addVirtualAuthenticator(page);
 	await recordCeremonies(page);
-	await page.goto(link);
-	await expect(page.getByText('Create a passkey to open your own address book')).toBeVisible();
-	const did = await createAddressBook(page, label);
-	await expect(page.getByTestId('onboarding')).toBeVisible();
 	return {
 		page,
-		did,
 		lines,
 		saw: (text) => lines.some((line) => line.includes(text)),
 		close: () => context.close()
 	};
+}
+
+/**
+ * Somebody new opens an invitation link (#97): the form at once, without a passkey. They
+ * start on it, and their temporary identity starts; the passkey comes after the exchange
+ * (`secure`).
+ */
+export async function openLink(browser, link) {
+	const person = await newBrowser(browser);
+	const { page } = person;
+	await page.goto(link);
+	await expect(page.getByTestId('onboarding')).toBeVisible();
+	await expect(page.getByTestId('sign-in-instead')).toBeVisible();
+	expect(await takeCeremonies(page), 'a passkey prompt before the form').toEqual([]);
+	await startOnTheForm(page);
+	person.did = await didOf(page);
+	return person;
+}
+
+/** the person starts on the form (the email field): a temporary identity starts, and the inviter is asked */
+export async function startOnTheForm(page) {
+	await page.getByPlaceholder('Enter email...').focus();
+}
+
+/**
+ * Somebody opens an invitation link with a passkey first, today's flow: "Already have a
+ * deContact passkey? Sign in" on the form, then a new address book on the passkey screen.
+ */
+export async function openLinkWithPasskey(browser, link, label = 'Invitee') {
+	const person = await newBrowser(browser);
+	const { page } = person;
+	await page.goto(link);
+	await page.getByRole('button', { name: 'Already have a deContact passkey? Sign in' }).click();
+	await expect(page.getByText('Create a passkey to open your own address book')).toBeVisible();
+	person.did = await createAddressBook(page, label);
+	await expect(page.getByTestId('onboarding')).toBeVisible();
+	return person;
+}
+
+/** "Secure with a passkey" (the banner's or the settings'): two prompts, the second announced */
+export async function secure(page, button = page.getByRole('button', { name: 'Secure with a passkey' })) {
+	await button.click();
+	await continuePasskeyStep(page);
+	await expect(page.getByTestId('secure-safeguards')).toBeVisible();
+}
+
+/**
+ * Whether leaving the page now asks first (beforeunload). Asked of the page's own handler,
+ * so no dialog opens.
+ */
+export function warnsBeforeLeaving(page) {
+	return page.evaluate(() => {
+		const event = new Event('beforeunload', { cancelable: true });
+		window.dispatchEvent(event);
+		return event.defaultPrevented;
+	});
 }
 
 /** how many lines of a person's console contain `text` */

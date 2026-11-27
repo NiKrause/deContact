@@ -32,7 +32,7 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 		await alice.page.evaluate((topic) => window.helia.libp2p.services.pubsub.unsubscribe(topic), topicOf(alice.did));
 
 		await test.step('Bob opens the link: email first, the address collapsed', async () => {
-			bob = await openLink(browser, link, 'Bob');
+			bob = await openLink(browser, link);
 			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText(`Waiting for ${alice.did}'s phone…`);
 			const fields = await bob.page.getByTestId('onboarding').locator('input').evaluateAll((inputs) => inputs.map((input) => input.id));
 			expect(fields).toEqual(['onboarding-email', 'onboarding-first', 'onboarding-last']);
@@ -90,7 +90,7 @@ test('Save only; a second person with the same link is asked for', async ({ brow
 		const link = await invitationLink(alice.page);
 
 		await test.step("Bob opens the link: Alice's card arrives, her invitation waits for his choice", async () => {
-			bob = await openLink(browser, link, 'Bob');
+			bob = await openLink(browser, link);
 			await expect(bob.page.getByTestId('inviter-card')).toHaveText(`${fullName(people.alice)} was added to your address book`, { timeout: 120000 });
 			await expect.poll(() => bob.saw(`holding the request of ${alice.did} until we chose`), { timeout: 60000 }).toBe(true);
 			await expect(bob.page.getByRole('button', { name: `Save and share with ${people.alice.first}` })).toBeVisible();
@@ -117,7 +117,7 @@ test('Save only; a second person with the same link is asked for', async ({ brow
 		});
 
 		await test.step('Carol opens the same link: Alice is asked, once', async () => {
-			carol = await openLink(browser, link, 'Carol');
+			carol = await openLink(browser, link);
 			await expect.poll(() => alice.saw(`rejected the invitation link of ${carol.did}: it was already used`), { timeout: 120000 }).toBe(true);
 			const send = alice.page.getByRole('button', { name: DIALOG });
 			await expect(send).toBeVisible({ timeout: 30000 });
@@ -152,7 +152,7 @@ test('a link without a two-way exchange offers only Save', async ({ browser }) =
 	let dave;
 	try {
 		const link = await invitationLink(alice.page, { twoWay: false });
-		dave = await openLink(browser, link, 'Dave');
+		dave = await openLink(browser, link);
 		await fillOnboardingCard(dave.page, people.dave);
 		await expect(dave.page.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
 		await expect(dave.page.getByRole('button', { name: /^Save and share/ })).toHaveCount(0);

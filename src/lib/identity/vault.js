@@ -9,6 +9,9 @@
  *   from its PRF output.
  * - A new vault takes the first passkey's PRF output as its root, as Le-Space/belege's
  *   books do. That passkey alone restores everything on an empty device.
+ * - A temporary identity (#97) has a random root, in memory only, until a passkey seals
+ *   it into a new vault (`sealRoot`): the DID stays the same. Restoring such a vault on
+ *   an empty device needs its record (found over OrbitDB, a device link or a file).
  * - The identity is `createSecretSigner(root, { info: IDENTITY_INFO })`: an Ed25519
  *   did:key that belongs to no single passkey. Every slot opens the same root, so every
  *   passkey writes as the same DID - the DID that owns the address book in the access
@@ -34,6 +37,9 @@ import {
 } from '@le-space/orbitdb-identity-provider-webauthn-did/vault'
 import { createSecretSigner } from '@le-space/orbitdb-identity-provider-webauthn-did'
 import { encryptionKeysFromSeed } from '../encryption/sealing.js'
+
+/** a root's length: what `rootPayload` takes */
+export const ROOT_BYTES = 32
 
 /** where the vault records are kept (a JSON array, one record per vault) */
 export const VAULTS_KEY = 'decontact.vaults.v1'
@@ -106,6 +112,24 @@ export function openWithPasskey(keeper, { prfOutput, rawCredentialId, label, fin
 }
 
 /**
+ * A new vault for a temporary identity's root (#97), with a slot for a passkey made just
+ * now: the identity derived from it is the temporary one, so nothing has to move. The
+ * caller keeps `root` and zeroes it.
+ *
+ * @param {{ prfOutput: Uint8Array, rawCredentialId: Uint8Array, label?: string, root: Uint8Array }} seal
+ * @throws {VaultError} `VAULT_SLOT_EXISTS` when this passkey opens a vault kept here
+ *   already (a passkey made just now cannot), and the keeper's other refusals
+ */
+export async function sealRoot(keeper, { prfOutput, rawCredentialId, label, root }) {
+    // a passkey made just now has a slot nowhere: there is nothing to find
+    const opened = await keeper.open({ prfOutput, rawCredentialId, label, create: () => rootPayload(root) })
+    if (!opened.created) {
+        throw new VaultError('This passkey opens an address book here already', { code: 'VAULT_SLOT_EXISTS' })
+    }
+    return opened
+}
+
+/**
  * Opens the vault with the recovery words. Never makes one.
  *
  * @param {{ seed: Uint8Array, find?: (kid: string) => Promise<object[]> }} unlock seed: from `seedFromWords`
@@ -142,14 +166,27 @@ export async function setRecoveryWords(keeper, opened, seed) {
     return keeper.addPasskey(current, { prfOutput: await wordsSecret(seed), rawCredentialId: WORDS_SLOT_ID, label: WORDS_LABEL })
 }
 
+/** a temporary identity's root (#97): random, for this page's memory only */
+export function newRoot() {
+    return crypto.getRandomValues(new Uint8Array(ROOT_BYTES))
+}
+
 /**
- * The identity of an open vault: an Ed25519 signer `{ did, type, publicKey, sign }`. The
- * root is zeroed once the key is derived; the key itself stays inside `sign`.
+ * The identity of a root: an Ed25519 signer `{ did, type, publicKey, sign }`. The key
+ * stays inside `sign`; the root is left as it is.
+ */
+export function signerOfRoot(root) {
+    return createSecretSigner(root, { info: IDENTITY_INFO })
+}
+
+/**
+ * The identity of an open vault (`signerOfRoot` of its root). The root is zeroed once
+ * the key is derived.
  */
 export async function signerOf(opened) {
     const root = rootOf(opened.payload)
     try {
-        return await createSecretSigner(root, { info: IDENTITY_INFO })
+        return await signerOfRoot(root)
     } finally {
         root.fill(0)
     }
@@ -166,13 +203,20 @@ export async function signerOf(opened) {
  */
 export async function encryptionKeysOf(opened, did) {
     const root = rootOf(opened.payload)
-    let seed
     try {
-        seed = await deriveSubkey(root, IDENTITY_INFO)
-        return await encryptionKeysFromSeed(seed, { did })
+        return await encryptionKeysOfRoot(root, did)
     } finally {
         root.fill(0)
-        seed?.fill(0)
+    }
+}
+
+/** `encryptionKeysOf` for a root at hand (a temporary identity's, #97); the root is left as it is */
+export async function encryptionKeysOfRoot(root, did) {
+    const seed = await deriveSubkey(root, IDENTITY_INFO)
+    try {
+        return await encryptionKeysFromSeed(seed, { did })
+    } finally {
+        seed.fill(0)
     }
 }
 

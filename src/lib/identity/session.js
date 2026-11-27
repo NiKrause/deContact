@@ -13,10 +13,16 @@
  *   without the person saying so (`createForPasskey`).
  * - Once the app's OrbitDB runs (`attachOrbitDB`), the record is published for every slot
  *   whose lookup id this session knows, and again after every change.
+ * - A device without a vault that opens an invitation link starts without a passkey
+ *   (#97): `expectTemporary` when the page loads, `startTemporary` once the person starts
+ *   on the form. The identity's root is random and in this page's memory only; nothing
+ *   is kept (held-storage.js) until `secureWithPasskey` seals that root into a vault.
+ *   The DID stays, so the books, the invitations and the cards stay valid.
  */
 import { writable } from 'svelte/store'
 import { withPasskeySteps } from '@le-space/orbitdb-identity-provider-webauthn-did'
 import { lookUpRecords, publishRecord } from './vault-directory.js'
+import { deviceStorage } from './held-storage.js'
 import { normalizeWords, seedFromWords, newRecoveryWords } from './recovery-words.js'
 import { createPasskey, discoverPasskeyPrf, readPasskeyPrf } from './passkeys.js'
 import {
@@ -36,6 +42,10 @@ import {
     slotsOf,
     findIn,
     encryptionKeysOf,
+    encryptionKeysOfRoot,
+    newRoot,
+    sealRoot,
+    signerOfRoot,
     wordsSecret
 } from './vault.js'
 
@@ -43,12 +53,16 @@ import {
 const LEGACY_KEYSTORE_DATABASE = 'level-js-./orbitdb/identities'
 
 /**
- * What the UI may know of the open vault: `{ did, slots, kid }`, or undefined while it is
- * shut.
+ * What the UI may know of the open vault: `{ did, slots, kid }`, `{ did, slots: [],
+ * temporary: true }` while the identity is temporary (#97), or undefined while it is shut.
  */
 export const session = writable()
 /** whether this page found and removed a seed phrase from before the vault */
 export const legacySeedRemoved = writable(false)
+/** a temporary identity is to start once the person starts on the invitation link's form (#97) */
+export const temporaryAhead = writable(false)
+/** the temporary identity was secured with a passkey in this session: offer the other ways back in */
+export const securedNow = writable(false)
 
 let keeper
 let storage
@@ -67,6 +81,14 @@ let orbitdb
 let logs = new Map()
 /** a passkey that opened nothing, kept until the person decides (no second prompt) */
 let pending
+/** the temporary identity's root (#97): in memory only, until a passkey seals it into a vault */
+let temporaryRoot
+/** the temporary identity, starting or started */
+let temporary
+/** securing it with a passkey, while the prompts run */
+let securing
+/** localStorage for the rest of the app, held while the identity is temporary (held-storage.js) */
+let held
 
 let resolveReady
 /** resolves with the signer once the vault is open */
@@ -75,11 +97,13 @@ export const ready = new Promise((resolve) => (resolveReady = resolve))
 /**
  * Before anything else on the page: the keeper, and the seed phrase identity removed.
  *
- * @param {{ storage?: Storage, helia: Promise<import('helia').Helia> }} options
- *   helia: resolves once the node runs; lookups need it
+ * @param {{ storage?: Storage, helia: Promise<import('helia').Helia>, held?: ReturnType<typeof import('./held-storage.js').createHeldStorage> }} options
+ *   helia: resolves once the node runs; lookups need it. held: what the rest of the app
+ *   keeps, held while the identity is temporary
  */
-export function initVault({ storage: store = globalThis.localStorage, helia }) {
+export function initVault({ storage: store = globalThis.localStorage, helia, held: heldStorage = deviceStorage }) {
     storage = store
+    held = heldStorage
     keeper = createKeeper(storage)
     heliaReady = helia
     if (removeLegacySeed(storage)) legacySeedRemoved.set(true)
@@ -115,11 +139,15 @@ async function finderFor(slotSecret, { kept }) {
 }
 
 async function begin(next, lookupId) {
+    if (temporary) throw new Error('A temporary identity is open: secure it instead')
     opened = next
     lookupIds.add(lookupId)
     signer = await signerOf(opened)
     encryptionKeys = await encryptionKeysOf(opened, signer.did)
     storage.setItem(LAST_SLOT_KEY, opened.kid)
+    // the person went to the passkey screen before starting on an invitation link's form
+    temporaryAhead.set(false)
+    held.keep()
     console.log(`vault opened (${opened.created ? 'new' : opened.found ? 'found elsewhere' : 'kept here'}), identity ${signer.did}`)
     await refresh()
     resolveReady(signer)
@@ -205,6 +233,79 @@ export async function createAddressBook({ label = 'deContact' } = {}) {
     // a passkey made just now has a slot nowhere: there is nothing to find
     const next = await openWithPasskey(keeper, { ...answer, label, mayCreate: true })
     return begin(next, await lookupIdOf(answer.prfOutput))
+}
+
+/**
+ * A device without a vault opened an invitation link (#97): the form shows without a
+ * passkey, and what the app keeps beside the vault is held in memory from now on. The
+ * identity itself starts with `startTemporary`.
+ */
+export function expectTemporary() {
+    if (opened || temporary) return
+    held.hold()
+    temporaryAhead.set(true)
+}
+
+/**
+ * The temporary identity (#97): a random root in this page's memory, and from it the
+ * Ed25519 did:key and its X25519 pair, as from a vault's root. No prompt, and nothing is
+ * written anywhere. Called again, it returns the same identity.
+ *
+ * @returns {Promise<{ did: string, sign: Function }>} the signer
+ */
+export function startTemporary() {
+    if (opened) return Promise.resolve(signer)
+    temporary ??= (async () => {
+        held.hold()
+        const root = newRoot()
+        temporaryRoot = root
+        signer = await signerOfRoot(root)
+        encryptionKeys = await encryptionKeysOfRoot(root, signer.did)
+        // the session first: the form stays on screen throughout (+layout.svelte)
+        session.set({ did: signer.did, slots: [], temporary: true })
+        temporaryAhead.set(false)
+        console.log(`temporary identity ${signer.did}: in memory only, until a passkey secures it`)
+        resolveReady(signer)
+        return signer
+    })()
+    return temporary
+}
+
+/** whether the identity is temporary: nothing of it outlives the tab */
+export const isTemporary = () => temporaryRoot !== undefined
+
+/**
+ * The temporary identity gets a vault (#97): a new passkey (two prompts: register, read
+ * its PRF output), and the temporary root sealed in its slot. The DID, the books and the
+ * cards stay; nothing is opened again. The record is published as after every change,
+ * and what was held in memory is kept from now on.
+ *
+ * A prompt that fails or is cancelled leaves the identity temporary, and nothing written.
+ */
+export function secureWithPasskey({ label = 'deContact' } = {}) {
+    // the banner and the settings both offer it: one passkey, however often it is asked
+    securing ??= seal(label).finally(() => (securing = undefined))
+    return securing
+}
+
+async function seal(label) {
+    if (!temporaryRoot) throw new Error('There is no temporary identity to secure')
+    const answer = await withPasskeySteps(2, async () => {
+        const credential = await createPasskey({ label })
+        return { rawCredentialId: credential.rawCredentialId, prfOutput: await readPasskeyPrf(credential) }
+    })
+    opened = await sealRoot(keeper, { ...answer, label, root: temporaryRoot })
+    lookupIds.add(await lookupIdOf(answer.prfOutput))
+    storage.setItem(LAST_SLOT_KEY, opened.kid)
+    temporaryRoot.fill(0)
+    temporaryRoot = undefined
+    temporary = undefined
+    held.keep()
+    console.log(`vault opened (new, for the temporary identity), identity ${signer.did}`)
+    await refresh()
+    securedNow.set(true)
+    await publish()
+    return signer
 }
 
 /** unlock with the recovery words (no prompt) */

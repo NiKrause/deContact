@@ -18,6 +18,8 @@
     import { notify } from '../../utils/utils.js'
     import { _, formatDate, t } from '#lib/i18n/index.js'
     import { appUrl } from '#lib/app-url.js'
+    import { downloadVaultRecord } from '#lib/identity/vault-file.js'
+    import RecoveryWordsDraft from './RecoveryWordsDraft.svelte'
 
     let busy = $state(false)
     /** what went wrong, read in the language on screen @type {(() => string) | undefined} */
@@ -27,7 +29,6 @@
     let removing = $state()
     /** new words on screen, not kept yet */
     let draft = $state()
-    let wroteDown = $state(false)
     let link = $state('')
 
     const hasWords = $derived($session?.slots.some((slot) => slot.words) ?? false)
@@ -63,7 +64,6 @@
 
     function startWords() {
         draft = draftRecoveryWords()
-        wroteDown = false
     }
     const keepWords = () =>
         run(async () => {
@@ -78,15 +78,6 @@
     function showLink() {
         // in the fragment: it never leaves the browser that opens the link
         link = `${appUrl()}#/link?vault=${base64url(vaultRecordText())}`
-    }
-
-    function download() {
-        const blob = new Blob([vaultRecordText()], { type: 'application/json' })
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(blob)
-        a.download = 'decontact-vault.json'
-        a.click()
-        URL.revokeObjectURL(a.href)
     }
 </script>
 
@@ -118,15 +109,7 @@
     </div>
 
     {#if draft}
-        <div class="words" data-testid="recovery-words">
-            <p>{$_('passkeys.writeDown')}</p>
-            <ol>
-                {#each draft as word, i (i)}<li>{word}</li>{/each}
-            </ol>
-            <label><input type="checkbox" bind:checked={wroteDown} /> {$_('passkeys.wroteDown')}</label>
-            <button class="bx--btn bx--btn--primary bx--btn--sm" disabled={busy || !wroteDown} onclick={keepWords}>{$_('passkeys.keepWords')}</button>
-            <button class="bx--btn bx--btn--ghost bx--btn--sm" onclick={() => (draft = undefined)}>{$_('common.cancel')}</button>
-        </div>
+        <RecoveryWordsDraft words={draft} {busy} onkeep={keepWords} oncancel={() => (draft = undefined)} />
     {:else}
         <button class="bx--btn bx--btn--tertiary bx--btn--sm" disabled={busy} onclick={startWords}>
             {hasWords ? $_('passkeys.replaceWords') : $_('passkeys.setUpWords')}
@@ -135,7 +118,7 @@
 
     <div class="row">
         <button class="bx--btn bx--btn--tertiary bx--btn--sm" disabled={busy} onclick={showLink}>{$_('passkeys.linkDevice')}</button>
-        <button class="bx--btn bx--btn--ghost bx--btn--sm" disabled={busy} onclick={download}>{$_('passkeys.download')}</button>
+        <button class="bx--btn bx--btn--ghost bx--btn--sm" disabled={busy} onclick={downloadVaultRecord}>{$_('passkeys.download')}</button>
     </div>
     {#if link}
         <p class="hint">{$_('passkeys.linkHint')}</p>
@@ -162,17 +145,11 @@
     .hint {
         opacity: 0.75;
     }
-    .row,
-    .words {
+    .row {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
         max-width: 40rem;
-    }
-    .words ol {
-        columns: 3;
-        padding-left: 1.5rem;
-        list-style: decimal;
     }
     .problem {
         color: #fa4d56;

@@ -200,6 +200,28 @@ export default {
 			'Öffne diesen Link auf dem anderen Gerät und entsperre dort mit einem der Passkeys oder den Wiederherstellungswörtern. Die Tresordaten im Link enthalten kein Secret.',
 		deviceLink: 'Geräte-Link'
 	},
+	// der Passkey nach dem Austausch (#97): bis dahin eine vorläufige Identität
+	secure: {
+		title: {
+			one: 'Diesen Kontakt behalten?',
+			other: 'Diese Kontakte behalten?'
+		},
+		text: 'Sichere dein Adressbuch mit einem Passkey. Bis dahin gibt es dein Adressbuch nur in diesem Tab: Schließt du ihn, geht deine Seite des Austauschs verloren.',
+		button: 'Mit Passkey sichern',
+		notNow: 'Nicht jetzt',
+		busy: 'Der Passkey wird angelegt …',
+		settingsTitle: 'Noch nicht gesichert',
+		settingsText: 'Dieses Adressbuch gibt es nur in diesem Tab. Sichere es mit einem Passkey, um es später wieder zu öffnen.',
+		securedTitle: 'Mit deinem Passkey gesichert',
+		safeguards:
+			'Zwei weitere Wege zurück, wenn du magst: Wiederherstellungswörter, falls der Passkey verloren geht, und die Tresordatei, falls das Netzwerk deine Tresordaten nicht hat.',
+		words: 'Wiederherstellungswörter aufschreiben',
+		wordsKept: 'Die Wiederherstellungswörter öffnen dein Adressbuch jetzt auch.',
+		downloaded: 'Die Tresordatei ist heruntergeladen.',
+		skip: 'Überspringen',
+		done: 'Fertig',
+		signIn: 'Du hast schon einen deContact-Passkey? Anmelden'
+	},
 	passkeyProblem: {
 		cancelledOrTimedOut: 'Die Passkey-Abfrage wurde abgebrochen oder ist abgelaufen.',
 		cancelled: 'Abgebrochen.',
@@ -251,6 +273,7 @@ export default {
 		passkeyAdded: 'Passkey hinzugefügt: Er öffnet dasselbe Adressbuch',
 		slotRemoved: 'Aus dem Tresor entfernt',
 		wordsKept: 'Die Wiederherstellungswörter öffnen jetzt den Tresor',
+		secured: 'Dein Adressbuch ist mit einem Passkey gesichert',
 		invitationLink: {
 			malformed: 'Der Einladungslink ist fehlerhaft – bitte bestätige die Anfrage',
 			notOurs: 'Der Einladungslink ist nicht von uns signiert – bitte bestätige die Anfrage',
