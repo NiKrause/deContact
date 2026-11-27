@@ -2,6 +2,10 @@ import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { configDefaults, defineConfig } from 'vitest/config';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
+// the address search engines and link previews are given (src/hooks.server.js, lib/seo.js):
+// GitHub Pages, unless a build names another
+process.env.PUBLIC_SITE_URL ||= 'https://nikrause.github.io/deContact/';
+
 export default defineConfig({
 	plugins: [
 		// SvelteKit 3 takes its configuration here; svelte.config.js is no longer read
@@ -9,7 +13,9 @@ export default defineConfig({
 			adapter: adapter({
 				pages: 'build',
 				assets: 'build',
-				fallback: 'index.html',
+				// index.html and de/index.html are written with their tags (lib/seo.js); any
+				// other path gets the app as GitHub Pages' 404 page
+				fallback: '404.html',
 				precompress: false,
 				strict: true
 			}),

@@ -4,6 +4,18 @@ export default {
 	app: {
 		tagline: '– die Cloud sind wir!'
 	},
+	// was Suchmaschinen und Link-Vorschauen lesen (seo.js), und das Bild der Vorschau
+	// (scripts/brand/og-image.html): die Seite jeder Sprache hat ihre eigenen
+	meta: {
+		title: 'deContact – dein Peer-to-Peer-Adressbuch',
+		description:
+			'Ein Adressbuch, das bei dir liegt und Peer-to-Peer läuft. QR-Code scannen, Karten tauschen: Deine Kontakte bleiben von selbst aktuell, ohne einen Server, dem sie gehören.',
+		previewDescription: 'QR-Code scannen, Karten tauschen. Deine Kontakte bleiben von selbst aktuell, ohne einen Server, dem sie gehören.',
+		imageAlt: 'deContact: zwei Kontaktkarten, die getauscht werden, und die Worte: dein Adressbuch, lokal und Peer-to-Peer.',
+		imageLead: 'Dein Adressbuch,<br />lokal und Peer-to-Peer.',
+		noscript: 'Ein Adressbuch, das bei dir liegt und Peer-to-Peer läuft. deContact läuft in deinem Browser und braucht JavaScript.',
+		source: 'Quellcode und Dokumentation auf GitHub'
+	},
 	language: {
 		label: 'Sprache',
 		en: 'English',

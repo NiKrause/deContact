@@ -53,6 +53,13 @@ Until [orbitdb/orbitdb#1260](https://github.com/orbitdb/orbitdb/pull/1260) is re
 - heads dials run outside the database's queue: a dial that hangs on a peer reachable only through a relay circuit no longer holds up the exchange with the relay.
 
 The patch applies to every OrbitDB in this repository, the E2E tests' local relay included. Le Space's relays on Aleph run orbitdb-relay with its own OrbitDB, which republishes the heads it syncs by itself.
+## PWA and link previews
+
+- **Installable.** The manifest (`static/manifest.json`) starts the app at its own address (`./`, so below `/deContact/` on GitHub Pages), with icons of 192 and 512 pixels, one of them maskable. The E2E test asks Chrome whether it can install the app.
+- **Starts without a network.** The service worker keeps the app's files and its page; offline, a reload starts the app from them. Requests to relays and other origins go past it.
+- **Link previews and search results.** The app renders in the browser, and crawlers and link previews do not run it. So each language has a page of its own, written at build time with its title, description, Open Graph and Twitter tags, `hreflang` alternates and structured data ([`seo.js`](../src/lib/seo.js), [`hooks.server.js`](../src/hooks.server.js)): English at the app's address, German below `de/`, each with its own picture (`og-image.png`, `og-image-de.png`). The texts come from the language catalogues (`meta.*`). `PUBLIC_SITE_URL` names the public address the tags point to; it defaults to GitHub Pages.
+- **An invitation link in the inviter's language.** The QR code's link points to the page of the language on screen, so a messenger shows its preview in that language. The app itself still opens in the language its reader chose before, or their browser's.
+- **The pictures.** `scripts/brand/icon.svg` is the source of every icon and the favicon, `scripts/brand/og-image.html` of the previews; `pnpm run brand` renders them into `static/`. They are provisional.
 
 ## Identity: passkeys and the vault
 

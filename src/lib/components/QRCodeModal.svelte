@@ -6,8 +6,8 @@
     import { orbitdb } from "../../stores.js";
     import { notify } from "../../utils/utils.js";
     import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
-    import { _ } from "#lib/i18n/index.js";
-    import { appUrl } from "#lib/app-url.js";
+    import { _, language } from "#lib/i18n/index.js";
+    import { appUrlIn } from "#lib/app-url.js";
 
 
     export let qrCodeData
@@ -28,8 +28,9 @@
             .then((token) => { if (issue === issuing) onBoardingToken = token })
             .catch((error) => console.log("could not create an invitation link:", error?.message))
     }
-    // the invitation link leads back to this app, wherever it runs (app-url.js)
-    $: linkUrl = (fullDeContactUrl && onBoardingToken)?`${appUrl()}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}`:qrCodeData
+    // the invitation link leads back to this app, wherever it runs, to the page of the
+    // language on screen: a messenger's preview of it is in that language (app-url.js, seo.js)
+    $: linkUrl = (fullDeContactUrl && onBoardingToken)?`${appUrlIn($language)}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}`:qrCodeData
 </script>
 
     <Modal bind:open={ qrCodeOpen }

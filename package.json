@@ -8,6 +8,7 @@
 		"check:production-build": "vite build && node scripts/check-production-build.mjs build",
 		"build:fixed": "npm run build && node ipfs_fixes/inject_base.cjs && node ipfs_fixes/inject_base_in_singletons_file.cjs && node ipfs_fixes/inject_base_in_paths_file.cjs && node ipfs_fixes/relativize_pages.cjs && node ipfs_fixes/relativize_js.cjs",
 		"preview": "vite preview",
+		"brand": "node scripts/render-brand-images.mjs",
 		"relay": "node src/relay.js",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",

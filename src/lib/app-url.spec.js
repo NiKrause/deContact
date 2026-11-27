@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appUrl } from './app-url.js';
+import { appUrl, appUrlIn } from './app-url.js';
 
 const at = (href) => ({ href });
 
@@ -39,5 +39,22 @@ describe('appUrl', () => {
 		const link = `${appUrl(at('https://example.github.io/deContact/'), '')}#/onboarding/did:key:z6Mk`;
 		expect(new URL(link).pathname).toBe('/deContact/');
 		expect(new URL(link).hash).toBe('#/onboarding/did:key:z6Mk');
+	});
+
+	it('is the app\'s address on the page of a language too', () => {
+		expect(appUrl(at('https://example.github.io/deContact/de/'), '')).toBe('https://example.github.io/deContact/');
+		expect(appUrl(at('https://example.github.io/deContact/de/#/onboarding/did:key:z6Mk'), '')).toBe(
+			'https://example.github.io/deContact/'
+		);
+		expect(appUrl(at('http://localhost:4431/de/'), undefined)).toBe('http://localhost:4431/');
+		// a folder that only ends in "de" is no language page
+		expect(appUrl(at('https://example.com/made/'), '')).toBe('https://example.com/made/');
+	});
+
+	it('gives the page of the language on screen for an invitation link', () => {
+		expect(appUrlIn('de', at('https://example.github.io/deContact/'), '')).toBe('https://example.github.io/deContact/de/');
+		expect(appUrlIn('en', at('https://example.github.io/deContact/de/'), '')).toBe('https://example.github.io/deContact/');
+		expect(appUrlIn('de', at('http://localhost:5173/'), 'https://contacts.example.com')).toBe('https://contacts.example.com/de/');
+		expect(appUrlIn('fr', at('https://example.github.io/deContact/'), '')).toBe('https://example.github.io/deContact/');
 	});
 });
