@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, didOf, newPerson, names, recordCeremonies } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, didOf, newPerson, names, recordCeremonies, takeCeremonies } from './helpers/passkeys.js';
 
 // The app in English and German (#89). The suite runs its browsers in en-US
 // (playwright.config.js); here the language comes from the browser, from the switch in
@@ -7,8 +7,9 @@ import { addVirtualAuthenticator, didOf, newPerson, names, recordCeremonies } fr
 // 1. A browser in German starts in German: the experimental-use and seed-migration notices.
 // 2. Alice switches to German in Settings; it stays after a reload. Bob's request reaches her
 //    as a German dialog, and its German button sends her card.
-// 3. Carol opens Alice's invitation link and switches to German on the first screen: the
-//    passkey steps and the onboarding are German, and sharing works.
+// 3. Carol opens Alice's invitation link and switches to German on the first screen, the
+//    form (#97): the onboarding is German, sharing works, and so do the passkey steps of
+//    securing it afterwards.
 
 const people = {
 	alice: { first: 'Alice', last: 'Wolkenfabrik', city: 'Musterstadt' },
@@ -117,47 +118,54 @@ test('the onboarding in German, switched on the first screen', async ({ browser 
 		});
 
 		const carol = {};
-		await test.step('Carol opens the link in English and switches to German there', async () => {
+		await test.step('Carol opens the link in English and switches to German on the form', async () => {
 			carolContext = await browser.newContext();
 			carol.page = await carolContext.newPage();
 			await addVirtualAuthenticator(carol.page);
 			await recordCeremonies(carol.page);
 			await carol.page.goto(link);
-			await expect(carol.page.getByText('Create a passkey to open your own address book')).toBeVisible();
-			await carol.page.getByTestId('gate-language-de').click();
+			await expect(carol.page.getByRole('button', { name: 'Already have a deContact passkey? Sign in' })).toBeVisible();
+			await carol.page.getByTestId('onboarding-language-de').click();
 			await expect(carol.page.getByRole('heading', { name: 'Kontaktdaten wurden mit dir geteilt' })).toBeVisible();
-			await expect(carol.page.getByText('Leg einen Passkey an, um dein eigenes Adressbuch zu öffnen.')).toBeVisible();
+			await expect(carol.page.getByRole('button', { name: 'Du hast schon einen deContact-Passkey? Anmelden' })).toBeVisible();
 			expect(await htmlLang(carol.page)).toBe('de');
-		});
-
-		await test.step('the passkey steps are German, in the voice of the app', async () => {
-			await carol.page.getByLabel('Name des neuen Passkeys (optional)').fill('Carol');
-			await carol.page.getByRole('button', { name: 'Neues Adressbuch anlegen' }).click();
-			const step = carol.page.locator('passkey-step-dialog');
-			await expect(step.getByText('Jetzt der Schlüssel für deine Daten')).toBeVisible({ timeout: 30000 });
-			const next = step.getByRole('button', { name: 'Weiter' });
-			await expect(next).toBeVisible();
-			await carol.page.waitForTimeout(600); // the dialog ignores clicks for a moment
-			await next.click();
-			carol.did = await didOf(carol.page);
+			expect(await takeCeremonies(carol.page)).toEqual([]);
 		});
 
 		await test.step('the onboarding is German, and sharing works', async () => {
 			const onboarding = carol.page.getByTestId('onboarding');
-			await expect(onboarding).toBeVisible();
 			await expect(onboarding.getByRole('heading', { name: 'Deine Kontaktdaten' })).toBeVisible();
 			await expect(carol.page.getByRole('button', { name: 'Adresse hinzufügen' })).toBeVisible();
+			// she starts on the form: her temporary identity starts, and Alice is asked
+			await carol.page.getByPlaceholder('E-Mail eingeben …').fill(people.carol.email);
+			carol.did = await didOf(carol.page);
 			await expect(carol.page.getByTestId('inviter-card')).toHaveText(`${fullName(people.alice)} ist jetzt in deinem Adressbuch`, {
 				timeout: 120000
 			});
 			await expect(carol.page.getByRole('button', { name: 'Nur speichern' })).toBeVisible();
-			await carol.page.getByPlaceholder('E-Mail eingeben …').fill(people.carol.email);
 			await carol.page.getByPlaceholder('Vorname eingeben …').fill(people.carol.first);
 			await carol.page.getByPlaceholder('Nachname eingeben …').fill(people.carol.last);
 			await carol.page.getByRole('button', { name: `Speichern und mit ${people.alice.first} teilen` }).click();
 			await expect(carol.page.getByRole('tab', { name: 'Kontakte' })).toBeVisible();
 			await expect.poll(() => names(alice.page), { timeout: 120000, message: "Carol's card in Alice's book" })
 				.toContain(fullName(people.carol));
+		});
+
+		await test.step('securing it afterwards: German passkey steps, in the voice of the app', async () => {
+			const offer = carol.page.getByTestId('secure-offer');
+			await expect(offer.getByRole('heading', { name: 'Diesen Kontakt behalten?' })).toBeVisible({ timeout: 60000 });
+			await offer.getByRole('button', { name: 'Mit Passkey sichern' }).click();
+			const step = carol.page.locator('passkey-step-dialog');
+			await expect(step.getByText('Jetzt der Schlüssel für deine Daten')).toBeVisible({ timeout: 30000 });
+			const next = step.getByRole('button', { name: 'Weiter' });
+			await expect(next).toBeVisible();
+			await carol.page.waitForTimeout(600); // the dialog ignores clicks for a moment
+			await next.click();
+			const safeguards = carol.page.getByTestId('secure-safeguards');
+			await expect(safeguards.getByRole('heading', { name: 'Mit deinem Passkey gesichert' })).toBeVisible();
+			await expect(safeguards.getByRole('button', { name: 'Wiederherstellungswörter aufschreiben' })).toBeVisible();
+			await safeguards.getByRole('button', { name: 'Überspringen' }).click();
+			expect(await didOf(carol.page)).toBe(carol.did);
 		});
 	} finally {
 		await Promise.all([alice.close(), carolContext?.close()]);

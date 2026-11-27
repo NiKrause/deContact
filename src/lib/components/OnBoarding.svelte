@@ -26,6 +26,7 @@
     import { session, startTemporary, temporaryAhead } from '#lib/identity/session.js'
     import { withSignIn } from '#lib/identity/temporary.js'
     import ContactPhoto from './ContactPhoto.svelte'
+    import LanguageSwitch from './LanguageSwitch.svelte'
     import { _, t } from '#lib/i18n/index.js'
 
     // #/onboarding/<the inviter's DID>?onBoardingToken=<their one-time token>
@@ -186,6 +187,8 @@
     {#if temporary}
         <button type="button" class="bx--btn bx--btn--ghost bx--btn--sm sign-in" data-testid="sign-in-instead" onclick={signIn}>{$_('secure.signIn')}</button>
     {/if}
+    <!-- the first screen of an invitation link (#89, #97): Settings is out of reach until the card is saved -->
+    <LanguageSwitch testid="onboarding-language" />
 </div>
 
 <style>

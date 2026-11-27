@@ -37,10 +37,22 @@ flowchart LR
 |---|---|
 | **libp2p** | Connections between browsers and relays: WebSockets to the relay, WebRTC between browsers, circuit relay as fallback, gossipsub for messages and peer discovery |
 | **Helia** | Content-addressed blocks (OrbitDB entries, manifests) over bitswap, stored in IndexedDB (LevelDB) |
-| **OrbitDB** | One `documents` database per address book, a CRDT log that merges concurrent writes |
+| **OrbitDB** | One `documents` database per address book, a CRDT log that merges concurrent writes. 4.0.0 with a [sync patch](#orbitdb-sync-patch) |
 | **Passkey vault** | One root secret, opened by any of your passkeys or your recovery words ([below](#identity-passkeys-and-the-vault)) |
 | **did:key** | Ed25519 identity derived from the vault's root. It signs OrbitDB entries, requests and invitations; its X25519 counterpart is the key cards and requests are sealed to |
 | **orbitdb-relay** | Circuit relay, discovery hub and an always-on replica of the address books |
+
+### OrbitDB sync patch
+
+Until [orbitdb/orbitdb#1260](https://github.com/orbitdb/orbitdb/pull/1260) is released, deContact applies it to `@orbitdb/core` 4.0.0 as a pnpm patch ([`patches/@orbitdb__core@4.0.0.patch`](../patches/@orbitdb__core@4.0.0.patch), `pnpm.patchedDependencies`). It changes only `src/sync.js`, for a reader that reaches a writer only through a third peer such as a relay ([orbitdb#1255](https://github.com/orbitdb/orbitdb/issues/1255)), which is the usual case at a conference, with a phone on mobile data:
+
+- heads learnt through the heads exchange are announced on the topic once, so a peer in the middle passes them on;
+- on opening a database, the heads are exchanged with peers that were already subscribed, the relay included;
+- the heads handler is registered before subscribing, so an early dial finds it;
+- `join` is emitted once per peer;
+- heads dials run outside the database's queue: a dial that hangs on a peer reachable only through a relay circuit no longer holds up the exchange with the relay.
+
+The patch applies to every OrbitDB in this repository, the E2E tests' local relay included. Le Space's relays on Aleph run orbitdb-relay with its own OrbitDB, which republishes the heads it syncs by itself.
 
 ## Identity: passkeys and the vault
 
@@ -200,6 +212,8 @@ Every request is signed with the sender's `did:key`, the identity of their vault
 - a request whose book is not the sender's own (the owner in the book's manifest) or whose invitation is not the sender's.
 
 From each sender only the newest request waits for an answer.
+
+A pubsub message can be missed (an app in the background), so the sender's app resends its request until the recipient's card has arrived in its book. A resend names the request it repeats (`resentOf`, that request's timestamp by the sender's clock, signed with the rest). The recipient remembers the timestamp of the last request of that sender it answered in the dialog: a resend of that request or an earlier one asks nobody again, while a request made anew (scanning again, asking back) always asks ([`answered.js`](../src/lib/network/answered.js)). An older app ignores the field and asks as before.
 
 A peer subscribed to the topic sees that something was sent to the recipient, when, and from which libp2p peer; not who sent it, the sender's book or their name ([#58](https://github.com/NiKrause/deContact/issues/58), finding 3).
 

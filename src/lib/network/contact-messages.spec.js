@@ -84,6 +84,17 @@ describe('signed requests', () => {
 		});
 	});
 
+	it('names the request a resend repeats, signed like the rest (answered.js)', async () => {
+		const resend = await openMessage(await request(bob, alice, { resentOf: now - 10_000 }), as(alice));
+		expect(resend).toMatchObject({ ok: true, message: { sender: bob.did, timestamp: now, resentOf: now - 10_000 } });
+		// a request made anew names none
+		expect((await openMessage(await request(bob, alice), as(alice))).message.resentOf).toBeUndefined();
+		// a resend cannot repeat a request from its own future, and names a time
+		for (const resentOf of [now + 1, String(now - 10_000), 1.5]) {
+			expect(await openMessage(await request(bob, alice, { resentOf }), as(alice))).toMatchObject({ ok: false });
+		}
+	});
+
 	it('rejects a request that names somebody else as sender', async () => {
 		// Carol signs, then claims to be Bob
 		const forged = await tamper(await request(carol, alice), (payload) => (payload.sender = bob.did));

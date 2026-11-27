@@ -24,6 +24,11 @@ overrides:
   source-map-js@>=1.0.0 <1.2.2: ^1.2.2
   ws@>=8.0.0 <8.21.0: ^8.21.0
 
+patchedDependencies:
+  '@orbitdb/core@4.0.0':
+    hash: c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa
+    path: patches/@orbitdb__core@4.0.0.patch
+
 importers:
 
   .:
@@ -51,7 +56,7 @@ importers:
         version: link:packages/orbitdb-access-controller-decontact
       '@le-space/orbitdb-identity-provider-webauthn-did':
         specifier: 0.14.0
-        version: 0.14.0(@orbitdb/core@4.0.0)
+        version: 0.14.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))
       '@libp2p/autonat':
         specifier: 3.0.33
         version: 3.0.33
@@ -96,7 +101,7 @@ importers:
         version: 2.4.0
       '@orbitdb/core':
         specifier: 4.0.0
-        version: 4.0.0
+        version: 4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa)
       bip39:
         specifier: ^3.1.0
         version: 3.1.0
@@ -199,7 +204,7 @@ importers:
         version: 5.2.0
       '@orbitdb/core':
         specifier: ^4.0.0
-        version: 4.0.0
+        version: 4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa)
       multiformats:
         specifier: ^14.0.7
         version: 14.0.7
@@ -3892,21 +3897,21 @@ snapshots:
     dependencies:
       iso-base: '@le-space/iso-base@4.3.0'
 
-  '@le-space/orbitdb-access-controller-decontact@0.1.0(@orbitdb/core@4.0.0)':
+  '@le-space/orbitdb-access-controller-decontact@0.1.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))':
     dependencies:
       '@ipld/dag-cbor': 9.2.5
       '@libp2p/crypto': 5.2.0
-      '@orbitdb/core': 4.0.0
+      '@orbitdb/core': 4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa)
       multiformats: 14.0.7
 
-  '@le-space/orbitdb-identity-provider-webauthn-did@0.14.0(@orbitdb/core@4.0.0)':
+  '@le-space/orbitdb-identity-provider-webauthn-did@0.14.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))':
     dependencies:
       '@ipld/dag-cbor': 10.0.2
       '@ipld/dag-ucan': 3.4.5
       '@le-space/ucanto-principal': 9.1.2
       '@libp2p/crypto': 5.2.0
       '@libp2p/logger': 6.2.16
-      '@orbitdb/core': 4.0.0
+      '@orbitdb/core': 4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa)
       '@simplewebauthn/browser': 13.3.0
       cbor-web: 9.0.2
       iso-base: '@le-space/iso-base@4.3.0'
@@ -4656,7 +4661,7 @@ snapshots:
 
   '@opentelemetry/api@1.10.0': {}
 
-  '@orbitdb/core@4.0.0':
+  '@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa)':
     dependencies:
       '@ipld/dag-cbor': 9.2.5
       '@libp2p/crypto': 5.2.0
@@ -6624,8 +6629,8 @@ snapshots:
       '@ipld/dag-cbor': 10.0.2
       '@ipld/dag-json': 11.0.1
       '@ipshipyard/libp2p-auto-tls': 2.0.2
-      '@le-space/orbitdb-access-controller-decontact': 0.1.0(@orbitdb/core@4.0.0)
-      '@le-space/orbitdb-identity-provider-webauthn-did': 0.14.0(@orbitdb/core@4.0.0)
+      '@le-space/orbitdb-access-controller-decontact': 0.1.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))
+      '@le-space/orbitdb-identity-provider-webauthn-did': 0.14.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))
       '@libp2p/autonat': 3.0.33
       '@libp2p/bootstrap': 12.0.37
       '@libp2p/circuit-relay-v2': 4.2.18
@@ -6647,7 +6652,7 @@ snapshots:
       '@libp2p/websockets': 10.1.26
       '@multiformats/multiaddr': 13.0.3
       '@multiformats/multiaddr-matcher': 1.8.0
-      '@orbitdb/core': 4.0.0
+      '@orbitdb/core': 4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa)
       '@orbitdb/identity-provider-did': 1.0.2
       blockstore-level: 4.0.1
       datastore-level: 13.0.1

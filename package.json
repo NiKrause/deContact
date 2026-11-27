@@ -102,6 +102,9 @@
 			"sha.js@<2.4.12": "^2.4.12",
 			"source-map-js@>=1.0.0 <1.2.2": "^1.2.2",
 			"ws@>=8.0.0 <8.21.0": "^8.21.0"
+		},
+		"patchedDependencies": {
+			"@orbitdb/core@4.0.0": "patches/@orbitdb__core@4.0.0.patch"
 		}
 	}
 }

@@ -122,12 +122,13 @@ function fromOf(card) {
  * A signed message sealed to its recipient, ready to publish.
  *
  * @param signer from createSigner; its DID is the sender
- * @param {{ command: string, recipient: string, data: { sharedAddress: string, invitation: object }, from?: object, onBoardingToken?: string, nopingpong?: boolean, twoWay?: boolean }} fields
+ * @param {{ command: string, recipient: string, data: { sharedAddress: string, invitation: object }, from?: object, onBoardingToken?: string, nopingpong?: boolean, twoWay?: boolean, resentOf?: number }} fields
  *   from: the sender's card; only its name (FROM_FIELDS) goes along;
+ *   resentOf: this repeats our request of that timestamp (answered.js); an older app ignores it;
  *   twoWay: with an onBoardingToken, ask the inviter for an invitation into their book
  * @returns {Promise<string>}
  */
-export async function sealMessage(signer, { command, recipient, data, from, onBoardingToken, nopingpong, twoWay }, { now = Date.now() } = {}) {
+export async function sealMessage(signer, { command, recipient, data, from, onBoardingToken, nopingpong, twoWay, resentOf }, { now = Date.now() } = {}) {
     const recipientKey = encryptionKeyOfDid(recipient)
     if (!recipientKey) throw new Error(`${recipient} is not a did:key we can seal to`)
     if (twoWay === true && onBoardingToken === undefined) throw new Error('a two-way exchange needs an invitation link')
@@ -137,6 +138,7 @@ export async function sealMessage(signer, { command, recipient, data, from, onBo
     if (onBoardingToken !== undefined) fields.onBoardingToken = onBoardingToken
     if (nopingpong === true) fields.nopingpong = true
     if (twoWay === true) fields.twoWay = true
+    if (resentOf !== undefined) fields.resentOf = resentOf
     const payload = JSON.stringify(fields)
     const signedText = JSON.stringify({ v: 2, payload, sig: await signed(signer, messageBytes(payload)) })
     return JSON.stringify({ v: 3, sealed: await seal(recipientKey, encode(signedText), { context: requestContext(recipient) }) })
@@ -145,7 +147,7 @@ export async function sealMessage(signer, { command, recipient, data, from, onBo
 /** what is wrong with the shape of a message, or null */
 function shapeProblem(message) {
     if (!isObject(message)) return 'not a message'
-    const { command, sender, recipient, timestamp, nonce, data, onBoardingToken, nopingpong, twoWay } = message
+    const { command, sender, recipient, timestamp, nonce, data, onBoardingToken, nopingpong, twoWay, resentOf } = message
     if (command !== REQUEST_ADDRESS) return 'unknown command'
     if (!publicKeyFromDid(sender)) return 'sender is not a did:key'
     if (typeof recipient !== 'string') return 'no recipient'
@@ -163,6 +165,7 @@ function shapeProblem(message) {
     if (nopingpong !== undefined && typeof nopingpong !== 'boolean') return 'bad nopingpong'
     if (twoWay !== undefined && typeof twoWay !== 'boolean') return 'bad twoWay'
     if (twoWay === true && onBoardingToken === undefined) return 'two-way exchange without an invitation link'
+    if (resentOf !== undefined && (!Number.isSafeInteger(resentOf) || resentOf > timestamp)) return 'bad resentOf'
     const { from } = message
     if (from !== undefined) {
         if (!isObject(from)) return 'bad name'

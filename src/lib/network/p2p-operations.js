@@ -40,6 +40,7 @@ import {
 } from "./contact-messages.js";
 import { EXCHANGE_RETRY_MS, createExchangeStore, exchangeNeeds } from "./exchanges.js";
 import { liftRevocation, removedUs, revoke, withoutRevoked } from "./revocations.js";
+import { answeredBefore } from "./answered.js";
 // localStorage, held in memory while the identity is temporary (#97)
 import { deviceStorage } from "#lib/identity/held-storage.js";
 
@@ -54,6 +55,10 @@ const answering = new Set();
 const answeredAt = new Map();
 /** "sender token" of invitation link requests we answered in the dialog: their resends ask nobody again */
 const answeredLinks = new Set();
+/** the timestamp of each sender's request we answered in the dialog, by their clock: its resends ask nobody again (answered.js) */
+const answeredRequests = new Map();
+/** the timestamp of our own latest request to each recipient: what our resends name (answered.js) */
+const requestedAt = new Map();
 const replayGuard = createReplayGuard();
 
 /**
@@ -322,10 +327,16 @@ async function answerRequest(request) {
 async function askToConfirm(request, requesterDB) {
     const me = _orbitdb.identity.id
     const { sender, data } = request
+    // their app resends until our card has arrived in their book: a resend of a request we answered asks nobody (answered.js)
+    if (answeredBefore({ resentOf: request.resentOf, answered: answeredRequests.get(sender) })) {
+        console.log(`dropped contact message from ${sender}: we answered their request already`)
+        return
+    }
     // no dialog while the onboarding view is open (#86)
     await dialogsAllowed
     console.log(`asking to confirm the request of ${sender}`)
     const result = await confirm({ data: request });
+    answeredRequests.set(sender, Math.max(request.timestamp, answeredRequests.get(sender) ?? 0))
 
     if(result){
         if(result==='ONLY_HANDOUT'){
@@ -542,10 +553,10 @@ async function signer() {
  * A signed address request for `recipient`, sealed to them, carrying our address book, an
  * invitation to write into it and our name (they cannot read our book to see who asks).
  */
-async function addressRequest(recipient, { onBoardingToken, nopingpong, twoWay } = {}) {
+async function addressRequest(recipient, { onBoardingToken, nopingpong, twoWay, resentOf, now = Date.now() } = {}) {
     const data = { sharedAddress: _dbMyAddressBook.address, invitation: await invite(recipient) }
     const from = ownCard()
-    return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, from, onBoardingToken, nopingpong, twoWay })
+    return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, from, onBoardingToken, nopingpong, twoWay, resentOf }, { now })
 }
 
 /** our own card as our address book shows it */
@@ -724,7 +735,9 @@ export const requestAddress = async (_scannedAddress,nopingpong, onBoardingToken
     try {
         console.log("request requestAddress from", _scannedAddress);
         // the invitation lets the recipient write their card into our address book
-        const msg = await addressRequest(scannedAddress, { onBoardingToken, nopingpong })
+        const now = Date.now()
+        const msg = await addressRequest(scannedAddress, { onBoardingToken, nopingpong, now })
+        requestedAt.set(scannedAddress, now)
 
         await writePlaceholder(scannedAddress, onBoardingToken)
 
@@ -767,8 +780,12 @@ function startInvitationCheckWorker() {
         }
 
         for (const contact of invitedContacts) {
-            // a new message each time: the recipient drops one it has seen before
-            const msg = await addressRequest(contact.value.owner, { onBoardingToken: contact.value.onBoardingToken || undefined })
+            // a new message each time: the recipient drops one it has seen before; it names the
+            // request it repeats, so a recipient who answered that one is not asked again
+            const msg = await addressRequest(contact.value.owner, {
+                onBoardingToken: contact.value.onBoardingToken || undefined,
+                resentOf: requestedAt.get(contact.value.owner)
+            })
             await _libp2p.services.pubsub.publish(CONTENT_TOPIC + "/" + contact.value.owner, new TextEncoder().encode(msg));
             console.log(`Resent address request to ${contact.value.owner}`);
         }
