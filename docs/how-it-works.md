@@ -63,6 +63,29 @@ The patch applies to every OrbitDB in this repository, the E2E tests' local rela
 - **One version more with every deploy.** Major and minor come from `package.json`. The patch counts the commits on `main` since the tag of that version (`v0.5.0`): every pull request is merged as one commit, and every push to `main` is deployed, so 0.5.24 is followed by 0.5.25 ([`scripts/app-version.js`](../scripts/app-version.js)). The Pages build checks out the history for it (`fetch-depth: 0`); a checkout without history or tag shows `package.json`'s version as it is. A new minor version starts the count again once its commit is tagged (`v0.6.0`).
 - **The pictures.** `scripts/brand/icon.svg` is the source of every icon and the favicon, `scripts/brand/og-image.html` of the previews; `pnpm run brand` renders them into `static/`. They are provisional.
 
+## Accessibility
+
+- **Checked on every screen.** `tests/Accessibility.spec.js` runs axe-core with the rules of WCAG 2.1 A and AA on each screen:
+  - the notice of a first visit;
+  - the passkey screen;
+  - the four tabs;
+  - the QR code;
+  - the invitation form.
+
+  It runs them in English and German, at a desktop's width and a phone's, and one finding fails it. Not covered: the camera (`<qr-scanner>`), which needs a camera, and the passkey step dialog (`<passkey-step-dialog>`), which shows only during a passkey prompt.
+- **Names a screen reader says.**
+  - Every field has a label. Where it is hidden, a screen reader still reads it.
+  - The theme switch is named in the language on screen.
+  - The peer icon's colour and number have a hidden text that says both. It is not a live region, because the number changes too often to read it out each time.
+  - A row of the contact list is chosen with a radio button named "Open this contact in My Address".
+- **Patched Carbon.** carbon-components-svelte 0.82 has a few accessibility errors, which later versions fix. deContact patches them as a pnpm patch ([`patches/carbon-components-svelte@0.82.11.patch`](../patches/carbon-components-svelte@0.82.11.patch)):
+  - a tab's list item could take focus, so it was no longer "presentation", and the tab sat in a list item instead of the tab list;
+  - on a phone, the tab menu's trigger was a "listbox" without options, named "listbox", with a link inside; now it is a button named by the tab it shows;
+  - a row's radio button or checkbox had no name (`selectRowLabel`);
+  - an expand cell pointed its `headers` at a header that does not exist.
+
+  The patch goes away with an update of Carbon.
+
 ## Identity: passkeys and the vault
 
 deContact has no seed phrase any more ([#60](https://github.com/NiKrause/deContact/issues/60)). A passkey opens a **vault** that holds one 32-byte root, and the identity is derived from that root. The vault, the keeper and the signer come from [`@le-space/orbitdb-identity-provider-webauthn-did`](https://github.com/Le-Space/orbitdb-identity-provider-webauthn-did) (0.14.0); Le-Space/belege keeps its books in the same vault. The glue is in [`src/lib/identity`](../src/lib/identity).

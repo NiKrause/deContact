@@ -78,7 +78,7 @@ test('German after switching in Settings: kept after a reload, and in the reques
 		await test.step("Bob's request reaches Alice as a German dialog", async () => {
 			bob = await newPerson(browser, people.bob);
 			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(alice.page));
+			await bob.page.getByTestId('scan-field').fill(await contactAddressOf(alice.page));
 			await bob.page.getByRole('button', { name: 'Scan' }).click();
 			const send = alice.page.getByRole('button', { name: 'Meine Kontaktdaten senden' });
 			await expect(send).toBeVisible({ timeout: 90000 });

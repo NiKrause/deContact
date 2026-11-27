@@ -18,15 +18,13 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		// announced her (every 10 s), else through the relay; resent after 10 s, 20 s, ...
 		test.setTimeout(240000);
 
-		const connect =  pageAlice.getByRole('img', { name: 'Swarm connected' })
-		await expect(connect, 'connection Alice').toBeEnabled({ timeout: 15000 });
-
-		const connect2 =  pageBob.getByRole('img', { name: 'Swarm connected' })
-		await expect(connect2, 'connection Bob').toBeEnabled();
+		// the header's peer status, as a screen reader reads it
+		await expect(pageAlice.getByTestId('peers'), 'connection Alice').toContainText('Swarm connected', { timeout: 15000 });
+		await expect(pageBob.getByTestId('peers'), 'connection Bob').toContainText('Swarm connected');
 
 		await pageBob.getByRole('tab', { name: 'Contacts' }).click();
-		await pageBob.getByRole('textbox', { role: 'scanContact' }).click();
-		await pageBob.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(pageAlice));
+		await pageBob.getByTestId('scan-field').click();
+		await pageBob.getByTestId('scan-field').fill(await contactAddressOf(pageAlice));
 		await pageBob.getByRole('button', { name: 'Scan' }).click();
 
 

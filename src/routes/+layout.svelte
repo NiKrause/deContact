@@ -4,7 +4,7 @@
     import "carbon-components-svelte/css/all.css";
     import ConnectionSignalOff from "carbon-icons-svelte/lib/ConnectionSignalOff.svelte";
     import ConnectionSignal from "carbon-icons-svelte/lib/ConnectionSignal.svelte";
-    import { Header, HeaderGlobalAction, HeaderNav, HeaderUtilities, Theme } from "carbon-components-svelte";
+    import { Header, HeaderUtilities, Theme } from "carbon-components-svelte";
     import { connectPasskeyStepDialog } from "@le-space/orbitdb-identity-provider-webauthn-did/elements";
     import { hash, query } from './router.js'
     import QRCodeModal from "#lib/components/QRCodeModal.svelte";
@@ -38,6 +38,10 @@
     startLocale()
 
     let theme = "g90";
+
+    /** what the peer icon's colour says, in words, with the number next to it */
+    $: peersState = $connectedPeers === 0 ? 'header.peers.none' : $connectedPeers === 1 ? 'header.peers.seed' : 'header.peers.swarm'
+    $: peersText = `${$_(peersState)} ${$_('header.peers.count', { count: $connectedPeers })}`
 
     // the vault comes first: the gate below asks it whether this browser keeps one
     let networkStarted
@@ -112,8 +116,6 @@
 
     onDestroy(close)
 
-    let isSideNavOpen
-
     const routes = {
         '/': Home,
         '': Home,
@@ -128,26 +130,25 @@
 
     <Header
         class="header-title"
-        persistentHamburgerMenu={true}
-        bind:isSideNavOpen
         company="deContact"
         platformName={$_('app.tagline')}
         href="./#/">
 
-        <HeaderNav>
-            <div class="flags">
-                 {#if ($connectedPeers===0) }
-                     <ConnectionSignalOff title={$_('header.peers.none')} class="statusRed" />&nbsp;{$connectedPeers}
-                 {:else if $connectedPeers===1}
-                     <ConnectionSignal title={$_('header.peers.seed')} class="statusYellow" />&nbsp;{$connectedPeers}
-                 {:else}
-                     <ConnectionSignal title={$_('header.peers.swarm')} class="statusGreen" />&nbsp;{$connectedPeers}
-                 {/if}
-            </div>
-        </HeaderNav>
-
         <HeaderUtilities>
-            <HeaderGlobalAction aria-label={$_('header.theme')}>
+            <!-- not in HeaderNav: that is a menu bar, which holds only menu items. The colour and
+                 the number are for the eye; the hidden text says both. Not a live region: the
+                 number changes too often to be read out each time. -->
+            <div class="peers" title={peersText} data-testid="peers">
+                 {#if $connectedPeers===0}
+                     <ConnectionSignalOff aria-hidden="true" class="statusRed" />
+                 {:else}
+                     <ConnectionSignal aria-hidden="true" class={$connectedPeers===1 ? 'statusYellow' : 'statusGreen'} />
+                 {/if}
+                 <span aria-hidden="true">&nbsp;{$connectedPeers}</span>
+                 <span class="bx--visually-hidden">{peersText}</span>
+            </div>
+            <!-- the switch itself, not inside a header button: one control, named in the language on screen -->
+            <div class="theme-switch">
                 <Theme
                         bind:theme
                         render="toggle"
@@ -155,10 +156,11 @@
                                 themes: ["g90", "g80"],
                                 labelA: "",
                                 labelB: "",
+                                labelText: $_('header.theme'),
                                 hideLabel: true,
                                 size: "sm",
                   }}/>
-            </HeaderGlobalAction>
+            </div>
     </HeaderUtilities>
 </Header>
 <QRCodeModal
@@ -196,9 +198,26 @@
         width: 16px;
         height: 16px;
     }
-    .flags {
-        margin: 10px;
+    .peers {
         display: flex;
-        justify-content: space-between;
+        align-items: center;
+        padding: 0 1rem;
+        color: var(--cds-text-02, #c6c6c6);
+    }
+    .theme-switch {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 3rem;
+        height: 3rem;
+    }
+    .theme-switch :global(.bx--form-item) {
+        flex: none;
+    }
+    /* where Carbon hid the header navigation it stood in, so phones look as before */
+    @media (max-width: 65.98rem) {
+        .peers {
+            display: none;
+        }
     }
 </style>

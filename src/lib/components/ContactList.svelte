@@ -69,6 +69,7 @@
         {pageSize}
         {page}
         radio
+        selectRowLabel={$_('contacts.selectRow')}
         sortable
         on:click={event => {
                 if (event?.detail?.cell?.key === 'qr') {

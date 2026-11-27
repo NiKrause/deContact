@@ -22,7 +22,7 @@ for (const webRTC of [true, false]) {
 		const bob = await startPerson(browser, people.bob, { webRTC });
 		try {
 			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(alice.page));
+			await bob.page.getByTestId('scan-field').fill(await contactAddressOf(alice.page));
 			await bob.page.getByRole('button', { name: 'Scan' }).click();
 
 			// Alice is asked and answers; Bob is asked back and answers
@@ -49,7 +49,7 @@ for (const webRTC of [true, false]) {
 			await expect.poll(() => devicesInCard(bob.page, alice.did), { timeout: 90000, message: "Alice's device in her card in Bob's book" })
 				.toContain(alicesPeer);
 			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByRole('textbox', { role: 'scanContact' }).fill(alice.did);
+			await bob.page.getByTestId('scan-field').fill(alice.did);
 			await bob.page.getByRole('button', { name: 'Scan' }).click();
 			await expect(alice.page.getByTestId('request-from')).toContainText(`${people.bob.first} ${people.bob.last}`, { timeout: 90000 });
 			await alice.page.getByRole('button', { name: 'Cancel' }).first().click();

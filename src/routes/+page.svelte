@@ -81,7 +81,8 @@
                 <Grid fullWidth class="scan-bar">
                     <Row>
                         <Column>
-                            <TextInput role="scanContact" size="sm" placeholder={$_('scanner.hint')} bind:value={scannedAddress} on:keydown={(e) => e.code==='Enter'?scan():null} />
+                            <!-- a name a screen reader says; the placeholder goes away once something is typed -->
+                            <TextInput data-testid="scan-field" size="sm" labelText={$_('home.scanLabel')} hideLabel placeholder={$_('scanner.hint')} bind:value={scannedAddress} on:keydown={(e) => e.code==='Enter'?scan():null} />
                         </Column>
                             <Column>
                                 <div class="scan-actions">

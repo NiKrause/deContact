@@ -108,7 +108,7 @@ test('a third peer reads nothing, and a removed contact gets no more updates', a
 /** `from` scans `to`'s contact address; `to` sends their card and asks back; `from` answers */
 async function exchange(from, to) {
 	await from.page.getByRole('tab', { name: 'Contacts' }).click();
-	await from.page.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(to.page));
+	await from.page.getByTestId('scan-field').fill(await contactAddressOf(to.page));
 	await from.page.getByRole('button', { name: 'Scan' }).click();
 	// the dialog names who asks, though it cannot read their book
 	const asking = to.page.getByTestId('request-from');
