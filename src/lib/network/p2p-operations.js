@@ -158,11 +158,14 @@ export async function startAddressBook(signer, keys) {
 
     // contact requests come peer to peer, on deContact's own protocol: no topic, nothing
     // for a relay or a third peer to subscribe to (contact-protocol.js)
-    await answerContactRequests(_libp2p, (text, from) =>
-        handleMessage(text, from).catch((error) => {
+    await answerContactRequests(_libp2p, (text, from) => {
+        // an app in the background answers nothing: no receipt (the end-to-end tests' pause)
+        if (!answeringRequests) throw new Error('not answering requests')
+        return handleMessage(text, from).catch((error) => {
             console.log("could not handle a contact message:", error?.message)
             return false
-        }))
+        })
+    })
 
     /**
      * My Address Book (with own contact data and contact data of others
@@ -233,7 +236,6 @@ export async function close() {
  * @returns {Promise<boolean>} whether it was a request for us: the receipt says so
  */
 async function handleMessage(text, from) {
-    if (!answeringRequests) throw new Error('not answering requests')
     const opened = await openMessage(text, { me: _orbitdb?.identity?.id, keys: _keys })
     if (!opened.ok) {
         console.log(`dropped contact message${opened.sender ? ` from ${opened.sender}` : ''}: ${opened.reason}`)

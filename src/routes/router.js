@@ -26,11 +26,14 @@ function getQuery(){
     }
 }
 
+// Each store reads the address again when it is subscribed to: the hash may have changed
+// while nobody listened, e.g. when the app itself opens a scanned invitation link.
 export const hash = new readable(getHash(), set => {
     function setHash () {
         set(getHash())
     }
 
+    setHash()
     window.addEventListener('hashchange', setHash)
     return () => window.removeEventListener('hashchange', setHash)
 })
@@ -40,6 +43,7 @@ export const query = new readable(getQuery(), set => {
         set(getQuery())
     }
 
+    setQuery()
     window.addEventListener('hashchange', setQuery)
     return () => window.removeEventListener('hashchange', setQuery)
 })
@@ -49,6 +53,7 @@ export const did = new readable(getDID(), set => {
         set(getDID())
     }
 
+    setDID()
     window.addEventListener('hashchange', setDID)
     return () => window.removeEventListener('hashchange', setDID)
 })

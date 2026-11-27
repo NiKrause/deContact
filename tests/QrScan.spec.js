@@ -71,6 +71,10 @@ test("Bob scans Alice's invitation QR code with the camera", async ({ browser },
 			expect(alice.saw(`accepted the invitation link of ${bob.did}`)).toBe(true);
 		});
 	} finally {
+		// what each side did with the link: delivered, accepted, answered
+		const relevant = (line) => /invitation link|deliver|accepted|sent an invitation|card|temporary/i.test(line);
+		console.log(`Bob: ${JSON.stringify((bob?.lines ?? []).filter(relevant).slice(-25), null, 1)}`);
+		console.log(`Alice: ${JSON.stringify(alice.lines.filter(relevant).slice(-25), null, 1)}`);
 		await Promise.all([alice.close(), bob?.close()].filter(Boolean));
 		await camera?.close();
 	}

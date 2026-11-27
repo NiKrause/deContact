@@ -22,8 +22,11 @@ import { multiaddr } from '@multiformats/multiaddr'
 import { MAX_SEALED_LENGTH } from './contact-messages.js'
 
 export const CONTACT_PROTOCOL = '/decontact/request/1.0.0'
-/** how long one attempt to deliver a request may take */
-export const DELIVERY_TIMEOUT_MS = 20_000
+/**
+ * How long one attempt to deliver a request may take, per way to the peer: a peer out of
+ * reach must not hold up the next round of resends for long.
+ */
+export const DELIVERY_TIMEOUT_MS = 10_000
 /** a receipt is a few bytes */
 const MAX_RECEIPT_LENGTH = 256
 
@@ -66,7 +69,8 @@ export async function answerContactRequests(libp2p, onRequest) {
             }
         },
         // a browser reaches another one through a relay's circuit when WebRTC does not connect
-        { runOnLimitedConnection: true, maxInboundStreams: 16 }
+        // resends come on streams of their own: room for a few on one connection
+        { runOnLimitedConnection: true, maxInboundStreams: 32 }
     )
     return () => libp2p.unhandle(CONTACT_PROTOCOL)
 }
