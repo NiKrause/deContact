@@ -93,7 +93,7 @@
         class="header-title"
         persistentHamburgerMenu={true}
         bind:isSideNavOpen
-        company="deContact.xyz"
+        company="deContact"
         platformName={$_('app.tagline')}
         href="./#/">
 
