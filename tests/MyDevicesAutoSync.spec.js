@@ -24,7 +24,7 @@ test('a second device with a passkey of its own writes as the same DID', async (
 		let words;
 		let link;
 		await test.step('device A: recovery words and a device link', async () => {
-			await a.page.getByRole('tab', { name: 'Settings' }).click();
+			await a.page.getByRole('link', { name: 'Settings' }).click();
 			await a.page.getByRole('button', { name: 'Set up recovery words' }).click();
 			words = await a.page.getByTestId('recovery-words').locator('ol li').allTextContents();
 			expect(words).toHaveLength(24);
@@ -59,7 +59,7 @@ test('a second device with a passkey of its own writes as the same DID', async (
 		});
 
 		await test.step('device B: a passkey of its own', async () => {
-			await page.getByRole('tab', { name: 'Settings' }).click();
+			await page.getByRole('link', { name: 'Settings' }).click();
 			await page.getByLabel('Name of the new passkey (optional)').fill('Device B');
 			await page.getByRole('button', { name: 'Add a passkey' }).click();
 			await continuePasskeyStep(page);

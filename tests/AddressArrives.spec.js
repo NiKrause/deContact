@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, contactAddressOf, createAddressBook } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, contactAddressOf, createAddressBook, askByAddress } from './helpers/passkeys.js';
 
 // The other specs only click through the dialogs. This one checks that each address
 // really ends up in the other address book, and logs which way it travelled:
@@ -21,9 +21,7 @@ for (const webRTC of [true, false]) {
 		const alice = await startPerson(browser, people.alice, { webRTC });
 		const bob = await startPerson(browser, people.bob, { webRTC });
 		try {
-			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByTestId('scan-field').fill(await contactAddressOf(alice.page));
-			await bob.page.getByRole('button', { name: 'Scan' }).click();
+			await askByAddress(bob.page, await contactAddressOf(alice.page));
 
 			// Alice is asked and answers; Bob is asked back and answers
 			await alice.page.getByRole('button', { name: 'Share and ask for theirs' }).click({ timeout: 90000 });
@@ -48,9 +46,7 @@ for (const webRTC of [true, false]) {
 			const alicesPeer = await alice.page.evaluate(() => window.helia.libp2p.peerId.toString());
 			await expect.poll(() => devicesInCard(bob.page, alice.did), { timeout: 90000, message: "Alice's device in her card in Bob's book" })
 				.toContain(alicesPeer);
-			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByTestId('scan-field').fill(alice.did);
-			await bob.page.getByRole('button', { name: 'Scan' }).click();
+			await askByAddress(bob.page, alice.did);
 			await expect(alice.page.getByTestId('request-from')).toContainText(`${people.bob.first} ${people.bob.last}`, { timeout: 90000 });
 			await alice.page.getByRole('button', { name: 'Decline' }).click();
 		} finally {
@@ -74,11 +70,11 @@ async function startPerson(browser, person, { webRTC }) {
 	await addVirtualAuthenticator(page);
 	await page.goto(process.env.PAGE_URL);
 	await createAddressBook(page, person.first);
-	await page.getByRole('tab', { name: 'Settings' }).click();
+	await page.getByRole('link', { name: 'Settings' }).click();
 	const didField = page.getByLabel('DID', { exact: true });
 	await expect(didField).not.toHaveValue('');
 	const did = await didField.inputValue();
-	await page.getByRole('tab', { name: 'My Address' }).click();
+	await page.getByRole('link', { name: 'My card' }).click();
 	await page.getByPlaceholder('Enter firstname...').fill(person.first);
 	await page.getByPlaceholder('Enter lastname...').fill(person.last);
 	await page.getByPlaceholder('Enter city...').fill(person.city);

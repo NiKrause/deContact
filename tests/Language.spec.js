@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, contactAddressOf, didOf, newPerson, names, recordCeremonies, takeCeremonies } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, contactAddressOf, didOf, newPerson, names, recordCeremonies, takeCeremonies, askByAddress } from './helpers/passkeys.js';
 
 // The app in English and German (#89). The suite runs its browsers in en-US
 // (playwright.config.js); here the language comes from the browser, from the switch in
@@ -23,9 +23,9 @@ const htmlLang = (page) => page.evaluate(() => document.documentElement.lang);
 
 /** to German with the switch in Settings */
 async function switchToGermanInSettings(page) {
-	await page.getByRole('tab', { name: 'Settings' }).click();
+	await page.getByRole('link', { name: 'Settings' }).click();
 	await page.getByTestId('language-de').click();
-	await expect(page.getByRole('tab', { name: 'Einstellungen' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Einstellungen' })).toBeVisible();
 	await expect(page.getByTestId('language-de')).toHaveAttribute('aria-pressed', 'true');
 	expect(await htmlLang(page)).toBe('de');
 }
@@ -66,14 +66,16 @@ test('German after switching in Settings: kept after a reload, and in the reques
 			await expect(alice.page.getByLabel('DID', { exact: true })).toHaveValue(alice.did);
 		});
 
-		await test.step('on a phone, the tabs are named in German too', async () => {
+		await test.step('on a phone, the navigation at the bottom is German too', async () => {
 			const page = alice.page;
 			const desktop = page.viewportSize();
-			// Carbon keeps the tabs on a phone (since 0.114 no dropdown): a row that scrolls sideways
 			await page.setViewportSize({ width: 390, height: 844 });
-			await expect(page.getByRole('tab', { name: 'Einstellungen', selected: true })).toBeVisible();
-			await page.getByRole('tab', { name: 'Kontakte' }).click();
-			await expect(page.getByRole('tab', { name: 'Kontakte', selected: true })).toBeVisible();
+			const nav = page.getByRole('navigation', { name: 'Hauptnavigation' });
+			await expect(nav.getByRole('link', { name: 'Einstellungen' })).toHaveAttribute('aria-current', 'page');
+			await nav.getByRole('link', { name: 'Kontakte' }).click();
+			await expect(nav.getByRole('link', { name: 'Kontakte' })).toHaveAttribute('aria-current', 'page');
+			await expect(nav.getByRole('link', { name: 'Austausch' })).toBeVisible();
+			await expect(nav.getByRole('link', { name: 'Meine Karte' })).toBeVisible();
 			await page.setViewportSize(desktop);
 		});
 
@@ -83,15 +85,14 @@ test('German after switching in Settings: kept after a reload, and in the reques
 			expect(await htmlLang(alice.page)).toBe('de');
 			await alice.page.getByRole('button', { name: 'Mit Passkey entsperren' }).click();
 			expect(await didOf(alice.page)).toBe(alice.did);
-			await expect(alice.page.getByRole('tab', { name: 'Kontakte' })).toBeVisible();
-			await expect(alice.page.getByRole('button', { name: 'QR-Code' })).toBeVisible();
+			await expect(alice.page.getByRole('link', { name: 'Kontakte' })).toBeVisible();
+			await alice.page.getByRole('link', { name: 'Austausch' }).click();
+			await expect(alice.page.getByRole('button', { name: 'Meinen Code zeigen' })).toBeVisible();
 		});
 
 		await test.step("Bob's request reaches Alice as a German dialog", async () => {
 			bob = await newPerson(browser, people.bob);
-			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByTestId('scan-field').fill(await contactAddressOf(alice.page));
-			await bob.page.getByRole('button', { name: 'Scan' }).click();
+			await askByAddress(bob.page, await contactAddressOf(alice.page));
 			const send = alice.page.getByRole('button', { name: 'Teilen und um ihre bitten' });
 			await expect(send).toBeVisible({ timeout: 90000 });
 			await expect(alice.page.getByRole('heading', { name: 'Kontaktanfrage' })).toBeVisible();
@@ -118,8 +119,8 @@ test('the onboarding in German, switched on the first screen', async ({ browser 
 		let link;
 		await test.step('Alice shows her invitation in German', async () => {
 			await switchToGermanInSettings(alice.page);
-			await alice.page.getByRole('tab', { name: 'Kontakte' }).click();
-			await alice.page.getByRole('button', { name: 'QR-Code' }).click();
+			await alice.page.getByRole('link', { name: 'Austausch' }).click();
+			await alice.page.getByRole('button', { name: 'Meinen Code zeigen' }).click();
 			await expect(alice.page.getByRole('heading', { name: 'Kontakt teilen' })).toBeVisible();
 			await expect(alice.page.getByRole('radio', { name: 'Sofort teilen' })).toBeChecked();
 			await expect(alice.page.getByRole('checkbox', { name: 'Auch um ihre Kontaktdaten bitten' })).toBeChecked();
@@ -165,7 +166,7 @@ test('the onboarding in German, switched on the first screen', async ({ browser 
 			await carol.page.getByPlaceholder('Vorname eingeben …').fill(people.carol.first);
 			await carol.page.getByPlaceholder('Nachname eingeben …').fill(people.carol.last);
 			await carol.page.getByRole('button', { name: `Speichern und mit ${people.alice.first} teilen` }).click();
-			await expect(carol.page.getByRole('tab', { name: 'Kontakte' })).toBeVisible();
+			await expect(carol.page.getByRole('link', { name: 'Kontakte' })).toBeVisible();
 			await expect.poll(() => names(alice.page), { timeout: 120000, message: "Carol's card in Alice's book" })
 				.toContain(fullName(people.carol));
 		});

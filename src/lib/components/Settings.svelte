@@ -4,12 +4,13 @@
     import SecureOffer from "./SecureOffer.svelte";
     import { session } from "#lib/identity/session.js";
     import LanguageSwitch from "./LanguageSwitch.svelte";
+    import Statistics from "./Statistics.svelte";
     import { _ } from "#lib/i18n/index.js";
     import {
         libp2p,
         connectedPeers,
         orbitdb,
-        dbMyAddressBook, selectedAddr, selectedTab,
+        dbMyAddressBook, selectedAddr,
         useWebRTC
     } from "../../stores.js"
 
@@ -38,7 +39,7 @@
         }
         console.log("addressRecords",addressRecords)
         selectedAddr.set({})
-        selectedTab.set(0)
+        window.location.hash = '#/'
     }
 
     /** this device's copy of our address book */
@@ -48,7 +49,7 @@
         const addressRecords = await $dbMyAddressBook.all();
         console.log("addressRecords",addressRecords)
         selectedAddr.set({})
-        selectedTab.set(0)
+        window.location.hash = '#/'
     }
 </script>
 
@@ -64,6 +65,9 @@
     <section>{#if $session?.temporary}<SecureOffer inSettings />{:else}<PasskeySettings />{/if}</section>
 
     <section>
+        <h3 class="section-title">{$_('settings.network')}</h3>
+        <!-- once a tab of its own, Statistics (#110) -->
+        <Statistics />
         <!-- off: other browsers are reached only through the relay; read when the network starts -->
         <Toggle id="webrtc-toggle" labelText={$_('settings.webrtc')} labelA={$_('common.off')} labelB={$_('common.on')} bind:toggled={$useWebRTC} />
     </section>
@@ -108,6 +112,10 @@
         max-width: 40rem;
         /* the passkeys' and the developer's long values wrap or scroll inside, not the page */
         min-width: 0;
+    }
+    .section-title {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
     }
     .fields {
         display: flex;

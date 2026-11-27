@@ -5,7 +5,7 @@
     import { generateQRForAddress } from "../../operations.js"
     import ContactPhoto from "./ContactPhoto.svelte";
     import { _ } from "#lib/i18n/index.js";
-    /** our contacts: our own card is under My Address, not in this list (#110) */
+    /** our contacts: our own card is under My card, not in this list (#110) */
     const contacts = $derived(($myAddressBook ?? []).filter((row) => !(row.own && row.owner === $orbitdb?.identity?.id)))
     let pageSize = $state(50);
     let page = $state(1);

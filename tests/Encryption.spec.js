@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, everythingStoredAsText, names, newPerson } from './helpers/passkeys.js';
+import { contactAddressOf, everythingStoredAsText, names, newPerson, askByAddress } from './helpers/passkeys.js';
 
 // Every card is sealed to the owner of the book it sits in, every request to its
 // recipient (#59, finding 3 of #58). Three people:
@@ -108,9 +108,7 @@ test('a third peer reads nothing, and a removed contact gets no more updates', a
 
 /** `from` scans `to`'s contact address; `to` sends their card and asks back; `from` answers */
 async function exchange(from, to) {
-	await from.page.getByRole('tab', { name: 'Contacts' }).click();
-	await from.page.getByTestId('scan-field').fill(await contactAddressOf(to.page));
-	await from.page.getByRole('button', { name: 'Scan' }).click();
+	await askByAddress(from.page, await contactAddressOf(to.page));
 	// the dialog names who asks, though it cannot read their book
 	const asking = to.page.getByTestId('request-from');
 	await expect(asking).toContainText(await firstAndLast(from.page), { timeout: 90000 });
@@ -151,13 +149,13 @@ function storedValues(page, address) {
 
 /** our own card: My Address opens it, it is not in the list (#110) */
 async function openOwnCard(page, lastName) {
-	await page.getByRole('tab', { name: 'My Address' }).click();
+	await page.getByRole('link', { name: 'My card' }).click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 
 /** selects a contact in the list, which opens it in the form */
 async function selectContact(page, lastName) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
+	await page.getByRole('link', { name: 'Contacts' }).click();
 	await page.getByRole('row', { name: new RegExp(lastName) }).locator('label').click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }

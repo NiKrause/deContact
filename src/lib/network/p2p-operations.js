@@ -17,7 +17,7 @@ import {
     dbMyAddressBook,
     subscription,
     connectedPeers,
-    followList, dbMessages, selectedTab, syncedDevices,
+    followList, dbMessages, syncedDevices,
     useWebRTC,
     exchangesWaiting
 } from "../../stores.js";
@@ -1166,9 +1166,4 @@ myAddressBook.subscribe((val) => {
 let _followList
 followList.subscribe((val) => {
     _followList = val
-});
-
-let _selectedTab
-selectedTab.subscribe((val) => {
-    _selectedTab = val
 });

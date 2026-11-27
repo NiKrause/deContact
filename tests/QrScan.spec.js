@@ -56,9 +56,9 @@ test("Bob scans Alice's invitation QR code with the camera", async ({ browser },
 		});
 		bob = await newPerson(camera, people.bob);
 
-		await test.step('Scan with the field empty opens the camera, which reads the code', async () => {
-			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByRole('button', { name: 'Scan' }).click();
+		await test.step('Scan a code on Exchange opens the camera, which reads the code', async () => {
+			await bob.page.getByRole('link', { name: 'Exchange' }).click();
+			await bob.page.getByRole('button', { name: 'Scan a code' }).click();
 			await expect.poll(() => bob.page.evaluate(() => location.hash), { timeout: 60000, message: 'the link opened in his app' })
 				.toBe(`#${link.slice(link.indexOf('#') + 1)}`);
 			await expect(bob.page.getByTestId('onboarding')).toBeVisible();

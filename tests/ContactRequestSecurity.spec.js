@@ -94,11 +94,11 @@ async function register(browser, person) {
 	const { page } = user;
 	await page.goto(process.env.PAGE_URL);
 	await createAddressBook(page, person.first);
-	await page.getByRole('tab', { name: 'Settings' }).click();
+	await page.getByRole('link', { name: 'Settings' }).click();
 	const didField = page.getByLabel('DID', { exact: true });
 	await expect(didField).not.toHaveValue('');
 	user.did = await didField.inputValue();
-	await page.getByRole('tab', { name: 'My Address' }).click();
+	await page.getByRole('link', { name: 'My card' }).click();
 	await page.getByPlaceholder('Enter firstname...').fill(person.first);
 	await page.getByPlaceholder('Enter lastname...').fill(person.last);
 	await page.getByPlaceholder('Enter city...').fill(person.city);
@@ -108,8 +108,8 @@ async function register(browser, person) {
 
 /** the link in the QR code of `page`, pointing at the app under test */
 async function invitationLink(page) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
-	await page.getByRole('button', { name: 'QR Code' }).click();
+	await page.getByRole('link', { name: 'Exchange' }).click();
+	await page.getByRole('button', { name: 'Show my code' }).click();
 	const qrCode = page.locator('img.qrcode');
 	await expect(qrCode).toHaveAttribute('alt', /onBoardingToken=/);
 	const link = await qrCode.getAttribute('alt');

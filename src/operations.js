@@ -4,7 +4,7 @@ import { t } from "#lib/i18n/index.js";
 import {
     myAddressBook,
     selectedAddr,
-    selectedTab,
+    addingContact,
     selectedRowIds,
     blankCard,
     qrCodeData,
@@ -25,11 +25,10 @@ export async function loadContact(id) {
     _selectedAddr = address
     if(!address) return //do not set undefined here
     selectedAddr.set(_selectedAddr)
-    selectedTab.set(1)
 }
 
 /**
- * My Address with no contact picked from the list (#110): our own card, or before its first
+ * My card (#110): our own card, or before its first
  * save the empty form for it. A card the form already holds stays: our own with changes not
  * saved yet, the first one being typed, or a contact being added by hand.
  */
@@ -42,9 +41,15 @@ export function showMyCard() {
     selectedAddr.set(mine ? { ...mine } : blankCard(true))
 }
 
-/** "New": the form empty, for a contact added by hand */
+/** "Add contact" on Contacts: the form empty, for a contact added by hand */
 export function newContact() {
     selectedAddr.set(blankCard(false))
+    addingContact.set(true)
+}
+
+/** "All contacts": back from a contact's form to the list */
+export function closeContact() {
+    closeForm()
 }
 
 /** whether somebody typed something into this card */
@@ -63,7 +68,9 @@ export async function addContact() {
     const hash = await _dbMyAddressBook.put(_selectedAddr)
     console.log('saved a card:', hash)
     notify(t('notify.contactAdded'));
-    closeForm()
+    // our first card stays on My card, saved; a contact added by hand goes into the list
+    if (_selectedAddr.own) selectedAddr.set({ ..._selectedAddr })
+    else closeForm()
     // our first card: it names this device, so that contacts reach it (devices.js)
     await ensureOwnDevice()
 }
@@ -115,7 +122,9 @@ export async function deleteContact() {
 function closeForm() {
     selectedAddr.set({})
     selectedRowIds.set([])
-    selectedTab.set(0)
+    addingContact.set(false)
+    // My card shows our card again; the form of a contact goes back to the list
+    if (location.hash.startsWith('#/card')) showMyCard()
 }
 
 export async function generateQRForAddress(contact) {
@@ -125,11 +134,6 @@ export async function generateQRForAddress(contact) {
 let _orbitdb
 orbitdb.subscribe((value) => {
     _orbitdb = value
-})
-
-let _selectedTab;
-selectedTab.subscribe((value) => {
-    _selectedTab = value
 })
 
 let _selectedAddr;

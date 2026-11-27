@@ -152,7 +152,7 @@ test('a passkey opens the address book, again after a reload, and nothing secret
 				['create', true, 0],
 				['get', true, 1]
 			]);
-			await page.getByRole('tab', { name: 'Settings' }).click();
+			await page.getByRole('link', { name: 'Settings' }).click();
 			await expect(page.getByLabel('DID', { exact: true })).toHaveValue(did);
 			await expect(page.getByTestId('vault-slot')).toHaveText([/Alice laptop \(opened this session\)/]);
 			await addCard(page, alice);
@@ -326,7 +326,7 @@ test('a new browser exchanges cards first and secures them with a passkey afterw
 		await test.step('Save and share: his card reaches her book under the temporary DID', async () => {
 			await fillOnboardingCard(page, people.bob);
 			await page.getByRole('button', { name: `Save and share with ${people.alice.first}` }).click();
-			await expect(page.getByRole('tab', { name: 'Contacts' })).toBeVisible();
+			await expect(page.getByRole('link', { name: 'Contacts' })).toBeVisible();
 			await expect.poll(() => names(alice.page), { timeout: 120000, message: "Bob's card in Alice's book" }).toContain(fullName(people.bob));
 			expect(await names(page)).toContain(fullName(people.alice));
 			const cards = await everPutUnder(alice, contactKey(bob.did));
@@ -359,7 +359,7 @@ test('a new browser exchanges cards first and secures them with a passkey afterw
 			await offer.getByRole('button', { name: 'Not now' }).click();
 			await expect(offer).toHaveCount(0);
 			expect(await warnsBeforeLeaving(page)).toBe(true);
-			await page.getByRole('tab', { name: 'Settings' }).click();
+			await page.getByRole('link', { name: 'Settings' }).click();
 			await expect(page.getByLabel('DID', { exact: true })).toHaveValue(bob.did);
 			await expect(page.getByTestId('secure-settings')).toBeVisible();
 			await expect(page.getByTestId('vault-slot')).toHaveCount(0);
@@ -414,7 +414,7 @@ test('a new browser exchanges cards first and secures them with a passkey afterw
 
 		await test.step("his invitation into Alice's book still holds: a change of his card reaches her", async () => {
 			// his own card, under My Address (#110)
-			await page.getByRole('tab', { name: 'My Address' }).click();
+			await page.getByRole('link', { name: 'My card' }).click();
 			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(people.bob.last);
 			await page.getByPlaceholder('Enter city...').fill('Beispielort');
 			await page.getByRole('button', { name: 'Update' }).click();

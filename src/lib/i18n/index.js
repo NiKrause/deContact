@@ -95,7 +95,7 @@ const languageStore = writable(locale.current);
 export const language = { subscribe: languageStore.subscribe };
 
 /**
- * `t` as a store, for components: `{$_('tabs.contacts')}`. Its value is a new function at
+ * `t` as a store, for components: `{$_('nav.contacts')}`. Its value is a new function at
  * each switch, so whatever uses it is computed again.
  */
 export const _ = derived(

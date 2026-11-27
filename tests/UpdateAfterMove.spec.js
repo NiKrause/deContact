@@ -81,7 +81,7 @@ test('Alice moves: Bob gets her new address, also when his app was closed meanwh
 
 /** a person moves: their own card, under My Address (#110), gets a new street, postal code and city */
 async function move(page, lastName, { street, postalCode, city }) {
-	await page.getByRole('tab', { name: 'My Address' }).click();
+	await page.getByRole('link', { name: 'My card' }).click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 	await page.getByPlaceholder('Enter street...').fill(street);
 	await page.getByPlaceholder('Enter zipcode...').fill(postalCode);
@@ -103,7 +103,7 @@ function addressIn(page, did) {
 
 /** what the contact list shows of a contact when its row is expanded (the only one expanded) */
 async function detailsInList(page, lastName) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
+	await page.getByRole('link', { name: 'Contacts' }).click();
 	const row = page.getByRole('row', { name: new RegExp(lastName) }).first();
 	if ((await row.getByRole('button', { name: 'Collapse current row' }).count()) === 0) {
 		await row.getByRole('button', { name: 'Expand current row' }).click();

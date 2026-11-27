@@ -32,7 +32,7 @@ deContact gives every person a self-owned address book. It lives in the browser 
 - 📇 **Your own address book.** An OrbitDB documents database for your card and the cards others write into it (private, business or other).
 - 🤝 **Exchange cards, peer to peer.** Scan a QR code with the camera, or paste the contact address it shows. The request goes straight to the other person's device over libp2p, with no topic a relay or a third peer could listen on ([how](docs/how-it-works.md#requests)). The other person confirms, and each side writes their card into the other's book. Whoever opens an invitation link from a QR code first gets the card without a confirmation and decides whether to share theirs ([how](docs/how-it-works.md#invitation-links)). On a phone without deContact the form shows at once; the passkey comes after the exchange ([how](docs/how-it-works.md#starting-without-a-passkey)).
 - 📲 **An app to install, with link previews.** deContact installs as a PWA and starts without a network. Its link previews and search results are in English at the app's address and in German below `de/`; an invitation link points to the page of the inviter's language ([how](docs/how-it-works.md#pwa-and-link-previews)).
-- 🖼️ **A photo on your card.** Take or pick one under **My Address**: it is cropped square, scaled to 256 × 256 and stored as a small WebP (at most 30 KB) inside the sealed card, without the original's EXIF data or location. Your contacts see it in their list and right after scanning your code ([how](docs/how-it-works.md#what-a-card-holds)).
+- 🖼️ **A photo on your card.** Take or pick one under **My card**: it is cropped square, scaled to 256 × 256 and stored as a small WebP (at most 30 KB) inside the sealed card, without the original's EXIF data or location. Your contacts see it in their list and right after scanning your code ([how](docs/how-it-works.md#what-a-card-holds)).
 - 🔄 **Updates follow you.** A changed card is rewritten in every book you were invited into.
 - 🛡️ **Signed invitations.** Only invited contacts may write, and only their own card (see [who may write](docs/how-it-works.md#who-may-write-into-an-address-book)).
 - 🔒 **End-to-end encrypted.** Every card is sealed to the owner of the book it sits in, every request to its recipient. Relays and the followers who keep a backup hold ciphertext only ([how](docs/how-it-works.md#encryption-sealed-to-the-reader)).
@@ -60,10 +60,10 @@ pnpm dev
 ```
 The app finds Le Space's relays on Aleph by itself. To try it with two people:
 1. Open the app in two separate browsers or browser profiles.
-2. In each, choose **Create a new address book** (your browser asks for a passkey twice), then enter your card under **My Address**.
-3. In browser A, open **Contacts → QR Code**, switch to *Contact address* and click the code to copy it. In browser B, paste it under **Contacts** and press **Scan**.
+2. In each, choose **Create a new address book** (your browser asks for a passkey twice), then enter your card under **My card**.
+3. In browser A, open **Exchange → Show my code**, switch to *Let them ask first* and click the code to copy it. In browser B, choose **Exchange → Paste a contact address instead**, paste it and press **Ask**.
 4. Choose **Share and ask for theirs** in the browser that is asked, then **Share mine** in the other.
-5. Each contact list now shows the other person's card; your own is under **My Address**.
+5. Each contact list now shows the other person's card; your own is under **My card**.
 
 ## Documentation
 | Page | Contents |

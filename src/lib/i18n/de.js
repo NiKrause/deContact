@@ -47,16 +47,23 @@ export default {
 			count: { one: '({count} Peer)', other: '({count} Peers)' }
 		}
 	},
-	tabs: {
+	nav: {
+		label: 'Hauptnavigation',
+		exchange: 'Austausch',
 		contacts: 'Kontakte',
-		myAddress: 'Meine Adresse',
-		statistics: 'Statistik',
+		card: 'Meine Karte',
 		settings: 'Einstellungen'
 	},
+	exchange: {
+		ready: 'Bereit zum Austausch',
+		connecting: 'Verbinde …',
+		showCode: 'Meinen Code zeigen',
+		scan: 'Code scannen',
+		paste: 'Stattdessen eine Kontaktadresse einfügen',
+		pasteLabel: 'Kontaktadresse',
+		ask: 'Anfragen'
+	},
 	home: {
-		scan: 'Scannen',
-		scanLabel: 'Kontaktadresse',
-		qrCode: 'QR-Code',
 		waiting: 'Warte auf das Handy von {name} …',
 		waitingNameless: 'Warte auf das Handy der Person, die dich eingeladen hat …'
 	},
@@ -88,6 +95,8 @@ export default {
 		firstName: 'Vorname',
 		search: 'Suchen …',
 		searchLabel: 'Kontakte durchsuchen',
+		add: 'Kontakt hinzufügen',
+		back: 'Alle Kontakte',
 		details: {
 			email: 'E-Mail',
 			address: 'Adresse',
@@ -98,7 +107,7 @@ export default {
 		},
 		clearSearch: 'Suche leeren',
 		table: {
-			selectRow: 'Diesen Kontakt unter Meine Adresse öffnen',
+			selectRow: 'Diesen Kontakt öffnen',
 			selectAll: 'Alle Kontakte auswählen',
 			expandRow: 'Zeile aufklappen',
 			collapseRow: 'Zeile zuklappen',
@@ -325,6 +334,7 @@ export default {
 		peerIdHelp: 'Jedes Gerät hat eine eigene Peer-ID, unabhängig von deiner Identität',
 		peers: 'Verbundene Peers',
 		peersHelp: 'So viele Peers sind gerade mit unserem Peer-to-Peer-Netzwerk verbunden',
+		network: 'Netzwerk',
 		webrtc: 'WebRTC (gilt nach dem Neuladen)',
 		dropFollowers: 'Gefolgte und Follower-DBs löschen',
 		dropAddressBook: 'Adress-DB löschen',

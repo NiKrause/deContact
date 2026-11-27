@@ -70,7 +70,8 @@ export const qrCodeOpen = writable(false)
 export const qrCodeData = writable()
 
 export const selectedRowIds = writable([])
-export const selectedTab = writable(0)
+/** Contacts shows the form for a contact being added by hand (#110) */
+export const addingContact = writable(false)
 const contact = {
     _id:"",
     firstName: "",
