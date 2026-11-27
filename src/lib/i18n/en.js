@@ -43,7 +43,8 @@ export default {
 		peers: {
 			none: 'No network or connecting...',
 			seed: 'Seed Node connected',
-			swarm: 'Swarm connected'
+			swarm: 'Swarm connected',
+			count: { one: '({count} peer)', other: '({count} peers)' }
 		}
 	},
 	tabs: {
@@ -54,6 +55,7 @@ export default {
 	},
 	home: {
 		scan: 'Scan',
+		scanLabel: 'Contact address',
 		qrCode: 'QR Code',
 		waiting: "Waiting for {name}'s phone…"
 	},
@@ -85,6 +87,7 @@ export default {
 		firstName: 'Firstname',
 		search: 'Search...',
 		clearSearch: 'Clear search input',
+		selectRow: 'Open this contact in My Address',
 		invited: 'invited',
 		canceled: 'request canceled',
 		nextPage: 'Next page',

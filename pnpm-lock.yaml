@@ -6,6 +6,7 @@ settings:
 
 overrides:
   react-native-webrtc: '-'
+  axe-core: 4.14.0
   '@libp2p/gossipsub@<17.0.0': 17.2.2
   bn.js@<4.12.3: ^4.12.3
   bn.js@>=5.0.0 <5.2.3: ^5.2.3
@@ -28,6 +29,9 @@ patchedDependencies:
   '@orbitdb/core@4.0.0':
     hash: c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa
     path: patches/@orbitdb__core@4.0.0.patch
+  carbon-components-svelte@0.82.11:
+    hash: 7e7b3c8e9f965d380541eb3d14c0eb7f6351facda82e8d6547700290d10afd40
+    path: patches/carbon-components-svelte@0.82.11.patch
 
 importers:
 
@@ -145,6 +149,9 @@ importers:
         specifier: ^0.28.0
         version: 0.28.0(vite@8.3.8(@types/node@26.6.11)(terser@5.51.4))
     devDependencies:
+      '@axe-core/playwright':
+        specifier: 4.14.0
+        version: 4.14.0(playwright-core@1.61.1)
       '@playwright/test':
         specifier: 1.61.1
         version: 1.61.1
@@ -162,7 +169,7 @@ importers:
         version: 8.56.0
       carbon-components-svelte:
         specifier: ^0.82.7
-        version: 0.82.11
+        version: 0.82.11(patch_hash=7e7b3c8e9f965d380541eb3d14c0eb7f6351facda82e8d6547700290d10afd40)
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -231,6 +238,12 @@ packages:
 
   '@assemblyscript/loader@0.9.4':
     resolution: {integrity: sha512-HazVq9zwTVwGmqdwYzu7WyQ6FQVZ7SwET0KKQuKm55jD0IfUpZgN0OPIiZG3zV1iSrVYcN0bdwLRXI/VNCYsUA==}
+
+  '@axe-core/playwright@4.14.0':
+    resolution: {integrity: sha512-SGUhG5PIHd2eMdpgBF2PyQLOhX+qyDR2PT4cmoS4Qk2ak+jX/rrSvst9l0PGv5WTHolKpUMvVmoHpr4cZgf1RQ==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@cbor-extract/cbor-extract-darwin-arm64@2.2.3':
     resolution: {integrity: sha512-qpUy9Yoisi6a7QHOVa+AlnqfN7eVstSRhpLwiLnwi6i3SNLkM5D2Z7MXl4LC5nUGA77mZEt479cPH3u8GD163Q==}
@@ -1241,6 +1254,10 @@ packages:
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
+
+  axe-core@4.14.0:
+    resolution: {integrity: sha512-9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ==}
+    engines: {node: '>=4'}
 
   axios@1.21.1:
     resolution: {integrity: sha512-6eI5Q/Y4u/Um9dDlsRoq5pY2rxnUTv+L4PpLitnbk/i4jb3MxLZ5CsN5Ih3IysbeRYK4pR+P7qfMsOQl9fwwFQ==}
@@ -3375,6 +3392,11 @@ snapshots:
 
   '@assemblyscript/loader@0.9.4': {}
 
+  '@axe-core/playwright@4.14.0(playwright-core@1.61.1)':
+    dependencies:
+      axe-core: 4.14.0
+      playwright-core: 1.61.1
+
   '@cbor-extract/cbor-extract-darwin-arm64@2.2.3':
     optional: true
 
@@ -5150,6 +5172,8 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.0.0
 
+  axe-core@4.14.0: {}
+
   axios@1.21.1(debug@4.4.0):
     dependencies:
       follow-redirects: 1.16.3(debug@4.4.0)
@@ -5319,7 +5343,7 @@ snapshots:
 
   canonicalize@2.0.0: {}
 
-  carbon-components-svelte@0.82.11:
+  carbon-components-svelte@0.82.11(patch_hash=7e7b3c8e9f965d380541eb3d14c0eb7f6351facda82e8d6547700290d10afd40):
     dependencies:
       flatpickr: 4.6.9
 

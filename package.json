@@ -20,6 +20,7 @@
 		"test:unit": "vitest --run && playwright test -c playwright.unit.config.js"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "4.14.0",
 		"@playwright/test": "1.61.1",
 		"@sveltejs/adapter-static": "^4.0.1",
 		"@sveltejs/kit": "^3.4.1",
@@ -88,6 +89,7 @@
 	"pnpm": {
 		"overrides": {
 			"react-native-webrtc": "-",
+			"axe-core": "4.14.0",
 			"@libp2p/gossipsub@<17.0.0": "17.2.2",
 			"bn.js@<4.12.3": "^4.12.3",
 			"bn.js@>=5.0.0 <5.2.3": "^5.2.3",
@@ -107,7 +109,8 @@
 			"ws@>=8.0.0 <8.21.0": "^8.21.0"
 		},
 		"patchedDependencies": {
-			"@orbitdb/core@4.0.0": "patches/@orbitdb__core@4.0.0.patch"
+			"@orbitdb/core@4.0.0": "patches/@orbitdb__core@4.0.0.patch",
+			"carbon-components-svelte@0.82.11": "patches/carbon-components-svelte@0.82.11.patch"
 		}
 	}
 }
