@@ -102,14 +102,14 @@ function addressIn(page, did) {
 	}, did);
 }
 
-/** what the contact list shows of a contact when its row is opened */
+/** what the contact list shows of a contact when its row is expanded (the only one expanded) */
 async function detailsInList(page, lastName) {
 	await page.getByRole('tab', { name: 'Contacts' }).click();
-	const details = page.locator('pre', { hasText: lastName });
-	if ((await details.count()) === 0) {
-		await page.getByRole('row', { name: new RegExp(lastName) }).first().getByRole('button', { name: 'Expand current row' }).click();
+	const row = page.getByRole('row', { name: new RegExp(lastName) }).first();
+	if ((await row.getByRole('button', { name: 'Collapse current row' }).count()) === 0) {
+		await row.getByRole('button', { name: 'Expand current row' }).click();
 	}
-	return (await details.first().textContent()) ?? '';
+	return (await page.getByTestId('contact-details').first().textContent()) ?? '';
 }
 
 /** whether the relay holds this entry of a book */

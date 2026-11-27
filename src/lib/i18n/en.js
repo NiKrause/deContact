@@ -88,6 +88,15 @@ export default {
 		firstName: 'Firstname',
 		search: 'Search...',
 		searchLabel: 'Search contacts',
+		// an expanded row: the card in words, the technical parts collapsed (#110)
+		details: {
+			email: 'Email',
+			address: 'Address',
+			category: 'Category',
+			technical: 'Technical details',
+			did: 'DID',
+			book: 'Address book'
+		},
 		clearSearch: 'Clear search input',
 		// what Carbon's table says to a screen reader (its translateWithId)
 		table: {

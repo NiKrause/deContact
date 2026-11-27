@@ -62,9 +62,10 @@ test("Bob sees Alice's photo after the onboarding; a third peer sees no image by
 			await expect(row.getByTestId('contact-photo')).toHaveAttribute('src', photo, { timeout: 60000 });
 			await row.getByRole('button', { name: 'Expand current row' }).click();
 			await expect(bob.page.getByTestId('contact-details-photo')).toHaveAttribute('src', photo);
-			// the details list the other fields, not the data URL
-			await expect(bob.page.locator('pre', { hasText: people.alice.city })).toBeVisible();
-			expect(await bob.page.locator('pre', { hasText: people.alice.city }).textContent()).not.toContain('data:image');
+			// the details list the other fields in words, not the data URL
+			const details = bob.page.getByTestId('contact-details');
+			await expect(details).toContainText(people.alice.city);
+			expect(await details.textContent()).not.toContain('data:image');
 		});
 
 		await test.step("Carol replicates Bob's book: the photo is not in the clear there", async () => {
