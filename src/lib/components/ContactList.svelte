@@ -1,5 +1,6 @@
 <script>
     import { DataTable, Toolbar, ToolbarContent, ToolbarSearch, Pagination } from "carbon-components-svelte";
+    import { readable } from "svelte/store";
     import { myAddressBook, selectedRowIds } from "../../stores.js";
     import { generateQRForAddress } from "../../operations.js"
     import ContactPhoto from "./ContactPhoto.svelte";
@@ -31,11 +32,24 @@
         return row.firstName
     }
 
-    /** the columns, in the language on screen (new ones with each switch) */
-    const headersOf = (tr) => [
+    /**
+     * Whether the screen is a phone's: below Carbon's md breakpoint (42rem), where its tabs
+     * become a list and +page.svelte drops the side margins. There the first name goes
+     * under the name, in one column.
+     */
+    const narrow = readable(false, (set) => {
+        const query = window.matchMedia("(max-width: 41.98rem)")
+        set(query.matches)
+        const changed = (event) => set(event.matches)
+        query.addEventListener("change", changed)
+        return () => query.removeEventListener("change", changed)
+    })
+
+    /** the columns, in the language on screen (new ones with each switch); one name column on a phone */
+    const headersOf = (tr, narrow) => [
         { key: "photo", empty: true, sort: false, width: "4rem" },
         { key: "lastName", value: tr("contacts.name") },
-        { key: "firstName", value: tr("contacts.firstName"), display: (value, row) => firstNameOf(row, tr) }
+        ...(narrow ? [] : [{ key: "firstName", value: tr("contacts.firstName"), display: (value, row) => firstNameOf(row, tr) }])
     ]
 
     /** Carbon's pagination texts, in the language on screen (new functions with each switch) */
@@ -49,6 +63,7 @@
 </script>
 
 <DataTable
+        class="contact-list"
         expandable
         rows={$myAddressBook}
         {pageSize}
@@ -61,7 +76,7 @@
                 }
         }}
         bind:selectedRowIds={$selectedRowIds}
-        headers={headersOf($_)}
+        headers={headersOf($_, $narrow)}
 >
         <Toolbar>
             <ToolbarContent>
@@ -78,6 +93,9 @@
     <svelte:fragment slot="cell" let:row let:cell>
         {#if cell.key === "photo"}
             <ContactPhoto photo={cell.value} size={32} />
+        {:else if $narrow && cell.key === "lastName"}
+            <span class="stacked-name">{cell.value ?? ""}</span>
+            <span class="stacked-first-name">{firstNameOf(row, $_) ?? ""}</span>
         {:else}
             {cell.display ? cell.display(cell.value, row) : cell.value}
         {/if}
@@ -94,3 +112,28 @@
         pageSizeInputDisabled
         {...paginationTexts($_)}
 />
+<style>
+    @media (max-width: 41.98rem) {
+        /*
+         * Carbon lays the table out from its first row (table-layout: fixed, for the photo's
+         * width), and the radio column's header has no width of its own: without one it
+         * takes as much as the name.
+         */
+        :global(.contact-list .bx--data-table thead th:nth-child(2)) {
+            width: 3rem;
+        }
+        .stacked-name,
+        .stacked-first-name {
+            display: block;
+            overflow-wrap: anywhere;
+        }
+        .stacked-name {
+            color: var(--cds-text-primary, #161616);
+        }
+        /* the details of a contact: long addresses wrap instead of widening the screen */
+        :global(.contact-list pre) {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+    }
+</style>

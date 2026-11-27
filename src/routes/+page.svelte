@@ -78,12 +78,13 @@
         <Tab label={$_('tabs.settings')}  data-cy="settings"/>
         <svelte:fragment slot="content">
             <TabContent>
-                <Grid fullWidth>
+                <Grid fullWidth class="scan-bar">
                     <Row>
                         <Column>
                             <TextInput role="scanContact" size="sm" placeholder={$_('scanner.hint')} bind:value={scannedAddress} on:keydown={(e) => e.code==='Enter'?scan():null} />
                         </Column>
                             <Column>
+                                <div class="scan-actions">
                                     <Button size="sm"
                                             on:click={async () => await scanOrOpenCamera()}>
                                         <Scan size="16"/> &nbsp; {$_('home.scan')}
@@ -92,8 +93,9 @@
                                         $qrCodeData = $orbitdb?.identity?.id;
                                         $qrCodeOpen = !$qrCodeOpen;
                                     }}>
-                                    <QrCode size="16" /> &nbsp; {$_('home.qrCode')}
-                                </Button>
+                                        <QrCode size="16" /> &nbsp; {$_('home.qrCode')}
+                                    </Button>
+                                </div>
                         </Column>
                     </Row>
                 </Grid>
@@ -126,5 +128,41 @@
     .waiting {
         margin: 0 1rem;
         overflow-wrap: anywhere;
+    }
+    /*
+     * A phone's width, below Carbon's md breakpoint (42rem), where its tabs become a list:
+     * the screen's width goes to the field, the buttons and the contacts, not to margins.
+     */
+    @media (max-width: 41.98rem) {
+        :global(.content) {
+            margin-left: 0;
+            margin-right: 0;
+        }
+        /* Carbon's width: 100% and the margin above would reach past the screen's edge */
+        :global(.bx--tabs.tabs) {
+            width: auto;
+        }
+        /* the field and the buttons line up with the table below */
+        :global(.bx--grid.scan-bar) {
+            padding-left: 0;
+            padding-right: 0;
+        }
+        /* the field on a line of its own, the buttons on the next one */
+        :global(.scan-bar .bx--col) {
+            flex-basis: 100%;
+            max-width: 100%;
+        }
+        /* side by side, half the width each, their labels on one line */
+        .scan-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .scan-actions :global(.bx--btn) {
+            flex: 1 1 0;
+            max-width: none;
+            justify-content: center;
+            padding-right: 12px; /* as on the left: no space kept for an icon at the end */
+            white-space: nowrap;
+        }
     }
 </style>
