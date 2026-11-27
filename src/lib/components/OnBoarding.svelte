@@ -228,6 +228,11 @@
         width: auto;
         flex: none;
     }
+    /* a status line, not a title: it gives way to the inviter's card */
+    .arriving h3 {
+        font-size: 1.25rem;
+        line-height: 1.4;
+    }
     .inviter {
         display: flex;
         align-items: center;
