@@ -57,7 +57,8 @@ export default {
 		scan: 'Scannen',
 		scanLabel: 'Kontaktadresse',
 		qrCode: 'QR-Code',
-		waiting: 'Warte auf das Handy von {name} …'
+		waiting: 'Warte auf das Handy von {name} …',
+		waitingNameless: 'Warte auf das Handy der Person, die dich eingeladen hat …'
 	},
 	// die Kamera, die den QR-Code eines Kontakts liest (QrScanner.svelte, <qr-scanner>
 	// aus @le-space/libp2p-webrtc-qr)
@@ -198,6 +199,11 @@ export default {
 		countryPlaceholder: 'Land eingeben …',
 		addAddress: 'Adresse hinzufügen',
 		saveAndShare: 'Speichern und mit {name} teilen',
+		saveAndShareNameless: 'Speichern und teilen',
+		onTheWay: 'Die Karte der Person, die dich eingeladen hat, ist unterwegs …',
+		inviter: 'Die Person, die dich eingeladen hat',
+		saving: 'Deine Karte wird gespeichert …',
+		savingAndSharing: 'Deine Karte wird gespeichert und verschickt …',
 		saveOnly: 'Nur speichern',
 		save: 'Speichern',
 		problem: 'Deine Karte konnte nicht gespeichert werden. Bitte versuch es noch einmal.'

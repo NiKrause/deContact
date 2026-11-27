@@ -72,7 +72,7 @@
 <div class="content">
     <!-- an invitation link we opened: its inviter's phone has not answered yet (#86) -->
     {#each $exchangesWaiting as waiting (waiting.inviter)}
-        <p class="waiting" role="status" data-testid="waiting-for-phone">{$_('home.waiting', { name: waiting.name ?? waiting.inviter })}</p>
+        <p class="waiting" role="status" data-testid="waiting-for-phone">{waiting.name ? $_('home.waiting', { name: waiting.name }) : $_('home.waitingNameless')}</p>
     {/each}
 <!--    {#if $progressState!==6}
     <ProgressBar helperText={"("+$progressState+"/6) "+$progressText} status={$progressState===6?"finished":"active"} />

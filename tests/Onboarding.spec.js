@@ -34,7 +34,7 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 
 		await test.step('Bob opens the link: email first, the address collapsed', async () => {
 			bob = await openLink(browser, link);
-			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText(`Waiting for ${alice.did}'s phone…`);
+			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText('The card of the person who invited you is on its way…');
 			const fields = await bob.page.getByTestId('onboarding').locator('input').evaluateAll((inputs) => inputs.map((input) => input.id));
 			expect(fields).toEqual(['onboarding-email', 'onboarding-first', 'onboarding-last']);
 			await expect(bob.page.getByRole('button', { name: 'Add address' })).toBeVisible();
@@ -45,12 +45,13 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 
 		await test.step('Bob saves and shares before Alice answers', async () => {
 			await fillOnboardingCard(bob.page, people.bob);
-			const share = bob.page.getByRole('button', { name: /^Save and share with / });
+			// Alice's name is not known yet: no DID on the button
+			const share = bob.page.getByRole('button', { name: 'Save and share', exact: true });
 			await expect(share).toBeEnabled();
 			await expect(bob.page.getByRole('button', { name: 'Save only' })).toBeVisible();
 			await share.click();
 			await expect(bob.page.getByRole('tab', { name: 'Contacts' })).toBeVisible();
-			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText(`Waiting for ${alice.did}'s phone…`);
+			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText('Waiting for the phone of the person who invited you…');
 			// his app tries again, with the same token, while Alice's does not answer
 			const asked = `could not deliver the request of the invitation link to ${alice.did}`;
 			const before = times(bob, asked);

@@ -25,6 +25,7 @@
     import { sha256 } from '../../utils/utils.js'
     import { session, startTemporary, temporaryAhead } from '#lib/identity/session.js'
     import { withSignIn } from '#lib/identity/temporary.js'
+    import { InlineLoading } from 'carbon-components-svelte'
     import ContactPhoto from './ContactPhoto.svelte'
     import LanguageSwitch from './LanguageSwitch.svelte'
     import { _, t } from '#lib/i18n/index.js'
@@ -83,8 +84,10 @@
     )
     /** an address book that already has a card of ours: it is shown to be checked */
     const ownCard = $derived(me ? $myAddressBook?.find((it) => it.owner === me && it.own) : undefined)
-    const shortDid = (value) => (value.length > 24 ? `${value.slice(0, 16)}…${value.slice(-6)}` : value)
-    const inviterName = $derived(inviterCard?.firstName || inviterCard?.lastName || inviterCard?.email || shortDid(inviter))
+    /** the inviter's first name once their card is here; until then nobody's: the DID is no name (#110) */
+    const inviterName = $derived(inviterCard?.firstName || inviterCard?.lastName || inviterCard?.email || '')
+    /** what is being done after a click on save: shown while it lasts @type {'share' | 'only' | 'save' | undefined} */
+    let savingAs = $state()
     const filledIn = $derived(NAME_FIELDS.some((field) => card[field].trim() !== ''))
     const canSave = $derived(linkChecked && filledIn && Boolean(me && $dbMyAddressBook?.address) && !saving)
 
@@ -100,6 +103,7 @@
     /** @param {'share' | 'only' | 'save'} choice */
     async function save(choice) {
         saving = true
+        savingAs = choice
         problem = undefined
         try {
             const fields = Object.fromEntries(Object.entries(card).map(([field, value]) => [field, value.trim()]))
@@ -114,6 +118,7 @@
             problem = () => t('onboarding.problem')
         } finally {
             saving = false
+            savingAs = undefined
         }
     }
 </script>
@@ -123,12 +128,15 @@
         <div class="inviter">
             <ContactPhoto photo={inviterCard.photo} size={96} testid="inviter-photo" />
             <h3 data-testid="inviter-card">
-                {$_('onboarding.added', { name: [inviterCard.firstName, inviterCard.lastName].filter(Boolean).join(' ') || inviterCard.email || inviter })}
+                {$_('onboarding.added', { name: [inviterCard.firstName, inviterCard.lastName].filter(Boolean).join(' ') || inviterCard.email || $_('onboarding.inviter') })}
             </h3>
         </div>
     {:else}
-        <h3>{$_('onboarding.shared')}</h3>
-        <p class="waiting" role="status" data-testid="waiting-for-phone">{$_('home.waiting', { name: inviter })}</p>
+        <!-- until their card is here, their name is not known: the line says whose card it is, without the DID -->
+        <div class="arriving">
+            <InlineLoading />
+            <h3 data-testid="waiting-for-phone">{$_('onboarding.onTheWay')}</h3>
+        </div>
     {/if}
 
     <form class="card" onsubmit={(event) => event.preventDefault()} onfocusin={engage} oninput={engage}>
@@ -175,12 +183,17 @@
             <div class="buttons">
                 {#if twoWay}
                     <button type="button" class="bx--btn bx--btn--primary" disabled={!canSave} onclick={() => save('share')}>
-                        {$_('onboarding.saveAndShare', { name: inviterName })}
+                        {inviterName ? $_('onboarding.saveAndShare', { name: inviterName }) : $_('onboarding.saveAndShareNameless')}
                     </button>
                     <button type="button" class="bx--btn bx--btn--secondary" disabled={!canSave} onclick={() => save('only')}>{$_('onboarding.saveOnly')}</button>
                 {:else}
                     <button type="button" class="bx--btn bx--btn--primary" disabled={!canSave} onclick={() => save('save')}>{$_('onboarding.save')}</button>
                 {/if}
+            </div>
+        {/if}
+        {#if savingAs}
+            <div class="saving" role="status" data-testid="onboarding-saving">
+                <InlineLoading description={$_(savingAs === 'share' ? 'onboarding.savingAndSharing' : 'onboarding.saving')} />
             </div>
         {/if}
         {#if problem}<p class="problem" role="alert">{problem()}</p>{/if}
@@ -200,8 +213,20 @@
         flex-direction: column;
         gap: 1rem;
     }
-    .waiting {
-        overflow-wrap: anywhere;
+    /* a phone: the page has no side margin there (+page.svelte), the form keeps 16 px */
+    @media (max-width: 41.98rem) {
+        .onboarding {
+            padding-inline: 1rem;
+        }
+    }
+    .arriving {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .arriving :global(.bx--inline-loading) {
+        width: auto;
+        flex: none;
     }
     .inviter {
         display: flex;
