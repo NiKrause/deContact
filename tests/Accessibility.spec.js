@@ -16,21 +16,18 @@ const tabs = {
 	de: ['Kontakte', 'Meine Adresse', 'Statistik', 'Einstellungen']
 };
 
-test('the first screens: the notice and the passkey screen', async ({ browser }) => {
+test('the first screen: the passkey screen, with the experimental note', async ({ browser }) => {
 	test.setTimeout(180000);
-	for (const [language, locale, next] of [
-		['en', 'en-US', 'Continue'],
-		['de', 'de-DE', 'Weiter']
+	for (const [language, locale] of [
+		['en', 'en-US'],
+		['de', 'de-DE']
 	]) {
 		const context = await browser.newContext({ locale });
 		try {
 			const page = await context.newPage();
 			await page.goto(process.env.PAGE_URL);
-			const button = page.getByRole('button', { name: next, exact: true });
-			await expect(button).toBeVisible();
-			await checkEveryWidth(page, `the notice of a first visit (${language})`);
-			await button.click();
 			await expect(page.getByTestId('passkey-gate')).toBeVisible();
+			await expect(page.getByTestId('experimental-note')).toBeVisible();
 			await expect(page.locator('#passkey-label')).toBeVisible();
 			await checkEveryWidth(page, `the passkey screen (${language})`);
 		} finally {

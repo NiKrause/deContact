@@ -60,7 +60,7 @@ pnpm dev
 ```
 The app finds Le Space's relays on Aleph by itself. To try it with two people:
 1. Open the app in two separate browsers or browser profiles.
-2. In each, choose **Continue**, then **Create a new address book** (your browser asks for a passkey twice), then enter your card under **My Address**.
+2. In each, choose **Create a new address book** (your browser asks for a passkey twice), then enter your card under **My Address**.
 3. In browser A, open **Contacts → QR Code**, switch to *Contact address* and click the code to copy it. In browser B, paste it under **Contacts** and press **Scan**.
 4. Choose **Share and ask for theirs** in the browser that is asked, then **Share mine** in the other.
 5. Each contact list now shows the other person's card; your own is under **My Address**.

@@ -89,11 +89,6 @@ export async function didOf(page) {
 	return page.evaluate(() => window.orbitdb.identity.id);
 }
 
-/** confirms the "experimental software" notice of a first visit */
-export async function confirmExperimental(page) {
-	await page.getByRole('button', { name: 'Continue' }).click();
-}
-
 /** a new address book with a new passkey: two prompts, the second announced */
 export async function createAddressBook(page, label = 'E2E') {
 	await page.getByLabel('Name of the new passkey (optional)').fill(label);
@@ -119,7 +114,6 @@ export async function newPerson(browser, person, { webRTC = true } = {}) {
 	// the PRF outputs: what a storage scan must not find, and the root of the vault (#59)
 	await recordCeremonies(page);
 	await page.goto(process.env.PAGE_URL);
-	await confirmExperimental(page);
 	const did = await createAddressBook(page, person.first);
 	await addCard(page, person);
 	return {

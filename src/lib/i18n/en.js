@@ -193,10 +193,6 @@ export default {
 		asked: 'Asked on {value}',
 		sealed: 'The request is signed by their address book, and only you can read it.'
 	},
-	experimental: {
-		heading: 'Confirmation',
-		text: 'Note: This is still experimental software. This peer-to-peer only progressive web app (PWA) is not (yet) intended for use in production environments or for use where real money or real contact data are at stake!\nPlease contact developers for questions.'
-	},
 	onboarding: {
 		shared: 'Contact data have been shared with you',
 		added: '{name} was added to your address book',
@@ -249,6 +245,8 @@ export default {
 		wordsLabel: 'Your 24 recovery words',
 		openWithWords: 'Open with recovery words',
 		importFile: 'Or import a vault file from another device',
+		chooseFile: 'Choose a vault file',
+		experimental: 'deContact is experimental software: do not rely on it yet for contact details that matter.',
 		opening: 'Opening the vault…',
 		noneCreated:
 			'No address book was created. Open a device link, import a vault file or use your recovery words.',

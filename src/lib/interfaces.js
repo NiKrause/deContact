@@ -6,9 +6,3 @@
  *   (`from`), when (`timestamp`), and whether it answers one of ours (`nopingpong`)
  */
 
-/**
- * ConfirmDialogOptions: the notice of a first visit (experimentalUseModal.js)
- * @memberof interfaces
- * @typedef {Object} ConfirmDialogOptions
- * @property {{ text?: string }} data - the text to show
- */

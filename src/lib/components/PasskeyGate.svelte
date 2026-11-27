@@ -20,6 +20,7 @@
     import { notify } from '../../utils/utils.js'
     import { _, t } from '#lib/i18n/index.js'
     import LanguageSwitch from './LanguageSwitch.svelte'
+    import { FileUploaderButton } from 'carbon-components-svelte'
 
     /** onboarding: somebody opened an invitation link; handedOver: a device link brought a vault record */
     let { onboarding = false, handedOver = false } = $props()
@@ -69,8 +70,9 @@
         problem = () => t('gate.noneCreated')
     }
 
+    /** Carbon's file button hands over the files it was given @param {CustomEvent<readonly File[]>} event */
     async function importFile(event) {
-        const file = event.currentTarget.files?.[0]
+        const file = event.detail?.[0]
         if (!file) return
         const record = parseVaultRecord(await file.text())
         if (!record) {
@@ -85,6 +87,8 @@
 
 <div class="gate" data-testid="passkey-gate">
     <h3>{onboarding ? $_('onboarding.shared') : $_('gate.title')}</h3>
+    <!-- once a blocking dialog on the first visit; now a line here, every time (#110) -->
+    <p class="experimental" data-testid="experimental-note">{$_('gate.experimental')}</p>
 
     {#if $legacySeedRemoved}
         <div class="bx--inline-notification bx--inline-notification--info" role="status" data-testid="legacy-reset">
@@ -133,8 +137,16 @@
         {/if}
 
         <div class="file">
-            <label class="bx--label" for="vault-file">{$_('gate.importFile')}</label>
-            <input id="vault-file" type="file" accept="application/json,.json" onchange={importFile} />
+            <p class="bx--label" id="vault-file-label">{$_('gate.importFile')}</p>
+            <FileUploaderButton
+                id="vault-file"
+                kind="tertiary"
+                accept={['application/json', '.json']}
+                labelText={$_('gate.chooseFile')}
+                disableLabelChanges
+                aria-describedby="vault-file-label"
+                disabled={busy}
+                on:change={importFile} />
         </div>
     {/if}
 
@@ -162,5 +174,12 @@
     }
     .problem {
         color: #fa4d56;
+    }
+    .experimental {
+        color: var(--cds-text-secondary, #c6c6c6);
+        font-size: 0.875rem;
+    }
+    .file {
+        align-items: flex-start;
     }
 </style>

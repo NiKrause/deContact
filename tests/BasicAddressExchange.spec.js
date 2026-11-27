@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, confirmExperimental, contactAddressOf, createAddressBook } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, contactAddressOf, createAddressBook } from './helpers/passkeys.js';
 /** the console of both pages */
 const lines = [];
 
@@ -140,7 +140,6 @@ async function initializeNewPage(browser, user) {
 		// a passkey per person (#60): its vault holds the identity
 		await addVirtualAuthenticator(page);
 		await page.goto(page_url);
-		await confirmExperimental(page);
 		await createAddressBook(page, user.identity);
 		await page.getByRole('tab', { name: 'Settings' }).click();
 		// the DID appears once OrbitDB has started
