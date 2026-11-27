@@ -1,6 +1,8 @@
 <script>
     import { TextInput, Button, Column, Grid, Row, Toggle } from "carbon-components-svelte";
     import PasskeySettings from "./PasskeySettings.svelte";
+    import SecureOffer from "./SecureOffer.svelte";
+    import { session } from "#lib/identity/session.js";
     import LanguageSwitch from "./LanguageSwitch.svelte";
     import { _ } from "#lib/i18n/index.js";
     import {
@@ -34,7 +36,8 @@
     </Row>
 
     <Row class="custom-row">
-        <Column><PasskeySettings /></Column>
+        <!-- a temporary identity (#97) has no vault yet: securing it comes first -->
+        <Column>{#if $session?.temporary}<SecureOffer inSettings />{:else}<PasskeySettings />{/if}</Column>
     </Row>
 
     <Row>

@@ -6,6 +6,11 @@
      * with Alice" or "Save only"; a link without a two-way exchange offers only "Save". A
      * request of the inviter waits for that choice, and no request dialog appears here
      * (p2p-operations.js openInvitationLink, exchanges.js).
+     *
+     * On a device without deContact the form shows without a passkey (#97): a temporary
+     * identity starts once the person starts on the form, and only then is the inviter
+     * asked, so "Already have a deContact passkey? Sign in" before that leaves the link's
+     * one-time token unused. The passkey is offered after the exchange (SecureOffer).
      */
     import { onDestroy } from 'svelte'
     import { did, query } from '../../routes/router.js'
@@ -18,7 +23,10 @@
         sendInvitationLinkRequest
     } from '#lib/network/p2p-operations.js'
     import { sha256 } from '../../utils/utils.js'
+    import { session, startTemporary, temporaryAhead } from '#lib/identity/session.js'
+    import { withSignIn } from '#lib/identity/temporary.js'
     import ContactPhoto from './ContactPhoto.svelte'
+    import LanguageSwitch from './LanguageSwitch.svelte'
     import { _, t } from '#lib/i18n/index.js'
 
     // #/onboarding/<the inviter's DID>?onBoardingToken=<their one-time token>
@@ -54,6 +62,17 @@
             .then(() => sendInvitationLinkRequest(inviter, onBoardingToken))
             .catch((error) => console.log('could not send the request of the invitation link:', error?.message))
     })
+
+    /** the person starts on the form: a temporary identity starts, if one is to (#97) */
+    function engage() {
+        if ($temporaryAhead) startTemporary().catch((error) => console.error('the temporary identity did not start:', error))
+    }
+    /** the passkey screen instead (today's flow): the page opens this link again with a passkey first */
+    function signIn() {
+        history.replaceState(null, '', withSignIn(window.location.href))
+        window.location.reload()
+    }
+    const temporary = $derived($temporaryAhead || Boolean($session?.temporary))
 
     const me = $derived($orbitdb?.identity?.id)
     /** the inviter's card, once it arrived (our placeholder sits under its key until then) */
@@ -110,7 +129,7 @@
         <p class="waiting" role="status" data-testid="waiting-for-phone">{$_('home.waiting', { name: inviter })}</p>
     {/if}
 
-    <form class="card" onsubmit={(event) => event.preventDefault()}>
+    <form class="card" onsubmit={(event) => event.preventDefault()} onfocusin={engage} oninput={engage}>
         <h4>{$_('onboarding.yourDetails')}</h4>
         <label class="bx--label" for="onboarding-email">{$_('onboarding.email')}</label>
         <input id="onboarding-email" class="bx--text-input" type="email" autocomplete="email" placeholder={$_('onboarding.emailPlaceholder')} bind:value={card.email} />
@@ -164,6 +183,12 @@
         {/if}
         {#if problem}<p class="problem" role="alert">{problem()}</p>{/if}
     </form>
+
+    {#if temporary}
+        <button type="button" class="bx--btn bx--btn--ghost bx--btn--sm sign-in" data-testid="sign-in-instead" onclick={signIn}>{$_('secure.signIn')}</button>
+    {/if}
+    <!-- the first screen of an invitation link (#89, #97): Settings is out of reach until the card is saved -->
+    <LanguageSwitch testid="onboarding-language" />
 </div>
 
 <style>
@@ -191,7 +216,8 @@
         grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
         gap: 0.5rem 1rem;
     }
-    .add-address {
+    .add-address,
+    .sign-in {
         align-self: flex-start;
     }
     .buttons {

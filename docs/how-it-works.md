@@ -37,10 +37,22 @@ flowchart LR
 |---|---|
 | **libp2p** | Connections between browsers and relays: WebSockets to the relay, WebRTC between browsers, circuit relay as fallback, gossipsub for messages and peer discovery |
 | **Helia** | Content-addressed blocks (OrbitDB entries, manifests) over bitswap, stored in IndexedDB (LevelDB) |
-| **OrbitDB** | One `documents` database per address book, a CRDT log that merges concurrent writes |
+| **OrbitDB** | One `documents` database per address book, a CRDT log that merges concurrent writes. 4.0.0 with a [sync patch](#orbitdb-sync-patch) |
 | **Passkey vault** | One root secret, opened by any of your passkeys or your recovery words ([below](#identity-passkeys-and-the-vault)) |
 | **did:key** | Ed25519 identity derived from the vault's root. It signs OrbitDB entries, requests and invitations; its X25519 counterpart is the key cards and requests are sealed to |
 | **orbitdb-relay** | Circuit relay, discovery hub and an always-on replica of the address books |
+
+### OrbitDB sync patch
+
+Until [orbitdb/orbitdb#1260](https://github.com/orbitdb/orbitdb/pull/1260) is released, deContact applies it to `@orbitdb/core` 4.0.0 as a pnpm patch ([`patches/@orbitdb__core@4.0.0.patch`](../patches/@orbitdb__core@4.0.0.patch), `pnpm.patchedDependencies`). It changes only `src/sync.js`, for a reader that reaches a writer only through a third peer such as a relay ([orbitdb#1255](https://github.com/orbitdb/orbitdb/issues/1255)), which is the usual case at a conference, with a phone on mobile data:
+
+- heads learnt through the heads exchange are announced on the topic once, so a peer in the middle passes them on;
+- on opening a database, the heads are exchanged with peers that were already subscribed, the relay included;
+- the heads handler is registered before subscribing, so an early dial finds it;
+- `join` is emitted once per peer;
+- heads dials run outside the database's queue: a dial that hangs on a peer reachable only through a relay circuit no longer holds up the exchange with the relay.
+
+The patch applies to every OrbitDB in this repository, the E2E tests' local relay included. Le Space's relays on Aleph run orbitdb-relay with its own OrbitDB, which republishes the heads it syncs by itself.
 
 ## Identity: passkeys and the vault
 
@@ -51,18 +63,47 @@ flowchart LR
     PK1["passkey 1<br/>(the first)"] -- "PRF output" --> S1["slot 1"]
     PK2["passkey 2<br/>(security key, other device)"] -- "PRF output" --> S2["slot 2"]
     W["24 recovery words<br/>(BIP39, on paper)"] -- "BIP39 seed" --> S3["words slot"]
-    S1 & S2 & S3 --> VK["vault key"] --> ROOT["root<br/>= passkey 1's PRF output"]
+    S1 & S2 & S3 --> VK["vault key"] --> ROOT["root<br/>= passkey 1's PRF output,<br/>or a temporary identity's"]
     ROOT -- "HKDF 'decontact/identity/v1'" --> DID["Ed25519 did:key<br/>OrbitDB identity, signs requests and invitations"]
     DID -- "its X25519 counterpart" --> X["X25519 key<br/>opens what is sealed to the DID"]
 ```
 
 - **One prompt per session.** Unlocking reads the passkey's PRF output once (`readPrfOutput`). The same output opens the vault slot, and the identity comes from the root inside; nothing asks the passkey again. Creating an address book takes two prompts (register, read the PRF output); the second is announced by `<passkey-step-dialog>`.
-- **The root.** A new vault takes the first passkey's PRF output as its root, as Belege does. That passkey alone restores everything on an empty device, whether it is synced (iCloud, Google, a password manager) or a security key.
+- **The root.** A new vault takes the first passkey's PRF output as its root, as Belege does. That passkey alone restores everything on an empty device, whether it is synced (iCloud, Google, a password manager) or a security key. An identity that began without a passkey after an invitation link has a random root instead ([below](#starting-without-a-passkey)).
 - **One identity for every passkey.** `createSecretSigner(root, { info: 'decontact/identity/v1' })` gives an Ed25519 `did:key` that belongs to no single passkey. Every slot opens the same root, so every passkey writes as the same DID: the DID that owns the address book in the access controller and under which contacts keep the card (`contact:<DID>`). OrbitDB gets it through `OrbitDBWebAuthnIdentityProviderFunction({ signer })`; peers and relays verify it as the provider's `webauthn` identity type.
 - **Memory only.** OrbitDB's keystore is `createSessionKeystore({ signer })`: no key lands in IndexedDB. The vault key, the root, the identity's key and its X25519 key ([below](#encryption-sealed-to-the-reader)) live in the page's memory until it closes.
 - **What the browser keeps.** The vault record in `localStorage` (`decontact.vaults.v1`): public JSON with the root sealed under a random vault key and one slot per passkey (the vault key sealed under a key derived from that passkey's PRF output). It names each slot's credential id and label, nothing secret. The E2E tests scan `localStorage`, `sessionStorage` and IndexedDB for the root, the identity's key, its X25519 key and the vault key.
 - **More passkeys.** Under **Settings** a passkey can be added (two prompts) and removed. A removed passkey is refused on this device, but it has seen the root: removing revokes nothing it already opened.
 - **Recovery words.** Under **Settings**, 24 BIP39 words become one more slot (filed under a fixed id, so one set per vault). They are shown once and never stored; replacing them makes the old words useless.
+
+### Starting without a passkey
+
+At a conference stand the exchange should take seconds, and creating a passkey on a new phone does not ([#97](https://github.com/NiKrause/deContact/issues/97)). So a browser that keeps no vault and opens an [invitation link](#invitation-links) shows the form at once, and the passkey comes after the exchange.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Bob
+    participant BB as Bob's browser
+    participant AB as Alice's browser
+
+    Bob->>BB: opens Alice's link: the form, no passkey prompt
+    Bob->>BB: starts on the form
+    BB->>BB: random root in memory → did:key, X25519 key
+    BB->>AB: the exchange as always, under that DID
+    AB->>BB: Alice's card
+    BB->>Bob: "Keep this contact? Secure it with a passkey."
+    Bob->>BB: Secure with a passkey (two prompts)
+    BB->>BB: the root sealed into a new vault, its record published:<br/>same DID, same books, nothing migrated
+```
+
+- **A temporary identity.** Once the person starts on the form, the app takes a random 32-byte root, in the page's memory only, and derives the Ed25519 `did:key` and its X25519 key from it as from a vault's root (`createSecretSigner(root, { info: 'decontact/identity/v1' })`). OrbitDB runs with `createSessionKeystore`, as for a vault identity. Only then is Alice asked: **Already have a deContact passkey? Sign in** on the form, before that, opens the link again with the passkey screen first, and the link's one-time token is still unused.
+- **The exchange as always**, under that DID: Alice invites it, Bob's card goes to `contact:<DID>` in her book, and his book is the book of that DID.
+- **The passkey afterwards.** Once a contact's card has arrived, the app offers: "Keep this contact? Secure it with a passkey." *Not now* puts the offer away until another contact arrives or three minutes pass; **Settings** offers it all the time. Creating the passkey (two prompts) seals the temporary root into a new vault (`rootPayload(root)` in that passkey's slot), publishes the vault record as after every change, and turns the session into a vault session without opening anything again. The DID stays, so Alice's invitation, Bob's book and his card in hers stay valid.
+- **Two more ways back in**, offered right after and skippable: recovery words, should the passkey be lost, and the vault file, should the network not have the record. The passkey's PRF output is not this vault's root, so restoring it on an empty device needs the record ([below](#a-device-that-has-nothing-yet)).
+- **Nothing kept while temporary.** No vault is written, and what the app otherwise keeps in `localStorage` (the links opened, `decontact.exchanges.v1`, and the links issued) is held in memory too ([`held-storage.js`](../src/lib/identity/held-storage.js)), and written once the identity is secured. IndexedDB holds what OrbitDB and Helia write for any identity: the public identity document and the book's entries, whose cards are sealed. The E2E test scans `localStorage`, `sessionStorage` and IndexedDB during the temporary phase, and checks that scan against the root once the passkey has sealed it.
+- **Closing the tab** before the passkey loses Bob's side of the exchange; Alice keeps his card. Once his book holds something, the app warns before the tab closes (`beforeunload`), until the identity is secured.
+- **A browser that keeps a vault** opens an invitation link with the passkey screen, as before.
 
 ### A device that has nothing yet
 
@@ -74,7 +115,7 @@ A new device finds the vault record in one of three places, and the keeper's `fi
 | **Device link** | **Settings → Link another device**: a link (and QR code) with the record in the URL fragment, which never reaches a server. |
 | **Vault file** | **Settings → Download vault file**, imported on the new device's first screen. |
 
-- With the **first passkey**: its PRF output is the root, so the identity comes back even if no record is found.
+- With the **first passkey**: its PRF output is the root, so the identity comes back even if no record is found - except for an identity that [began without a passkey](#starting-without-a-passkey), whose record must be found as for any other slot.
 - With a **second passkey** or the **recovery words**: the record must be found, then it opens. A device whose passkey does not sync opens it with the words and adds its own passkey under **Settings**.
 - A passkey that opens nothing gets no new address book without the person saying so.
 
@@ -172,6 +213,8 @@ Every request is signed with the sender's `did:key`, the identity of their vault
 
 From each sender only the newest request waits for an answer.
 
+A pubsub message can be missed (an app in the background), so the sender's app resends its request until the recipient's card has arrived in its book. A resend names the request it repeats (`resentOf`, that request's timestamp by the sender's clock, signed with the rest). The recipient remembers the timestamp of the last request of that sender it answered in the dialog: a resend of that request or an earlier one asks nobody again, while a request made anew (scanning again, asking back) always asks ([`answered.js`](../src/lib/network/answered.js)). An older app ignores the field and asks as before.
+
 A peer subscribed to the topic sees that something was sent to the recipient, when, and from which libp2p peer; not who sent it, the sender's book or their name ([#58](https://github.com/NiKrause/deContact/issues/58), finding 3).
 
 ### Invitation links
@@ -191,7 +234,7 @@ sequenceDiagram
     Alice->>AB: QR code, "Two-way exchange" on
     AB->>AB: sign a token {nonce, expiry, two-way}, remember it
     Bob->>BB: scan, open #/onboarding/did(Alice)?onBoardingToken=…
-    BB->>BB: passkey → identity, check the token against did(Alice),<br/>placeholder contact:did(Alice) into Bob's book
+    BB->>BB: identity (a temporary one on a new device, #97), check the token against did(Alice),<br/>placeholder contact:did(Alice) into Bob's book
     loop every 15 s until Bob's app has what it needs, at most until the token expires
         BB->>AB: REQUEST_ADDRESS {Bob's book, invitation for Alice, token, twoWay},<br/>signed by Bob, sealed to Alice
     end
@@ -207,7 +250,7 @@ sequenceDiagram
 - **The first person** who sends a request with the token gets Alice's card without a dialog. Anybody else, anybody after 24 hours, and a link created on another of Alice's devices make her app ask, as for any other request; the resends of a request she answered in the dialog ask her no second time.
 - **The form.** While Alice's card is on its way, Bob's app shows the form; once it is there, her name and [photo](#what-a-card-holds) above it: email, first name and last name first, the address behind *Add address*. The email alone is enough. Bob chooses **Save and share with Alice** or **Save only**; a link without a two-way exchange, or one whose token does not check out against the DID in it, offers only **Save**. No request dialog appears during the onboarding: a request of Alice's that arrives before Bob saves waits for his choice, and *Save only* declines it, as Cancel does in the dialog. Bob's app writes no placeholder card of his own (his DID as the last name) anywhere.
 - **Sharing back without being asked.** Bob may write into Alice's book only with an invitation she signed for his DID, and she cannot sign one before she knows it. So, when the token allows a two-way exchange, Bob's request carries `twoWay: true`: "send me an invitation, in case I share". For her own valid token and its first invitee, Alice's device answers without asking: a request with her invitation, `nopingpong` and the same token, which tells Bob's app what it answers. It writes no placeholder for Bob into her book and does not resend. Bob's app asks for the invitation together with the card, so that it is there while Alice still holds her phone, and uses it only if he shares. After *Save and share* it asks until the invitation has arrived.
-- **Waiting for Alice's phone.** A PWA in the background misses pubsub messages. Bob's app resends the request with the same token every 15 seconds until Alice's card (and, after *Save and share*, her invitation) has arrived, until the token expires, and says "Waiting for Alice's phone…" (with her DID until her card is there). His choice is kept in `localStorage` (`decontact.exchanges.v1`) until the token expires: an invitation that comes after a reload is used, or declined, without asking him again ([`exchanges.js`](../src/lib/network/exchanges.js)).
+- **Waiting for Alice's phone.** A PWA in the background misses pubsub messages. Bob's app resends the request with the same token every 15 seconds until Alice's card (and, after *Save and share*, her invitation) has arrived, until the token expires, and says "Waiting for Alice's phone…" (with her DID until her card is there). His choice is kept in `localStorage` (`decontact.exchanges.v1`; in memory until a [temporary identity](#starting-without-a-passkey) is secured) until the token expires: an invitation that comes after a reload is used, or declined, without asking him again ([`exchanges.js`](../src/lib/network/exchanges.js)).
 - **Both ways stay current.** Alice remembers Bob's book (a hidden record in hers), so a later change of her card reaches him even when he saved only. After *Save and share* his changes reach her the same way.
 - **Apps from before #86.** The token's format did not change; its last field was "request address from peer". An older app that opens a new link gets Alice's card only. A request from an older app of Alice's, which asked Bob back on its own, waits for his choice like any request of hers.
 

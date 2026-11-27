@@ -23,6 +23,10 @@ import {
     signerOf,
     slotsOf,
     encryptionKeysOf,
+    encryptionKeysOfRoot,
+    newRoot,
+    sealRoot,
+    signerOfRoot,
     wordsSecret
 } from './vault.js'
 import { rootOf } from '@le-space/orbitdb-identity-provider-webauthn-did/vault'
@@ -287,5 +291,73 @@ describe('signing as the vault identity', () => {
         // the payload still holds the root afterwards: only the copies are zeroed
         expect(Buffer.from(rootOf(viaSecond.payload))).toEqual(Buffer.from(first.prfOutput.slice(0, 32)))
         await expect(encryptionKeysOf(opened, (await createdVault()).signer.did)).rejects.toThrow(/does not belong/)
+    })
+})
+
+describe('a temporary identity sealed into a vault (#97)', () => {
+    it('keeps its DID and X25519 pair: the root is sealed as it is', async () => {
+        const root = newRoot()
+        const temporary = await signerOfRoot(root)
+        const keys = await encryptionKeysOfRoot(root, temporary.did)
+        const storage = memoryStorage()
+        const keeper = createKeeper(storage)
+        const first = passkey()
+        const opened = await sealRoot(keeper, { ...first, label: 'Bob phone', root })
+        expect(opened.created).toBe(true)
+        expect((await signerOf(opened)).did).toBe(temporary.did)
+        expect((await encryptionKeysOf(opened, temporary.did)).publicKey).toEqual(keys.publicKey)
+        // the root is random, not the PRF output, and left for the caller to zero
+        expect(Buffer.from(rootOf(opened.payload))).toEqual(Buffer.from(root))
+        expect(hex(rootOf(opened.payload))).not.toBe(hex(first.prfOutput.slice(0, 32)))
+        expect(root.some((byte) => byte !== 0)).toBe(true)
+        expect((await slotsOf(opened)).map((slot) => slot.label)).toEqual(['Bob phone'])
+    })
+
+    it('opens again with that passkey as the same DID; on an empty device only with its record', async () => {
+        const root = newRoot()
+        const did = (await signerOfRoot(root)).did
+        const storage = memoryStorage()
+        const first = passkey()
+        const opened = await sealRoot(createKeeper(storage), { ...first, root })
+
+        // a reload: the passkey opens the vault kept here
+        const again = await openWithPasskey(createKeeper(storage), first)
+        expect(again.created).toBe(false)
+        expect((await signerOf(again)).did).toBe(did)
+
+        // an empty device: the passkey's PRF output is not the root, so a vault made from
+        // it would be another identity; with the record it is the same
+        const empty = memoryStorage()
+        const made = await openWithPasskey(createKeeper(empty), { ...first, mayCreate: true })
+        expect((await signerOf(made)).did).not.toBe(did)
+        const record = parseVaultRecord(serializeVaultRecord(opened.record))
+        const restored = await openWithPasskey(createKeeper(memoryStorage()), { ...first, find: findIn(async () => [record]) })
+        expect(restored.found).toBe(true)
+        expect((await signerOf(restored)).did).toBe(did)
+    })
+
+    it('stores nothing of the root, the identity key or the X25519 key in the clear', async () => {
+        const root = newRoot()
+        const storage = memoryStorage()
+        const opened = await sealRoot(createKeeper(storage), { ...passkey(), root })
+        const seed = await deriveSubkey(root, IDENTITY_INFO)
+        const text = storage.text()
+        for (const secret of [root, seed, opened.vaultKey]) {
+            for (const spelling of spellings(secret)) expect(text.includes(spelling)).toBe(false)
+        }
+    })
+
+    it('refuses a passkey that opens a vault kept here already, and changes nothing', async () => {
+        const { storage, keeper, first } = await createdVault()
+        const before = storage.getItem(VAULTS_KEY)
+        await expect(sealRoot(keeper, { ...first, root: newRoot() })).rejects.toMatchObject({ code: 'VAULT_SLOT_EXISTS' })
+        expect(storage.getItem(VAULTS_KEY)).toBe(before)
+    })
+
+    it('gives every temporary identity a root of its own', async () => {
+        const [a, b] = [newRoot(), newRoot()]
+        expect(a).toHaveLength(32)
+        expect(hex(a)).not.toBe(hex(b))
+        expect((await signerOfRoot(a)).did).not.toBe((await signerOfRoot(b)).did)
     })
 })

@@ -6,14 +6,26 @@
     import ConnectionSignal from "carbon-icons-svelte/lib/ConnectionSignal.svelte";
     import { Header, HeaderGlobalAction, HeaderNav, HeaderUtilities, Theme } from "carbon-components-svelte";
     import { connectPasskeyStepDialog } from "@le-space/orbitdb-identity-provider-webauthn-did/elements";
-    import { hash } from './router.js'
+    import { hash, query } from './router.js'
     import QRCodeModal from "#lib/components/QRCodeModal.svelte";
     import PasskeyGate from "#lib/components/PasskeyGate.svelte";
-    import { myDal, qrCodeOpen, qrCodeData, helia, orbitdb } from "../stores.js";
+    import SecureOffer from "#lib/components/SecureOffer.svelte";
+    import { myDal, qrCodeOpen, qrCodeData, helia, orbitdb, myAddressBook } from "../stores.js";
 
     import { startNetwork, startAddressBook, close } from "../lib/network/p2p-operations.js"
-    import { attachOrbitDB, currentEncryptionKeys, handRecord, initVault, ready, session } from "#lib/identity/session.js"
+    import {
+        attachOrbitDB,
+        currentEncryptionKeys,
+        expectTemporary,
+        handRecord,
+        initVault,
+        ready,
+        session,
+        temporaryAhead,
+        vaultKeptHere
+    } from "#lib/identity/session.js"
     import { parseVaultRecord } from "#lib/identity/vault.js"
+    import { somethingToLose, wantsSignIn } from "#lib/identity/temporary.js"
 
     import { connectedPeers } from "../stores.js";
     import { confirmExperimentalUse } from "./confirmExperimentalUse.js";
@@ -30,6 +42,30 @@
     let networkStarted
     initVault({ helia: new Promise((resolve) => (networkStarted = resolve)) })
     const handedOver = takeDeviceLink()
+
+    /**
+     * A device without deContact opens an invitation link (#97): the form shows at once,
+     * and the passkey comes after the exchange. A device that keeps a vault unlocks as
+     * before, and so does a link opened with "Already have a deContact passkey?".
+     */
+    const temporary = get(hash) === '/onboarding' && !handedOver && !wantsSignIn(get(query)) && !keptHere()
+    if (temporary) expectTemporary()
+
+    /** whether this browser keeps a vault; one it cannot read is the passkey screen's to explain */
+    function keptHere() {
+        try {
+            return vaultKeptHere()
+        } catch {
+            return true
+        }
+    }
+
+    /** until a passkey secures it, closing the tab loses this side of the exchange (#97) */
+    function warnBeforeLeaving(event) {
+        if (!somethingToLose({ temporary: $session?.temporary, documents: $myAddressBook })) return
+        event.preventDefault()
+        event.returnValue = '' // what older browsers look for
+    }
 
     /**
      * A device link (#/link?vault=...) brings the public vault record of another device:
@@ -87,7 +123,7 @@
 
         //    const urlParams = new URLSearchParams(window.location.search); //TODO url params we need when we "onboard" a new user via scanning a URL
 </script>
-<svelte:window on:beforeinstallprompt={ () => { console.log("beforeinstallprompt") }} />
+<svelte:window on:beforeinstallprompt={ () => { console.log("beforeinstallprompt") }} on:beforeunload={ warnBeforeLeaving } />
 
     <Header
         class="header-title"
@@ -130,7 +166,9 @@
         qrCodeData={ $qrCodeData }
         dbMyDal={ $myDal } />
 <!--<slot></slot>-->
-{#if $session}
+{#if $session || ($temporaryAhead && $hash==='/onboarding')}
+    <!-- one branch for both: the form stays as it is while its temporary identity starts (OnBoarding.svelte, #97) -->
+    {#if $session && $hash!=='/onboarding'}<SecureOffer />{/if}
     <svelte:component this={ view } />
 {:else}
     <PasskeyGate onboarding={ $hash==='/onboarding' } { handedOver } />

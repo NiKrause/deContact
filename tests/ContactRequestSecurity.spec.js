@@ -4,6 +4,7 @@ import { createInvitation } from '@le-space/orbitdb-access-controller-decontact'
 import { base64url } from 'multiformats/bases/base64';
 import { encryptionKeyOfDid, seal } from '../src/lib/encryption/sealing.js';
 import { addVirtualAuthenticator, confirmExperimental, createAddressBook, prfOutputs, recordCeremonies } from './helpers/passkeys.js';
+import { openLink, openLinkWithPasskey } from './helpers/onboarding.js';
 
 // part of the data format (src/lib/identity/vault.js, src/lib/network/contact-messages.js)
 const IDENTITY_INFO = 'decontact/identity/v1';
@@ -11,7 +12,8 @@ const IDENTITY_INFO = 'decontact/identity/v1';
 // Contact requests are signed with the sender's DID, and an invitation link works once
 // (#58, #38). Three people:
 // 1. Bob opens Alice's invitation link: Alice sends her card without being asked.
-// 2. Carol opens the same link afterwards: the token is used, Alice is asked to confirm.
+// 2. Carol opens the same link afterwards, with a passkey first (her root signs the
+//    forgery below): the token is used, Alice is asked to confirm.
 // 3. Carol sends Alice a request in Bob's name, sealed to Alice: Alice drops it.
 // The assertions read Alice's console (p2p-operations.js logs what it accepts and drops).
 
@@ -37,7 +39,7 @@ test('forged senders and used invitation links are rejected', async ({ browser }
 		});
 
 		await test.step('Carol opens the same link: Alice is asked', async () => {
-			carol = await openLink(browser, link);
+			carol = await openLinkWithPasskey(browser, link);
 			await expect.poll(() => alice.saw(`rejected the invitation link of ${carol.did}: it was already used`), { timeout: 120000 })
 				.toBe(true);
 			await expect.poll(() => alice.saw(`asking to confirm the request of ${carol.did}`)).toBe(true);
@@ -108,16 +110,6 @@ async function invitationLink(page) {
 	const link = await qrCode.getAttribute('alt');
 	await page.keyboard.press('Escape');
 	return link;
-}
-
-/** somebody new opens an invitation link */
-async function openLink(browser, link) {
-	const user = await newBrowser(browser);
-	await user.page.goto(link);
-	// a new user: a passkey first, then the onboarding goes on by itself
-	await expect(user.page.getByText('Create a passkey to open your own address book')).toBeVisible();
-	user.did = await createAddressBook(user.page, 'Invitee');
-	return user;
 }
 
 /**

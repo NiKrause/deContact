@@ -199,6 +199,28 @@ export default {
 			'Open this link on the other device, then unlock there with one of the passkeys or the recovery words. The vault record holds no secret.',
 		deviceLink: 'Device link'
 	},
+	// the passkey after the exchange (#97): a temporary identity until it is secured
+	secure: {
+		title: {
+			one: 'Keep this contact?',
+			other: 'Keep these contacts?'
+		},
+		text: 'Secure your address book with a passkey. Until then it lives in this tab only: closing it loses your side of the exchange.',
+		button: 'Secure with a passkey',
+		notNow: 'Not now',
+		busy: 'Creating the passkey…',
+		settingsTitle: 'Not secured yet',
+		settingsText: 'This address book lives in this tab only. Secure it with a passkey to open it again later.',
+		securedTitle: 'Secured with your passkey',
+		safeguards:
+			'Two more ways back in, if you like: recovery words, should the passkey be lost, and the vault file, should the network not have your vault record.',
+		words: 'Write down recovery words',
+		wordsKept: 'The recovery words open your address book too.',
+		downloaded: 'The vault file is downloaded.',
+		skip: 'Skip',
+		done: 'Done',
+		signIn: 'Already have a deContact passkey? Sign in'
+	},
 	passkeyProblem: {
 		cancelledOrTimedOut: 'The passkey prompt was cancelled or timed out.',
 		cancelled: 'Cancelled.',
@@ -249,6 +271,7 @@ export default {
 		passkeyAdded: 'added a passkey: it opens the same address book',
 		slotRemoved: 'removed from the vault',
 		wordsKept: 'the recovery words now open the vault',
+		secured: 'your address book is secured with a passkey',
 		// a request came with an invitation link that is not good: the dialog asks instead
 		invitationLink: {
 			malformed: 'the invitation link is malformed - please confirm the request',

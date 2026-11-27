@@ -118,9 +118,14 @@ export function keysOf(catalogue, prefix = '') {
 	return Object.entries(catalogue).flatMap(([k, v]) => keysOf(v, prefix ? `${prefix}.${k}` : k));
 }
 
-/** Whether the English catalogue has this key (every language falls back to it); for tests. */
+/**
+ * Whether the English catalogue has this key (every language falls back to it): a text,
+ * or a text that depends on a number (`one` and `other`); for tests.
+ */
 export function has(/** @type {string} */ key) {
-	return typeof lookupIn(catalogues.en, key) === 'string';
+	const text = lookupIn(catalogues.en, key);
+	if (typeof text === 'string') return true;
+	return typeof lookupIn(catalogues.en, `${key}.one`) === 'string' && typeof lookupIn(catalogues.en, `${key}.other`) === 'string';
 }
 
 /** The language now. */
