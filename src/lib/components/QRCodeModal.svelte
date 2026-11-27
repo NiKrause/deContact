@@ -6,8 +6,8 @@
     import { libp2p, orbitdb } from "../../stores.js";
     import { notify } from "../../utils/utils.js";
     import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
-    import { _ } from "#lib/i18n/index.js";
-    import { appUrl } from "#lib/app-url.js";
+    import { _, language } from "#lib/i18n/index.js";
+    import { appUrlIn } from "#lib/app-url.js";
     import { contactAddress } from "#lib/network/contact-address.js";
 
 
@@ -31,10 +31,11 @@
     }
     // requests go to this device, peer to peer (contact-protocol.js): the code names it
     $: peer = $libp2p?.peerId?.toString()
-    // the invitation link leads back to this app, wherever it runs (app-url.js); without
-    // it, the contact address for the Scan field (contact-address.js)
+    // the invitation link leads back to this app, wherever it runs, to the page of the
+    // language on screen: a messenger's preview of it is in that language (app-url.js,
+    // seo.js); without it, the contact address for the Scan field (contact-address.js)
     $: linkUrl = (fullDeContactUrl && onBoardingToken)
-        ? `${appUrl()}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}&peer=${peer}`
+        ? `${appUrlIn($language)}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}&peer=${peer}`
         : contactAddress(qrCodeData, peer)
 </script>
 

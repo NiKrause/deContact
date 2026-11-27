@@ -2,7 +2,26 @@
 // und DID bleiben stehen (der Passkey, der Relay, der Token, das Secret).
 export default {
 	app: {
-		tagline: '– die Cloud sind wir!'
+		tagline: '– selbstaktualisierend · lokal · Peer-to-Peer'
+	},
+	// was Suchmaschinen und Link-Vorschauen lesen (seo.js), und das Bild der Vorschau
+	// (scripts/brand/og-image.html): die Seite jeder Sprache hat ihre eigenen
+	meta: {
+		title: 'deContact – selbstaktualisierend · lokal · Peer-to-Peer',
+		description:
+			'Das selbstaktualisierende, lokale Peer-to-Peer-Adressbuch. QR-Code scannen, Karten tauschen: Deine Kontakte bleiben von selbst aktuell, ohne einen Server, dem sie gehören.',
+		previewDescription: 'QR-Code scannen, Karten tauschen. Deine Kontakte bleiben von selbst aktuell, ohne einen Server, dem sie gehören.',
+		imageAlt: 'deContact: zwei Kontaktkarten, die getauscht werden, und die Worte: selbstaktualisierend, lokal, Peer-to-Peer.',
+		imageLead: 'selbstaktualisierend ·<br />lokal · Peer-to-Peer',
+		noscript: 'Das selbstaktualisierende, lokale Peer-to-Peer-Adressbuch. deContact läuft in deinem Browser und braucht JavaScript.',
+		source: 'Quellcode und Dokumentation auf GitHub'
+	},
+	// was die App über ihren Build sagt (AppInfo.svelte)
+	about: {
+		version: 'Version {version}',
+		published: 'veröffentlicht {date}',
+		commit: 'Commit {commit}',
+		source: 'Quellcode auf GitHub'
 	},
 	language: {
 		label: 'Sprache',

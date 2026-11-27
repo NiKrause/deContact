@@ -2,7 +2,7 @@
 
 # deContact
 
-**A local-first, peer-to-peer address book. Your contacts keep themselves up to date — without a server that owns them.**
+**Self-updating · local · peer-to-peer. An address book whose contacts keep themselves up to date — without a server that owns them.**
 
 [![Tests](https://github.com/NiKrause/deContact/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/NiKrause/deContact/actions/workflows/main.yml)
 [![Release](https://img.shields.io/github/v/tag/NiKrause/deContact?sort=semver&label=release)](https://github.com/NiKrause/deContact/tags)
@@ -31,6 +31,7 @@ deContact gives every person a self-owned address book. It lives in the browser 
 - 🔑 **Self-sovereign identity, opened with a passkey.** A passkey opens a vault that holds one root; your `did:key` (Ed25519) and OrbitDB identity are derived from it. No account, no seed phrase, no server-side login ([how](docs/how-it-works.md#identity-passkeys-and-the-vault)).
 - 📇 **Your own address book.** An OrbitDB documents database for your card and the cards others write into it (private, business or other).
 - 🤝 **Exchange cards, peer to peer.** Scan a QR code with the camera, or paste the contact address it shows. The request goes straight to the other person's device over libp2p, with no topic a relay or a third peer could listen on ([how](docs/how-it-works.md#requests)). The other person confirms, and each side writes their card into the other's book. Whoever opens an invitation link from a QR code first gets the card without a confirmation and decides whether to share theirs ([how](docs/how-it-works.md#invitation-links)). On a phone without deContact the form shows at once; the passkey comes after the exchange ([how](docs/how-it-works.md#starting-without-a-passkey)).
+- 📲 **An app to install, with link previews.** deContact installs as a PWA and starts without a network. Its link previews and search results are in English at the app's address and in German below `de/`; an invitation link points to the page of the inviter's language ([how](docs/how-it-works.md#pwa-and-link-previews)).
 - 🖼️ **A photo on your card.** Take or pick one under **My Address**: it is cropped square, scaled to 256 × 256 and stored as a small WebP (at most 30 KB) inside the sealed card, without the original's EXIF data or location. Your contacts see it in their list and right after scanning your code ([how](docs/how-it-works.md#what-a-card-holds)).
 - 🔄 **Updates follow you.** A changed card is rewritten in every book you were invited into.
 - 🛡️ **Signed invitations.** Only invited contacts may write, and only their own card (see [who may write](docs/how-it-works.md#who-may-write-into-an-address-book)).

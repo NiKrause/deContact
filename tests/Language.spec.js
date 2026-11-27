@@ -113,6 +113,8 @@ test('the onboarding in German, switched on the first screen', async ({ browser 
 			const qrCode = alice.page.locator('img.qrcode');
 			await expect(qrCode).toHaveAttribute('alt', /onBoardingToken=1\./);
 			const alt = await qrCode.getAttribute('alt');
+			// the German page of the app: a messenger's preview of the link is German (lib/seo.js)
+			expect(alt.startsWith(`${process.env.PAGE_URL}de/#/onboarding/`)).toBe(true);
 			link = alt;
 			await alice.page.keyboard.press('Escape');
 		});

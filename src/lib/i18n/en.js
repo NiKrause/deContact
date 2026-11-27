@@ -2,7 +2,26 @@
 // English. Placeholders like {name} are filled in by t().
 export default {
 	app: {
-		tagline: '- the cloud we are!'
+		tagline: '– self-updating · local · peer-to-peer'
+	},
+	// what search engines and link previews read (seo.js), and the picture of the preview
+	// (scripts/brand/og-image.html): the page of each language has its own
+	meta: {
+		title: 'deContact – self-updating · local · peer-to-peer',
+		description:
+			'The self-updating, local, peer-to-peer address book. Scan a QR code, exchange cards, and your contacts keep themselves up to date, without a server that owns them.',
+		previewDescription: 'Scan a QR code, exchange cards. Your contacts keep themselves up to date, without a server that owns them.',
+		imageAlt: 'deContact: two contact cards being exchanged, and the words: self-updating, local, peer-to-peer.',
+		imageLead: 'self-updating · local ·<br />peer-to-peer',
+		noscript: 'The self-updating, local, peer-to-peer address book. deContact runs in your browser and needs JavaScript.',
+		source: 'Source code and documentation on GitHub'
+	},
+	// what the app says about its build (AppInfo.svelte)
+	about: {
+		version: 'Version {version}',
+		published: 'published {date}',
+		commit: 'commit {commit}',
+		source: 'Source on GitHub'
 	},
 	language: {
 		label: 'Language',
