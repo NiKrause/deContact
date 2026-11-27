@@ -17,6 +17,7 @@ import {
     dbMyAddressBook,
     subscription,
     connectedPeers,
+    networkState,
     followList, dbMessages, syncedDevices,
     useWebRTC,
     exchangesWaiting
@@ -133,6 +134,18 @@ export async function startNetwork() {
         console.log("connection:close",c.detail.remoteAddr.toString());
         countPeers()
     });
+
+    // what "Show my code" and Exchange's status line read (#110): relays, and whether one holds
+    // a reservation for us, a /p2p-circuit address through which the other phone reaches this one
+    const updateNetworkState = async () => {
+        const relays = (await relayPeerIds()).size
+        const reachable = _libp2p.getMultiaddrs().some((ma) => ma.toString().includes('/p2p-circuit'))
+        networkState.set({ started: true, relays, reachable })
+    }
+    void updateNetworkState()
+    for (const event of ['connection:open', 'connection:close', 'self:peer:update']) {
+        _libp2p.addEventListener(event, () => void updateNetworkState())
+    }
 
     startPeerConnectivity(_libp2p, { webRTC: webRTCEnabled, relayTags: RELAY_TAGS })
     _libp2p.services.alephRelays?.addEventListener('peer', (event) =>

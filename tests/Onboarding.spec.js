@@ -183,6 +183,9 @@ test('the QR dialog says what the code does, and shows the contact address for a
 		await expect(summary).toHaveText(QR_SUMMARY.both);
 		await expect(qrCode).toHaveAttribute('alt', /#\/onboarding\/.*onBoardingToken=1\./);
 		await expect(page.getByText('Tap the code to copy the link', { exact: true })).toBeVisible();
+		// the checklist above the code: every step done, folded into one line (#110)
+		await expect(page.getByTestId('readiness-summary')).toHaveText('Ready · reachable through the relay', { timeout: 60000 });
+		await expect(page.getByTestId('readiness')).toHaveCount(0);
 
 		await test.step('Let them ask first: the contact address, no link and no token', async () => {
 			await page.getByText('Let them ask first', { exact: true }).click();

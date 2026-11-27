@@ -22,6 +22,8 @@ export const helia = writable()
 export const dbMessages = writable()
 export const subscription = writable()
 export const connectedPeers = writable(0)
+/** what the readiness of "Show my code" reads (#110, readiness.js): libp2p runs, relays, a reservation */
+export const networkState = writable({ started: false, relays: 0, reachable: false })
 
 
 /** this is the orbitdb which holds the contact data */

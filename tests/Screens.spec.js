@@ -63,6 +63,15 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			alice = { page, did, close: () => context.close() };
 			await openTab(page, 'Contacts');
 			await shoot(page, '03-contacts-empty', 'Contacts, empty');
+			// before the first card: the checklist holds the code back and asks for a name
+			await openTab(page, 'Exchange');
+			await page.getByRole('button', { name: 'Show my code' }).click();
+			await page.mouse.move(0, 0);
+			await expect(page.getByTestId('readiness-card')).toHaveAttribute('data-state', 'problem');
+			await expect(page.locator('img.qrcode')).toHaveCount(0);
+			await shoot(page, '04b-show-code-without-card', 'Show my code, before the first card', { dialog: true });
+			await page.getByRole('button', { name: 'Fill in my card' }).click();
+			await expect(page.getByRole('link', { name: 'My card' })).toHaveAttribute('aria-current', 'page');
 			await openTab(page, 'My card');
 			await shoot(page, '04-my-card', 'My card, before the first card');
 			await addCard(page, people.alice);
@@ -76,7 +85,9 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			// first Escape closes that tooltip instead of the dialog (WCAG 1.4.13)
 			await page.mouse.move(0, 0);
 			await expect(page.locator('img.qrcode')).toHaveAttribute('alt', /onBoardingToken=/);
-			await shoot(page, '05-qr-dialog', 'The QR dialog', { dialog: true });
+			// every step done: the checklist folds into one line
+			await expect(page.getByTestId('readiness-summary')).toHaveText('Ready · reachable through the relay', { timeout: 60000 });
+			await shoot(page, '05-qr-dialog', 'Show my code, ready', { dialog: true });
 			await page.keyboard.press('Escape');
 			await expect(page.locator('img.qrcode')).toHaveCount(0);
 			await openTab(page, 'Exchange');
