@@ -304,32 +304,37 @@ export default {
 	statistics: {
 		connected: 'Seed Node connected / Swarm connected'
 	},
+	// the toasts: sentences, without hashes, DIDs or command names (those go to the console, #110)
 	notify: {
-		contactAdded: 'Contact added successfully to ipfs/orbitdb! {hash}',
-		contactUpdated: 'Contact updated successfully - informing our followers! {name}',
-		contactRemoved: 'Contact removed: {owner} gets no more updates from you',
-		contactDeleted: 'Contact deleted successfully! {hash}',
-		invitationCopied: 'Invitation link copied',
-		addressCopied: 'Contact address copied',
-		requestSent: 'sent SEND_ADDRESS_REQUEST to {did}',
-		requestNotDelivered: 'could not reach {did} yet - the app keeps trying',
+		contactAdded: 'Saved in your address book.',
+		cardUpdated: 'Your card is updated. Your contacts get the new version by themselves.',
+		contactUpdated: 'Saved.',
+		contactRemoved: 'Removed {name}: they no longer get your updates.',
+		contactRemovedNameless: 'Removed: they no longer get your updates.',
+		contactDeleted: 'Deleted {name}.',
+		contactDeletedNameless: 'Deleted.',
+		invitationCopied: 'Invitation link copied.',
+		addressCopied: 'Contact address copied.',
+		requestSent: 'Request sent. Their card arrives once they answer.',
+		requestNotDelivered: 'Not reached yet. The app keeps trying while it is open.',
 		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',
 		noContactAddress: 'This is no contact address. Scan the QR code of the person you want to ask.',
-		cardWritten: 'wrote my address into requesters db with hash {hash}',
-		requestDeclined: 'wrote canceled request with hash {hash}',
-		openedWithWords: 'opened with the recovery words - add a passkey for this device in Settings',
-		passkeyAdded: 'added a passkey: it opens the same address book',
-		slotRemoved: 'removed from the vault',
-		wordsKept: 'the recovery words now open the vault',
-		secured: 'your address book is secured with a passkey',
+		cardWritten: 'Your card is on its way to {name}.',
+		cardWrittenNameless: 'Your card is on its way.',
+		requestDeclined: 'Declined. They do not get your card.',
+		openedWithWords: 'Opened with your recovery words. Add a passkey for this device in Settings.',
+		passkeyAdded: 'Passkey added. It opens the same address book.',
+		slotRemoved: 'Removed: it no longer opens your address book.',
+		wordsKept: 'Your recovery words now open your address book too.',
+		secured: 'Your address book is secured with a passkey.',
 		// a request came with an invitation link that is not good: the dialog asks instead
 		invitationLink: {
-			malformed: 'the invitation link is malformed - please confirm the request',
-			notOurs: 'the invitation link is not signed by us - please confirm the request',
-			expired: 'the invitation link has expired - please confirm the request',
-			notIssuedHere: 'the invitation link was not issued on this device - please confirm the request',
-			alreadyUsed: 'the invitation link was already used - please confirm the request',
-			other: 'the invitation link cannot be used - please confirm the request'
+			malformed: 'A request came with a damaged invitation link, so you decide yourself.',
+			notOurs: 'A request came with an invitation link that is not yours, so you decide yourself.',
+			expired: 'A request came with an expired invitation link, so you decide yourself.',
+			notIssuedHere: 'A request came with an invitation link from another device, so you decide yourself.',
+			alreadyUsed: 'A request came with an invitation link that was used already, so you decide yourself.',
+			other: 'A request came with an invitation link that cannot be used, so you decide yourself.'
 		}
 	}
 };

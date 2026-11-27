@@ -60,6 +60,18 @@ describe('the catalogues (#89)', () => {
 		}
 	});
 
+	it('the notices are sentences: no hash, DID or command name in them (#110)', () => {
+		for (const key of keysOf(/** @type {any} */ (en)).filter((key) => key.startsWith('notify.'))) {
+			for (const catalogue of [en, de]) {
+				const text = at(catalogue, key);
+				// a name or a reason may be filled in; nothing technical
+				expect(placeholders(text).filter((name) => name !== 'name'), key).toEqual([]);
+				expect(text, key).not.toMatch(/did:|zdpu|orbitdb|ipfs|SEND_ADDRESS|hash|DB\b/i);
+				expect(text, key).toMatch(/^\S.*[.!?…]$/);
+			}
+		}
+	});
+
 	it('the agreed wording of the QR dialog: what scanning the code does (#86)', () => {
 		expect(textIn('en', 'qr.shareNow')).toBe('Share right away');
 		expect(textIn('de', 'qr.shareNow')).toBe('Sofort teilen');
