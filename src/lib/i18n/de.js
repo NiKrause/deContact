@@ -73,6 +73,14 @@ export default {
 			problem: 'braucht dich'
 		}
 	},
+	card: {
+		whyWhat: 'Das ist deine Karte: Sie bekommen Menschen, wenn ihr Codes tauscht.',
+		whyWho: 'Lesen können sie nur die Menschen, mit denen du tauschst. Sie ist für jeden von ihnen versiegelt.',
+		whyUpdates: 'Ändert sich etwas, bekommen sie die neue Fassung von selbst.',
+		later: 'Später',
+		asOthersSeeIt: 'So sehen deine Kontakte deine Karte.',
+		edit: 'Bearbeiten'
+	},
 	exchange: {
 		ready: 'Bereit zum Austausch',
 		connecting: 'Verbinde …',

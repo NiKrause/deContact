@@ -74,6 +74,8 @@ export const qrCodeData = writable()
 export const selectedRowIds = writable([])
 /** Contacts shows the form for a contact being added by hand (#110) */
 export const addingContact = writable(false)
+/** My card: the form open on our own card, after Edit (#110) */
+export const editingCard = writable(false)
 /** the empty card every form starts from; frozen: the form edits a copy, never this */
 const contact = Object.freeze({
     _id:"",

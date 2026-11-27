@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { names, newPerson, openContact } from './helpers/passkeys.js';
+import { names, newPerson, openContact, editMyCard } from './helpers/passkeys.js';
 import { invitationLink, times } from './helpers/onboarding.js';
 
 // Self-updating: Alice moves, and Bob's address book shows her new address without
@@ -81,7 +81,7 @@ test('Alice moves: Bob gets her new address, also when his app was closed meanwh
 
 /** a person moves: their own card, under My Address (#110), gets a new street, postal code and city */
 async function move(page, lastName, { street, postalCode, city }) {
-	await page.getByRole('link', { name: 'My card' }).click();
+	await editMyCard(page);
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 	await page.getByPlaceholder('Enter street...').fill(street);
 	await page.getByPlaceholder('Enter zipcode...').fill(postalCode);

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, contactAddressOf, createAddressBook, askByAddress } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, contactAddressOf, createAddressBook, askByAddress, editMyCard } from './helpers/passkeys.js';
 /** the console of both pages */
 const lines = [];
 
@@ -47,7 +47,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		test.setTimeout(180000);
 
 		// his own card: under My Address, not in his list (#110)
-		await pageBob.getByRole('link', { name: 'My card' }).click();
+		await editMyCard(pageBob);
 		await expect(pageBob.getByPlaceholder('Enter lastname...')).toHaveValue(users[1].lastname);
 		await pageBob.getByPlaceholder('Enter lastname...').click();
 		await pageBob.getByPlaceholder('Enter lastname...').fill(users[2].lastname);
@@ -68,7 +68,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 
 	test('Alice updates her address and Bob receives the update', async () => {
 		test.setTimeout(180000);
-		await pageAlice.getByRole('link', { name: 'My card' }).click();
+		await editMyCard(pageAlice);
 		await expect(pageAlice.getByPlaceholder('Enter lastname...')).toHaveValue(users[0].lastname);
 		await pageAlice.getByPlaceholder('Enter lastname...').fill(users[3].lastname);
 		await pageAlice.getByPlaceholder('Enter street...').fill(users[3].street);
