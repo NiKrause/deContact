@@ -61,6 +61,13 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 
 			const did = await createAddressBook(page, people.alice.first);
 			alice = { page, did, close: () => context.close() };
+			// a new address book opens on My card, with why (#110)
+			await expect(page.getByRole('link', { name: 'My card' })).toHaveAttribute('aria-current', 'page');
+			await expect(page.getByTestId('card-why')).toBeVisible();
+			// Later: Exchange, which asks for the card
+			await page.getByTestId('card-later').click();
+			await expect(page.getByRole('link', { name: 'Exchange' })).toHaveAttribute('aria-current', 'page');
+			await expect(page.getByTestId('fill-card')).toBeVisible();
 			await openTab(page, 'Contacts');
 			await shoot(page, '03-contacts-empty', 'Contacts, empty');
 			// before the first card: the checklist holds the code back and asks for a name
@@ -75,6 +82,16 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await openTab(page, 'My card');
 			await shoot(page, '04-my-card', 'My card, before the first card');
 			await addCard(page, people.alice);
+			await expect(page.getByTestId('my-card')).toBeVisible();
+			await shoot(page, '04c-my-card-saved', 'My card, as others see it');
+			// Edit opens the form; Cancel drops the change
+			await page.getByRole('button', { name: 'Edit', exact: true }).click();
+			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(people.alice.last);
+			await shoot(page, '04d-my-card-edit', 'My card, editing');
+			await page.getByPlaceholder('Enter city...').fill('Anderswo');
+			await page.getByRole('button', { name: 'Cancel' }).click();
+			await expect(page.getByTestId('my-card')).toBeVisible();
+			await expect(page.getByTestId('my-card')).not.toContainText('Anderswo');
 		});
 
 		const { page } = alice;

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, everythingStoredAsText, names, newPerson, askByAddress, openContact } from './helpers/passkeys.js';
+import { contactAddressOf, everythingStoredAsText, names, newPerson, askByAddress, openContact, editMyCard } from './helpers/passkeys.js';
 
 // Every card is sealed to the owner of the book it sits in, every request to its
 // recipient (#59, finding 3 of #58). Three people:
@@ -149,7 +149,7 @@ function storedValues(page, address) {
 
 /** our own card: My Address opens it, it is not in the list (#110) */
 async function openOwnCard(page, lastName) {
-	await page.getByRole('link', { name: 'My card' }).click();
+	await editMyCard(page);
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 

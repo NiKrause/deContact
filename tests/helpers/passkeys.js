@@ -126,6 +126,12 @@ export async function newPerson(browser, person, { webRTC = true } = {}) {
 	};
 }
 
+/** our own card in the form: My card shows it as others see it, Edit opens the form (#110) */
+export async function editMyCard(page) {
+	await page.getByRole('link', { name: 'My card' }).click();
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
+}
+
 /** our own contact card */
 export async function addCard(page, { first, last, city = 'Example City' }) {
 	await page.getByRole('link', { name: 'My card' }).click();
@@ -134,6 +140,7 @@ export async function addCard(page, { first, last, city = 'Example City' }) {
 	await page.getByPlaceholder('Enter city...').fill(city);
 	await page.getByRole('button', { name: 'Add' }).click();
 	await expect.poll(() => names(page), { timeout: 30000 }).toContain(`${first} ${last}`);
+	await expect(page.getByTestId('my-card-name')).toHaveText(`${first} ${last}`);
 }
 
 /**

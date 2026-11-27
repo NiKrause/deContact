@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, names, newPerson, askByAddress, listedContacts, openContact } from './helpers/passkeys.js';
+import { contactAddressOf, names, newPerson, askByAddress, listedContacts, openContact, editMyCard } from './helpers/passkeys.js';
 import { times } from './helpers/onboarding.js';
 
 // Who may write into an address book, through the app and the relay (#81), and what
@@ -280,7 +280,7 @@ async function relayHasEntry(address, entryHash) {
 
 /** our own card: My Address opens it, it is not in the list (#110) */
 async function openOwnCard(page, lastName) {
-	await page.getByRole('link', { name: 'My card' }).click();
+	await editMyCard(page);
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 

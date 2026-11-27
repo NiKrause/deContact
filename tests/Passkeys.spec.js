@@ -15,7 +15,8 @@ import {
 	prfOutputs,
 	recordCeremonies,
 	spellings,
-	takeCeremonies
+	takeCeremonies,
+	editMyCard
 } from './helpers/passkeys.js';
 import {
 	everPutUnder,
@@ -414,7 +415,7 @@ test('a new browser exchanges cards first and secures them with a passkey afterw
 
 		await test.step("his invitation into Alice's book still holds: a change of his card reaches her", async () => {
 			// his own card, under My Address (#110)
-			await page.getByRole('link', { name: 'My card' }).click();
+			await editMyCard(page);
 			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(people.bob.last);
 			await page.getByPlaceholder('Enter city...').fill('Beispielort');
 			await page.getByRole('button', { name: 'Update' }).click();

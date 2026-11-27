@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, everythingStoredAsText, newPerson, askByAddress } from './helpers/passkeys.js';
+import { contactAddressOf, everythingStoredAsText, newPerson, askByAddress, editMyCard } from './helpers/passkeys.js';
 import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboarding.js';
 import { bytesOfDataUrl, metadataOf, withExif } from './helpers/exif.js';
 
@@ -207,7 +207,7 @@ function rowOf(page, lastName) {
 
 /** our own card: My Address opens it (#110) */
 async function openCard(page, lastName) {
-	await page.getByRole('link', { name: 'My card' }).click();
+	await editMyCard(page);
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 

@@ -51,7 +51,12 @@
         }
     }
 
-    const create = () => run(() => createAddressBook({ label: label.trim() || 'deContact' }))
+    const create = () =>
+        run(async () => {
+            await createAddressBook({ label: label.trim() || 'deContact' })
+            // a new address book has no card yet: My card, with why (#110)
+            if (!onboarding) window.location.hash = '#/card'
+        })
     const unlock = (any = false) => run(() => unlockWithPasskey({ any }))
     const restoreWords = () =>
         run(async () => {

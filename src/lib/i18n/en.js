@@ -76,6 +76,15 @@ export default {
 		}
 	},
 	// the start screen (#110)
+	// My card (MyCard.svelte, #110): the card as others see it; before the first save, why
+	card: {
+		whyWhat: 'This is your card: what people get when you exchange codes.',
+		whyWho: 'Only the people you exchange with can read it. It is sealed to each of them.',
+		whyUpdates: 'When something changes, they get the new version by themselves.',
+		later: 'Later',
+		asOthersSeeIt: 'This is how your contacts see your card.',
+		edit: 'Edit'
+	},
 	exchange: {
 		ready: 'Ready to exchange',
 		connecting: 'Connecting…',

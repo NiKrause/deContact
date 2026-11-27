@@ -12,9 +12,11 @@
     import Settings from "#lib/components/Settings.svelte";
     import Exchange from "#lib/components/Exchange.svelte";
     import MainNav from "#lib/components/MainNav.svelte";
+    import MyCard from "#lib/components/MyCard.svelte";
     import { hash } from "./router.js";
     import {
         addingContact,
+        editingCard,
         showNotification,
         notificationMessage,
         notificationKind,
@@ -38,6 +40,8 @@
     // the place turns to it, so the book changing under an open form leaves it alone
     $effect(() => {
         if (place === "card") untrack(showMyCard)
+        // leaving My card closes its form; changes not saved are dropped
+        else untrack(() => editingCard.set(false))
     })
     /** a contact picked from the list, or one being added by hand: the form instead of the list */
     const contactOpen = $derived($selectedRowIds.length > 0 || $addingContact);
@@ -63,7 +67,7 @@
             {/if}
         {:else if place === "card"}
             <div class="place-head"><h2>{$_("nav.card")}</h2></div>
-            <ContactForm />
+            <MyCard />
         {:else}
             <div class="place-head"><h2>{$_("nav.settings")}</h2></div>
             <Settings />

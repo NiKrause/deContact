@@ -5,6 +5,7 @@ import {
     myAddressBook,
     selectedAddr,
     addingContact,
+    editingCard,
     selectedRowIds,
     blankCard,
     qrCodeData,
@@ -39,6 +40,20 @@ export function showMyCard() {
     if (mine && shown._id === mine._id) return
     if (!shown._id && (shown.own ? !mine : shown.own === false && typedIn(shown))) return
     selectedAddr.set(mine ? { ...mine } : blankCard(true))
+}
+
+/** Edit on My card: the form, with our card as saved (#110) */
+export function editMyCard() {
+    selectedAddr.set({})
+    showMyCard()
+    editingCard.set(true)
+}
+
+/** Cancel while editing our card: back to it as saved, the changes dropped */
+export function cancelCardEdit() {
+    editingCard.set(false)
+    selectedAddr.set({})
+    showMyCard()
 }
 
 /** "Add contact" on Contacts: the form empty, for a contact added by hand */
@@ -123,6 +138,7 @@ function closeForm() {
     selectedAddr.set({})
     selectedRowIds.set([])
     addingContact.set(false)
+    editingCard.set(false)
     // My card shows our card again; the form of a contact goes back to the list
     if (location.hash.startsWith('#/card')) showMyCard()
 }
