@@ -2,7 +2,7 @@
 // und DID bleiben stehen (der Passkey, der Relay, der Token, das Secret).
 export default {
 	app: {
-		tagline: '– dein Adressbuch, Peer-to-Peer'
+		tagline: '– selbstaktualisierend · lokal · Peer-to-Peer'
 	},
 	// was Suchmaschinen und Link-Vorschauen lesen (seo.js), und das Bild der Vorschau
 	// (scripts/brand/og-image.html): die Seite jeder Sprache hat ihre eigenen

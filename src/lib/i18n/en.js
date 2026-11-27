@@ -2,7 +2,7 @@
 // English. Placeholders like {name} are filled in by t().
 export default {
 	app: {
-		tagline: '– your address book, peer to peer'
+		tagline: '– self-updating · local · peer-to-peer'
 	},
 	// what search engines and link previews read (seo.js), and the picture of the preview
 	// (scripts/brand/og-image.html): the page of each language has its own
