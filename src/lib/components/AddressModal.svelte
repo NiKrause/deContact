@@ -1,6 +1,7 @@
 <script>
     import { Accordion, AccordionItem, Button, ComposedModal, ModalBody, ModalFooter, ModalHeader } from "carbon-components-svelte";
     import { _, formatDateTime } from "#lib/i18n/index.js";
+    import ContactPhoto from "./ContactPhoto.svelte";
 
     /**
      * @component The request dialog (#110): somebody asks for our card. `data` is the request,
@@ -30,7 +31,11 @@
 <ComposedModal open size="sm" class="request-dialog" data-testid="request-dialog" on:close={() => onresult(false)}>
     <ModalHeader title={$_('request.label')} iconDescription={$_('common.close')} />
     <ModalBody>
-        <p class="who" data-testid="request-from">{$_(answersOurs ? 'request.wantsBack' : 'request.wants', { who: who($_) })}</p>
+        <div class="who-line">
+            <!-- the photo the request carries, checked (contact-messages.js); none: nothing, as on a card -->
+            <ContactPhoto photo={data.photo} size={64} testid="request-photo" />
+            <p class="who" data-testid="request-from">{$_(answersOurs ? 'request.wantsBack' : 'request.wants', { who: who($_) })}</p>
+        </div>
         <p class="what">{$_(answersOurs ? 'request.whatBack' : 'request.what')}</p>
         <Accordion>
             <AccordionItem title={$_('request.details')}>
@@ -54,6 +59,15 @@
 </ComposedModal>
 
 <style>
+    .who-line {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .who-line .who {
+        margin-bottom: 0;
+    }
     .who {
         font-size: 1.25rem;
         line-height: 1.4;

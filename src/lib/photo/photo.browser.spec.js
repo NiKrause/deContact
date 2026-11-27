@@ -6,7 +6,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { metadataOf } from '../../../tests/helpers/exif.js';
-import { MAX_PHOTO_BYTES, PHOTO_SIDE } from './photo.js';
+import { MAX_PHOTO_BYTES, MAX_THUMBNAIL_BYTES, PHOTO_SIDE, THUMBNAIL_SIDE } from './photo.js';
 
 const ORIGIN = 'http://photo.test';
 /** what the page may load: path -> file of this repository */
@@ -110,4 +110,31 @@ test('a file that is not an image is refused', async ({ page }) => {
 		}
 	});
 	expect(refused).toBe(true);
+});
+
+test("a request's thumbnail of a card's photo: 64×64, within its cap, accepted by isThumbnail (#110)", async ({ page }) => {
+	const result = await page.evaluate(async () => {
+		const { photoFromFile, thumbnailOf, isThumbnail } = await import('/photo.js');
+		const { blobOf, blobOfDataUrl, bytesOf, look, noise } = await import('/images.js');
+		// the worst case for its size: a card's photo of noise
+		const photo = await photoFromFile(new File([await blobOf(noise(1600, 1200), 'image/jpeg', 0.95)], 'noise.jpg', { type: 'image/jpeg' }));
+		const thumbnail = await thumbnailOf(photo);
+		const blob = await blobOfDataUrl(thumbnail);
+		return {
+			prefix: thumbnail.slice(0, 23),
+			accepted: isThumbnail(thumbnail),
+			length: thumbnail.length,
+			bytes: (await bytesOf(blob)).length,
+			none: await thumbnailOf(undefined),
+			notAPhoto: await thumbnailOf('https://example.com/photo.webp'),
+			...(await look(blob))
+		};
+	});
+	expect(result.prefix).toBe('data:image/webp;base64,');
+	expect(result.accepted).toBe(true);
+	expect(result.bytes).toBeLessThanOrEqual(MAX_THUMBNAIL_BYTES);
+	expect(result.length).toBeLessThan(8 * 1024);
+	expect([result.width, result.height]).toEqual([THUMBNAIL_SIDE, THUMBNAIL_SIDE]);
+	expect(result.none).toBeUndefined();
+	expect(result.notAPhoto).toBeUndefined();
 });
