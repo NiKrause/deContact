@@ -4,18 +4,20 @@ import Modal from './AddressModal.svelte';
 /**
  * Creates a Confirmation Dialog and waits for the user to click a button
  * @param {import('#lib/interfaces.js').AddressModalOptions? } options
- * @returns {Promise<boolean>}
+ * @returns {Promise<boolean | 'ONLY_HANDOUT'>}
  */
 export async function confirm(options) {
   return new Promise((resolve) => {
-    // Svelte 5 mounts a component with mount(), no longer with new; the legacy
-    // createEventDispatcher event arrives through the events option
+    // the first answer counts: closing after a button click answers again
+    let answered = false
     const modal = mount(Modal, {
       target: document.body,
-      props: options,
-      events: {
-        result: (e) => {
-          resolve(e.detail);
+      props: {
+        ...options,
+        onresult: (result) => {
+          if (answered) return
+          answered = true
+          resolve(result);
           unmount(modal);
         }
       }

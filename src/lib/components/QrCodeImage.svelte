@@ -8,6 +8,7 @@
      */
     import { qrDataUrl } from '#lib/qr/qr-image.js'
 
+    /** @type {{ value?: string, label?: string }} */
     let { value, label } = $props()
     const src = $derived(value ? qrDataUrl(value) : '')
 </script>

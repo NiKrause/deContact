@@ -5,9 +5,9 @@
     import { generateQRForAddress } from "../../operations.js"
     import ContactPhoto from "./ContactPhoto.svelte";
     import { _ } from "#lib/i18n/index.js";
-    let pageSize = 50;
-    let page = 1;
-    let filteredRowIds = [];
+    let pageSize = $state(50);
+    let page = $state(1);
+    let filteredRowIds = $state([]);
 
     /** Carbon's search over every text of a row, without the photo's data URL (#87) */
     const matches = (row, value) => {

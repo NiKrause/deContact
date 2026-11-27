@@ -13,10 +13,9 @@
         useWebRTC
     } from "../../stores.js"
 
-    $:window.localStorage.setItem('useWebRTC', $useWebRTC.toString());
-
-  console.log("useWebRTC",$useWebRTC)
-  </script>
+    // read when the network starts (p2p-operations.js)
+    $effect(() => window.localStorage.setItem('useWebRTC', $useWebRTC.toString()))
+</script>
 
 <!--
  @component Settings component displays current address of db and my handle
