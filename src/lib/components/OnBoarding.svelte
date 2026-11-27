@@ -29,9 +29,11 @@
     import LanguageSwitch from './LanguageSwitch.svelte'
     import { _, t } from '#lib/i18n/index.js'
 
-    // #/onboarding/<the inviter's DID>?onBoardingToken=<their one-time token>
+    // #/onboarding/<the inviter's DID>?onBoardingToken=<their one-time token>&peer=<their device>
     const inviter = ($did ?? '').trim()
     const onBoardingToken = new URLSearchParams($query ?? '').get('onBoardingToken') ?? undefined
+    // the inviter's device: where our request goes (contact-protocol.js)
+    const inviterPeer = new URLSearchParams($query ?? '').get('peer') ?? undefined
 
     const NAME_FIELDS = ['email', 'firstName', 'lastName']
     const ADDRESS_FIELDS = ['street', 'postalCode', 'city', 'countryRegion']
@@ -47,7 +49,7 @@
     let requested = false
     let prefilled = false
 
-    const opening = openInvitationLink(inviter, onBoardingToken).then((link) => {
+    const opening = openInvitationLink(inviter, onBoardingToken, inviterPeer).then((link) => {
         twoWay = link.twoWay
         linkChecked = true
     })

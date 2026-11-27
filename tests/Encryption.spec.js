@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { everythingStoredAsText, names, newPerson } from './helpers/passkeys.js';
+import { contactAddressOf, everythingStoredAsText, names, newPerson } from './helpers/passkeys.js';
 
 // Every card is sealed to the owner of the book it sits in, every request to its
 // recipient (#59, finding 3 of #58). Three people:
-// 1. Carol listens on Alice's topic while Bob asks Alice: she receives the requests and
-//    reads nothing of them. Alice's dialog still says who asks: the name is in the request.
+// 1. Bob asks Alice peer to peer (contact-protocol.js): Carol, subscribed to the topic
+//    requests went on before, hears nothing, and no app subscribes to a contact topic.
+//    Alice's dialog still says who asks: the name is in the request.
 // 2. Carol exchanges cards with Alice too, then replicates Alice's book, as a follower's
 //    backup or a relay does: no name, city or book address in it, nor in Carol's storage.
 // 3. Alice removes Bob: her card leaves Bob's book. Her next change reaches Carol, not Bob.
@@ -16,6 +17,7 @@ const people = {
 	carol: { first: 'Carol', last: 'Beispiel', city: 'Example City' }
 };
 const NEW_CITY = 'Neustadt am Beispiel';
+// the topic requests went on before they went peer to peer
 const topicOf = (did) => `/dContact/3/message/proto/${did}`;
 
 test('a third peer reads nothing, and a removed contact gets no more updates', async ({ browser }) => {
@@ -27,7 +29,7 @@ test('a third peer reads nothing, and a removed contact gets no more updates', a
 		const bobsBook = await bob.page.evaluate(() => window.mydb.address);
 		const alicesBook = await alice.page.evaluate(() => window.mydb.address);
 
-		await test.step("Bob asks Alice; Carol listens on Alice's topic", async () => {
+		await test.step("Bob asks Alice; Carol listens on Alice's old topic", async () => {
 			await listenOn(carol.page, topicOf(alice.did));
 			await exchange(bob, alice);
 			await expect.poll(() => names(alice.page), { timeout: 90000, message: "Bob's card in Alice's book" })
@@ -36,16 +38,12 @@ test('a third peer reads nothing, and a removed contact gets no more updates', a
 				.toContain(`${people.alice.first} ${people.alice.last}`);
 		});
 
-		await test.step('Carol received the requests and cannot read them', async () => {
-			const heard = await carol.page.evaluate(() => window.__heard);
-			expect(heard.length).toBeGreaterThan(0);
-			for (const text of heard) {
-				expect(JSON.parse(text)).toMatchObject({ v: 3, sealed: { v: 1 } });
-				for (const plain of [bob.did, bobsBook, people.bob.last, people.bob.city, 'REQUEST_ADDRESS']) {
-					expect(text, `a request on Alice's topic shows ${plain}`).not.toContain(plain);
-				}
+		await test.step('Carol heard nothing, and no app subscribes to a contact topic', async () => {
+			expect(await carol.page.evaluate(() => window.__heard)).toEqual([]);
+			for (const person of [alice, bob]) {
+				const topics = await person.page.evaluate(() => window.helia.libp2p.services.pubsub.getTopics());
+				expect(topics.filter((topic) => topic.startsWith('/dContact/')), JSON.stringify(topics)).toEqual([]);
 			}
-			expect(carol.saw('dropped contact message: not sealed for us')).toBe(true);
 		});
 
 		await test.step('Carol and Alice exchange cards too', async () => {
@@ -107,10 +105,10 @@ test('a third peer reads nothing, and a removed contact gets no more updates', a
 	}
 });
 
-/** `from` scans `to`'s DID; `to` sends their card and asks back; `from` answers */
+/** `from` scans `to`'s contact address; `to` sends their card and asks back; `from` answers */
 async function exchange(from, to) {
 	await from.page.getByRole('tab', { name: 'Contacts' }).click();
-	await from.page.getByRole('textbox', { role: 'scanContact' }).fill(to.did);
+	await from.page.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(to.page));
 	await from.page.getByRole('button', { name: 'Scan' }).click();
 	// the dialog names who asks, though it cannot read their book
 	const asking = to.page.getByTestId('request-from');

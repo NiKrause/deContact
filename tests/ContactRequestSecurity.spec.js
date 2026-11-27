@@ -56,10 +56,16 @@ test('forged senders and used invitation links are rejected', async ({ browser }
 			expect(signer.did).toBe(carol.did);
 			const sharedAddress = await carol.page.evaluate(() => window.mydb.address);
 			const forged = await forgedRequest(signer, { claimedSender: bob.did, recipient: alice.did, sharedAddress });
-			await carol.page.evaluate(
-				({ topic, text }) => window.helia.libp2p.services.pubsub.publish(topic, new TextEncoder().encode(text)),
-				{ topic: `/dContact/3/message/proto/${alice.did}`, text: forged }
-			);
+			// to Alice's device, as the app sends a request (contact-protocol.js)
+			const alicesPeer = await alice.page.evaluate(() => window.helia.libp2p.peerId.toString());
+			// delivered as the app delivers: tried again while no way to her device is open yet
+			let delivery;
+			await expect.poll(async () => {
+				delivery = await carol.page.evaluate(({ peer, text }) => window.__decontactE2E.deliver(peer, text), { peer: alicesPeer, text: forged });
+				return delivery.delivered;
+			}, { timeout: 60000, intervals: [2000] }).toBe(true);
+			// her device took it, and could not open it as a request of Bob's
+			expect(delivery, JSON.stringify(delivery)).toMatchObject({ delivered: true, received: false });
 
 			await expect.poll(() => alice.saw(`dropped contact message from ${bob.did}: signature does not match the sender`), { timeout: 120000 })
 				.toBe(true);

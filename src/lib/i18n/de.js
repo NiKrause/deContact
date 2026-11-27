@@ -38,6 +38,23 @@ export default {
 		qrCode: 'QR-Code',
 		waiting: 'Warte auf das Handy von {name} …'
 	},
+	// die Kamera, die den QR-Code eines Kontakts liest (QrScanner.svelte, <qr-scanner>
+	// aus @le-space/libp2p-webrtc-qr)
+	scanner: {
+		label: 'QR-Code eines Kontakts scannen',
+		close: 'Schließen',
+		unsupported: 'Dieser Browser kann keine Kamera öffnen. Füge die Kontaktadresse stattdessen ins Feld ein.',
+		insecure: 'Eine Kamera ist nur auf einer sicheren Seite (https) erlaubt. Füge die Kontaktadresse stattdessen ins Feld ein.',
+		denied: 'Die Kamera wurde abgelehnt. Erlaube sie in der Adressleiste und drücke noch einmal auf Scannen.',
+		noDevice: 'Keine Kamera hat geantwortet. Falls eine andere App sie benutzt, schließe diese zuerst.',
+		starting: 'Kamera wird gestartet …',
+		looking: 'Suche einen Code … ruhig halten und etwa das halbe Bild ausfüllen.',
+		stillLooking: 'Suche weiter … {attempts} Versuche. Geh etwas näher heran und vermeide Spiegelungen.',
+		notContact: 'Das ist kein deContact-Kontakt und keine Einladung.',
+		animated: 'Bewegter Code: Teil {received} von {total}. Weiter ruhig halten.',
+		animatedUnknown: 'Bewegter Code. Weiter ruhig halten.',
+		hint: 'Mit der Kamera scannen, oder eine Kontaktadresse einfügen und auf Scannen drücken'
+	},
 	toast: {
 		success: 'Erledigt',
 		warning: 'Hinweis',
@@ -96,9 +113,9 @@ export default {
 	},
 	qr: {
 		heading: 'Scannen (DID) – dezentrale Identität',
-		scanWhat: 'DID oder URL scannen?',
-		didOnly: 'Nur DID',
-		url: 'URL',
+		scanWhat: 'Kontaktadresse oder Link?',
+		didOnly: 'Kontaktadresse',
+		url: 'Link',
 		twoWay: 'Gegenseitig austauschen',
 		twoWayHelp:
 			'Wer diesen Code scannt, kann auch seine Kontaktdaten mit dir teilen. Ob, entscheidet die Person selbst.'
@@ -266,6 +283,9 @@ export default {
 		contactDeleted: 'Kontakt gelöscht! {hash}',
 		invitationCopied: 'Einladung kopiert',
 		requestSent: 'Kontaktanfrage an {did} gesendet',
+		requestNotDelivered: '{did} ist noch nicht erreichbar – die App versucht es weiter',
+		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',
+		noContactAddress: 'Das ist keine Kontaktadresse. Scanne den QR-Code der Person, die du fragen willst.',
 		cardWritten: 'Deine Karte steht jetzt im Adressbuch der anfragenden Person (Hash {hash})',
 		requestDeclined: 'Anfrage abgelehnt (Hash {hash})',
 		openedWithWords:

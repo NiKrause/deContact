@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
 import { newPerson } from './helpers/passkeys.js';
-import { everPutUnder, fillOnboardingCard, invitationLink, names, openLink, times, topicOf } from './helpers/onboarding.js';
+import { answerRequests, everPutUnder, fillOnboardingCard, invitationLink, names, openLink, times } from './helpers/onboarding.js';
 
 // The onboarding of an invitation link (#86): Alice shows her QR code, Bob opens the link,
 // gets her card at once, types his own and chooses whether she gets it.
@@ -28,8 +28,8 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 	let bob;
 	try {
 		const link = await invitationLink(alice.page);
-		// Alice's app in the background: requests on her topic do not reach it
-		await alice.page.evaluate((topic) => window.helia.libp2p.services.pubsub.unsubscribe(topic), topicOf(alice.did));
+		// Alice's app in the background: her device answers no request
+		await answerRequests(alice.page, false);
 
 		await test.step('Bob opens the link: email first, the address collapsed', async () => {
 			bob = await openLink(browser, link);
@@ -38,7 +38,7 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 			expect(fields).toEqual(['onboarding-email', 'onboarding-first', 'onboarding-last']);
 			await expect(bob.page.getByRole('button', { name: 'Add address' })).toBeVisible();
 			await expect(bob.page.getByPlaceholder('Enter street...')).toHaveCount(0);
-			await expect.poll(() => bob.saw(`sent the request of the invitation link to ${alice.did}, asking for an invitation`), { timeout: 120000 })
+			await expect.poll(() => bob.saw(`could not deliver the request of the invitation link to ${alice.did}`), { timeout: 120000 })
 				.toBe(true);
 		});
 
@@ -50,15 +50,15 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 			await share.click();
 			await expect(bob.page.getByRole('tab', { name: 'Contacts' })).toBeVisible();
 			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText(`Waiting for ${alice.did}'s phone…`);
-			// his app asks again, with the same token, while Alice's does not answer
-			const asked = `sent the request of the invitation link to ${alice.did}, asking for an invitation`;
+			// his app tries again, with the same token, while Alice's does not answer
+			const asked = `could not deliver the request of the invitation link to ${alice.did}`;
 			const before = times(bob, asked);
 			await expect.poll(() => times(bob, asked), { timeout: 45000 }).toBeGreaterThan(before);
 			expect(alice.saw(`accepted the invitation link of ${bob.did}`)).toBe(false);
 		});
 
 		await test.step("Alice's app is back: her card reaches Bob, his reaches her", async () => {
-			await alice.page.evaluate((topic) => window.helia.libp2p.services.pubsub.subscribe(topic), topicOf(alice.did));
+			await answerRequests(alice.page, true);
 			await expect.poll(() => alice.saw(`accepted the invitation link of ${bob.did}`), { timeout: 120000 }).toBe(true);
 			await expect.poll(() => alice.saw(`sent an invitation to ${bob.did} for the two-way exchange`), { timeout: 30000 }).toBe(true);
 			await expect.poll(() => names(bob.page), { timeout: 90000, message: "Alice's card in Bob's book" }).toContain(fullName(people.alice));
