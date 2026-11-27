@@ -17,6 +17,7 @@
     import ContactList from "#lib/components/ContactList.svelte";
     import Settings from "#lib/components/Settings.svelte";
     import Statistics from "#lib/components/Statistics.svelte";
+    import TabLabels from "#lib/components/TabLabels.svelte";
 
     import {
         orbitdb,
@@ -37,6 +38,8 @@
     import { _ } from "#lib/i18n/index.js";
 
     $: $selectedRowIds.length>0?loadContact($selectedRowIds[0]):null; //as the datatable gets clicked we load the contact into the contact form
+    /** the tabs' labels, in the language on screen */
+    $: tabLabels = [$_('tabs.contacts'), $_('tabs.myAddress'), $_('tabs.statistics'), $_('tabs.settings')];
     let scannedAddress;
     let scanner;
     /** a contact address pasted into the field, else the camera */
@@ -72,10 +75,12 @@
     <ProgressBar helperText={"("+$progressState+"/6) "+$progressText} status={$progressState===6?"finished":"active"} />
     {/if}-->
     <Tabs class="tabs" bind:selected={$selectedTab}>
-        <Tab label={$_('tabs.contacts')} data-cy="contacts"/>
-        <Tab label={$_('tabs.myAddress')} data-cy="address"/>
-        <Tab label={$_('tabs.statistics')}  data-cy="statistics"/>
-        <Tab label={$_('tabs.settings')}  data-cy="settings"/>
+        <Tab label={tabLabels[0]} data-cy="contacts"/>
+        <Tab label={tabLabels[1]} data-cy="address"/>
+        <Tab label={tabLabels[2]}  data-cy="statistics"/>
+        <Tab label={tabLabels[3]}  data-cy="settings"/>
+        <!-- the dropdown on a phone names the tab in the language on screen too -->
+        <TabLabels labels={tabLabels}/>
         <svelte:fragment slot="content">
             <TabContent>
                 <Grid fullWidth class="scan-bar">
