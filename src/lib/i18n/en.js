@@ -134,14 +134,19 @@ export default {
 		add: 'Add'
 	},
 	qr: {
-		heading: 'Let them scan your code',
-		copy: 'Tap the code to copy it',
-		scanWhat: 'Contact address or link?',
-		didOnly: 'Contact address',
-		url: 'Link',
-		twoWay: 'Two-way exchange',
-		twoWayHelp:
-			'Whoever scans this code can also share their contact details with you. They decide whether to.'
+		heading: 'Share your contact',
+		summaryBoth:
+			'The first person to scan gets your contact details right away and can send you theirs. The code works for 24 hours.',
+		summaryNow: 'The first person to scan gets your contact details right away. The code works for 24 hours.',
+		summaryAsk:
+			'Only deContact can scan this code: the person sends you a request, and you decide whether to share your contact details.',
+		copyLink: 'Tap the code to copy the link',
+		copyAddress: 'Tap the code to copy the contact address',
+		mode: 'Your contact details',
+		shareNow: 'Share right away',
+		letThemAsk: 'Let them ask first',
+		twoWay: 'Also ask for their contact details',
+		twoWayHelp: 'They decide whether to send theirs.'
 	},
 	request: {
 		label: 'deContact Protocol Action',
@@ -304,7 +309,8 @@ export default {
 		contactUpdated: 'Contact updated successfully - informing our followers! {name}',
 		contactRemoved: 'Contact removed: {owner} gets no more updates from you',
 		contactDeleted: 'Contact deleted successfully! {hash}',
-		invitationCopied: 'copied invitation',
+		invitationCopied: 'Invitation link copied',
+		addressCopied: 'Contact address copied',
 		requestSent: 'sent SEND_ADDRESS_REQUEST to {did}',
 		requestNotDelivered: 'could not reach {did} yet - the app keeps trying',
 		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',

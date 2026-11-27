@@ -257,7 +257,10 @@ From each sender only the newest request waits for an answer.
 
 The onboarding at a conference ([#86](https://github.com/NiKrause/deContact/issues/86)): Alice shows a QR code, Bob opens the link, gets Alice's card at once, quickly types his own and decides whether Alice gets it too.
 
-The QR code can carry a link instead of the bare DID: `#/onboarding/<Alice's DID>?onBoardingToken=…`. Its token is signed by Alice and holds a random nonce, an expiry (24 hours) and whether a **two-way exchange** is allowed: the option *Two-way exchange* in the QR dialog, on by default, says "Whoever scans this code can also share their contact details with you. They decide whether to." The device that created the link remembers it. Alice's card is not in the QR code: anybody who photographs the code would have it.
+The QR dialog (*Share your contact*) offers two choices, and one sentence under the code says what happens when somebody scans it:
+
+- **Share right away** (the default): the code is a link, `#/onboarding/<Alice's DID>?onBoardingToken=…`. The first person who opens it gets Alice's card at once. Its token is signed by Alice and holds a random nonce, an expiry (24 hours) and whether a **two-way exchange** is allowed: the option *Also ask for their contact details*, on by default ("They decide whether to send theirs."). The device that created the link remembers it. Alice's card is not in the QR code: anybody who photographs the code would have it.
+- **Let them ask first**: the code is Alice's contact address, `<Alice's DID>?peer=<her device>`, without a token. Only deContact's own Scan reads it; whoever scans it sends Alice a request, and she decides in the request dialog ([Requests](#requests)).
 
 ```mermaid
 sequenceDiagram
@@ -267,7 +270,7 @@ sequenceDiagram
     participant BB as Bob's browser
     actor Bob
 
-    Alice->>AB: QR code, "Two-way exchange" on
+    Alice->>AB: QR code, "Share right away" and "Also ask for their contact details" on
     AB->>AB: sign a token {nonce, expiry, two-way}, remember it
     Bob->>BB: scan, open #/onboarding/did(Alice)?onBoardingToken=…
     BB->>BB: identity (a temporary one on a new device, #97), check the token against did(Alice),<br/>placeholder contact:did(Alice) into Bob's book

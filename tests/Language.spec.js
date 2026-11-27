@@ -106,10 +106,13 @@ test('the onboarding in German, switched on the first screen', async ({ browser 
 			await switchToGermanInSettings(alice.page);
 			await alice.page.getByRole('tab', { name: 'Kontakte' }).click();
 			await alice.page.getByRole('button', { name: 'QR-Code' }).click();
-			await expect(alice.page.getByRole('checkbox', { name: 'Gegenseitig austauschen' })).toBeChecked();
-			await expect(
-				alice.page.getByText('Wer diesen Code scannt, kann auch seine Kontaktdaten mit dir teilen. Ob, entscheidet die Person selbst.')
-			).toBeVisible();
+			await expect(alice.page.getByRole('heading', { name: 'Kontakt teilen' })).toBeVisible();
+			await expect(alice.page.getByRole('radio', { name: 'Sofort teilen' })).toBeChecked();
+			await expect(alice.page.getByRole('checkbox', { name: 'Auch um ihre Kontaktdaten bitten' })).toBeChecked();
+			await expect(alice.page.getByTestId('qr-summary')).toHaveText(
+				'Die erste Person, die scannt, bekommt deine Kontaktdaten sofort und kann dir ihre schicken. Der Code gilt 24 Stunden.'
+			);
+			await expect(alice.page.getByText('Die Person entscheidet, ob sie ihre schickt.')).toBeVisible();
 			const qrCode = alice.page.locator('img.qrcode');
 			await expect(qrCode).toHaveAttribute('alt', /onBoardingToken=1\./);
 			const alt = await qrCode.getAttribute('alt');

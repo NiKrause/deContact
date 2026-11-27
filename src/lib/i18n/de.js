@@ -134,14 +134,19 @@ export default {
 		add: 'Hinzufügen'
 	},
 	qr: {
-		heading: 'Lass deinen Code scannen',
-		copy: 'Tippe auf den Code, um ihn zu kopieren',
-		scanWhat: 'Kontaktadresse oder Link?',
-		didOnly: 'Kontaktadresse',
-		url: 'Link',
-		twoWay: 'Gegenseitig austauschen',
-		twoWayHelp:
-			'Wer diesen Code scannt, kann auch seine Kontaktdaten mit dir teilen. Ob, entscheidet die Person selbst.'
+		heading: 'Kontakt teilen',
+		summaryBoth:
+			'Die erste Person, die scannt, bekommt deine Kontaktdaten sofort und kann dir ihre schicken. Der Code gilt 24 Stunden.',
+		summaryNow: 'Die erste Person, die scannt, bekommt deine Kontaktdaten sofort. Der Code gilt 24 Stunden.',
+		summaryAsk:
+			'Nur in deContact scannbar: Die Person schickt dir eine Anfrage, und du entscheidest, ob du deine Kontaktdaten teilst.',
+		copyLink: 'Tippe auf den Code, um den Link zu kopieren',
+		copyAddress: 'Tippe auf den Code, um die Kontaktadresse zu kopieren',
+		mode: 'Deine Kontaktdaten',
+		shareNow: 'Sofort teilen',
+		letThemAsk: 'Erst anfragen lassen',
+		twoWay: 'Auch um ihre Kontaktdaten bitten',
+		twoWayHelp: 'Die Person entscheidet, ob sie ihre schickt.'
 	},
 	request: {
 		label: 'deContact-Protokollaktion',
@@ -305,7 +310,8 @@ export default {
 		contactUpdated: 'Kontakt aktualisiert – deine Follower bekommen die Änderung! {name}',
 		contactRemoved: 'Kontakt entfernt: {owner} bekommt keine Updates mehr von dir',
 		contactDeleted: 'Kontakt gelöscht! {hash}',
-		invitationCopied: 'Einladung kopiert',
+		invitationCopied: 'Einladungslink kopiert',
+		addressCopied: 'Kontaktadresse kopiert',
 		requestSent: 'Kontaktanfrage an {did} gesendet',
 		requestNotDelivered: '{did} ist noch nicht erreichbar – die App versucht es weiter',
 		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
 import { newPerson } from './helpers/passkeys.js';
-import { answerRequests, everPutUnder, fillOnboardingCard, invitationLink, names, openLink, times } from './helpers/onboarding.js';
+import { QR_SUMMARY, answerRequests, everPutUnder, fillOnboardingCard, invitationLink, names, openLink, times } from './helpers/onboarding.js';
 
 // The onboarding of an invitation link (#86): Alice shows her QR code, Bob opens the link,
 // gets her card at once, types his own and chooses whether she gets it.
@@ -10,6 +10,7 @@ import { answerRequests, everPutUnder, fillOnboardingCard, invitationLink, names
 // 2. Bob saves only: nothing of his reaches Alice's book. Carol opens the same link
 //    afterwards: Alice is asked, and Carol shares with the invitation Alice sends back.
 // 3. A link without a two-way exchange offers only "Save".
+// 4. The QR dialog says what the code does; "Let them ask first" shows the contact address.
 // In every case: no request dialog during onboarding, and the inviter's book never holds a
 // placeholder card of the invitee (their DID as the last name).
 
@@ -164,5 +165,40 @@ test('a link without a two-way exchange offers only Save', async ({ browser }) =
 		expect(await everPutUnder(alice, contactKey(dave.did))).toEqual([]);
 	} finally {
 		await Promise.all([alice, dave].filter(Boolean).map((person) => person.close()));
+	}
+});
+
+test('the QR dialog says what the code does, and shows the contact address for a request', async ({ browser }) => {
+	test.setTimeout(180000);
+	const alice = await newPerson(browser, people.alice);
+	try {
+		const { page } = alice;
+		await page.getByRole('tab', { name: 'Contacts' }).click();
+		await page.getByRole('button', { name: 'QR Code' }).click();
+		await expect(page.getByRole('heading', { name: 'Share your contact' })).toBeVisible();
+		const qrCode = page.locator('img.qrcode');
+		const summary = page.getByTestId('qr-summary');
+		await expect(summary).toHaveText(QR_SUMMARY.both);
+		await expect(qrCode).toHaveAttribute('alt', /#\/onboarding\/.*onBoardingToken=1\./);
+		await expect(page.getByText('Tap the code to copy the link', { exact: true })).toBeVisible();
+
+		await test.step('Let them ask first: the contact address, no link and no token', async () => {
+			await page.getByText('Let them ask first', { exact: true }).click();
+			await expect(page.getByRole('radio', { name: 'Let them ask first' })).toBeChecked();
+			await expect(summary).toHaveText(QR_SUMMARY.ask);
+			await expect(page.getByRole('checkbox', { name: 'Also ask for their contact details' })).toHaveCount(0);
+			await expect(page.getByText('Tap the code to copy the contact address', { exact: true })).toBeVisible();
+			await expect(qrCode).toHaveAttribute('alt', new RegExp(`^${alice.did}\\?peer=`));
+			expect(await qrCode.getAttribute('alt')).not.toContain('onBoardingToken');
+		});
+
+		await test.step('Share right away again: a new link', async () => {
+			await page.getByText('Share right away', { exact: true }).click();
+			await expect(summary).toHaveText(QR_SUMMARY.both);
+			await expect(page.getByRole('checkbox', { name: 'Also ask for their contact details' })).toBeChecked();
+			await expect(qrCode).toHaveAttribute('alt', /onBoardingToken=1\.[A-Za-z0-9_-]{22}\.\d+\.1\./);
+		});
+	} finally {
+		await alice.close();
 	}
 });
