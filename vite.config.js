@@ -37,7 +37,7 @@ export default defineConfig({
 		// 	srcDir: 'src'})
 	],
 	test: {
-		include: ['src/**/*.{test,spec}.{js,ts}', 'packages/*/**/*.{test,spec}.{js,ts}'],
+		include: ['src/**/*.{test,spec}.{js,ts}', 'packages/*/**/*.{test,spec}.{js,ts}', 'scripts/**/*.{test,spec}.{js,ts}'],
 		// unit tests that need a real browser run in Playwright (playwright.unit.config.js)
 		exclude: [...configDefaults.exclude, '**/*.browser.spec.js']
 	}

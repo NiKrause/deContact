@@ -62,6 +62,8 @@
             console.log("dropping DropFollowerDBs db!",addressRecords)
             for (const addressRecord of addressRecords) {
                 if(addressRecord.value.own) continue
+                // placeholders and revocations (#82) name no book of somebody else
+                if(!addressRecord.value.sharedAddress) continue
                 console.log("dropping follower db",addressRecord.value.sharedAddress)
                  const followerDB2DDrop = await $orbitdb.open(addressRecord.value.sharedAddress)
                  await followerDB2DDrop.drop()

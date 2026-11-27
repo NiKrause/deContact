@@ -119,6 +119,19 @@ export function createExchangeStore(storage, key = 'decontact.exchanges.v1') {
             if (!exchange) return
             exchange.shared = true
             save(exchanges, now)
+        },
+        /**
+         * We removed the inviter (#82): nothing is resent to them. Every resend carries an
+         * invitation, and inviting them again would lift the revocation.
+         *
+         * @returns {boolean} whether there was an exchange with them
+         */
+        forget(inviter, now = Date.now()) {
+            const exchanges = load()
+            const known = Object.hasOwn(exchanges, inviter)
+            delete exchanges[inviter]
+            save(exchanges, now)
+            return known
         }
     }
 }

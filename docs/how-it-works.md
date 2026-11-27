@@ -96,7 +96,7 @@ Only the owner of an address book reads it ([#59](https://github.com/NiKrause/de
 - **A seal.** A fresh ephemeral X25519 key pair; HKDF-SHA256 over the shared secret, with both public keys as salt and `decontact/seal/v1` as info; AES-GCM-256 with a fresh nonce. The additional data names what was sealed and where it belongs (the book's owner and the document's `_id`, or the request's recipient): a seal moved elsewhere does not open there. Ported from simple-todo `privacy01` (`key-wrapping.js`, `db-encryption.js`).
 - **Cards.** A document keeps in the clear what the [access controller](#who-may-write-into-an-address-book) checks: its `_id`, and on a contact's card also `owner` and `invitation`. Everything else (names, address, email, [photo](#what-a-card-holds), the address of the writer's own book) goes into `sealed`. The controller and its rules did not change, so relays still check every entry without a key. OrbitDB's own `encryption.data` is not used: it seals the whole payload, and a relay without the key would see no key, owner or invitation and would refuse every contact's card.
 - **Requests.** The signed request is sealed to the recipient and published as `{ v: 3, sealed }` on the recipient's topic. Inside are the signed request and the sender's name (first name, last name, city), because the recipient can no longer read the sender's book to see who asks.
-- **Removing a contact.** Deleting somebody's card under **Contacts** removes our card from their book, so no later change of ours reaches them, and removes their card, placeholder and book from ours. What they already received stays with them.
+- **Removing a contact.** Deleting somebody's card under **Contacts** removes our card from their book, so no later change of ours reaches them, and removes their card, placeholder and book from ours. It also [revokes their invitation](#removing-a-contact-revokes-their-invitation) into our book. What they already received stays with them.
 - **Entries from before.** Documents of the own book that were written in the clear before this change are sealed again when the app starts. The log keeps the old plaintext entries.
 
 ### What a card holds
@@ -119,7 +119,8 @@ Only the owner of an address book reads it ([#59](https://github.com/NiKrause/de
 What stays visible:
 
 - **Who writes into whose book, and when.** An address book's address follows from its owner's DID. Whoever opens it sees which identities wrote entries, the `_id`s (a contact's card is `contact:<their DID>`), the invitations and the entry sizes. A request shows its recipient (the topic), its time and the sender's libp2p peer id.
-- **What a contact received stays theirs.** Removing them stops the updates; it cannot take back what they saw. Their invitation into our book also stays valid: revoking it needs a change of the access controller.
+- **What a contact received stays theirs.** Removing them stops the updates; it cannot take back what they saw.
+- **Whom we removed.** A [revocation](#removing-a-contact-revokes-their-invitation) is the document `revoked:<their DID>`: whoever opens our book sees that we removed that DID, and when the entry was written ([#85](https://github.com/NiKrause/deContact/issues/85)).
 - **One secret for signing and decrypting.** The identity's Ed25519 key and its X25519 key are one secret. If it leaks, both leak. Reusing it this way is established practice (did:key, libsodium, age), and both would come from the same root anyway.
 
 ## Exchanging contact data
@@ -221,5 +222,17 @@ Every address book uses the OrbitDB access controller `decontact-address-book`, 
 | Anybody else | nothing |
 
 A request for contact data carries the invitation for the recipient. The owner's DID is stored in the database manifest, so a relay can check entries without asking anybody.
+
+The end-to-end test [`WriteAccess.spec.js`](../tests/WriteAccess.spec.js) proves these rules through the app and the relay ([#81](https://github.com/NiKrause/deContact/issues/81)): somebody who was not invited cannot write their own card, the owner's card or any other document, nor delete one; an invited contact cannot overwrite the owner's card or write a card under another DID. Each write is refused in the writer's browser, and a fresh browser that opens the book through the relay alone finds none of them. It writes through `window.__decontactE2E`, a hook only the build for the tests has ([`e2e-hook.js`](../src/lib/network/e2e-hook.js)); CI checks that the production build, and the one GitHub Pages publishes, contains none ([`check-production-build.mjs`](../scripts/check-production-build.mjs)).
+
+### Removing a contact revokes their invitation
+
+An invitation never expires: the access controller checks only that the owner signed it. So removing Bob ([#82](https://github.com/NiKrause/deContact/issues/82)) also revokes the invitation Alice once gave him, in the app and without changing the controller, the invitation format or the relays ([`revocations.js`](../src/lib/network/revocations.js)):
+
+- **The revocation.** Alice's app writes `revoked:<Bob's DID>` into her own book: `_id`, her DID as `owner`, the time. It is sealed to her like every document, so only the `_id` stays in the clear. Only the owner may write a key other than `contact:<own DID>`, so Bob can neither write nor delete it.
+- **Alice's app ignores Bob's card.** While the revocation is there, her address list and her backups leave out `contact:<Bob's DID>`, whenever and however often he writes it. That is sound because only Bob, or Alice herself, may write under that key.
+- **Bob's app stops writing.** It sees `revoked:<Bob's DID>` in its copy of Alice's book, writes no update of his card there any more and shows no message. Alice's card, if he still has it, stays in his book. A link of Bob's that Alice opened is no longer resent to him: every resend would invite him again.
+- **Inviting again.** Every request that carries an invitation for Bob (Alice scans him, answers his request and asks him back, or sends him an invitation for a two-way exchange) deletes the revocation first. His card counts again, the one he wrote in the meantime too, until his app replaces it.
+- **What the relays do.** They check entries with the same controller and still accept a card under a revoked invitation; they store it, and Alice's app ignores it. Refusing it there needs the controller to see the book's state, a release of the package and of orbitdb-relay, and a redeploy ([#93](https://github.com/NiKrause/deContact/issues/93)). It would save storage only: an invited contact can write their card as often as they like anyway.
 
 Where those replicas live, and when a relay keeps one: [Relays](relays.md).

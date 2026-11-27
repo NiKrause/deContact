@@ -104,7 +104,9 @@ const env = {
 	VITE_P2P_PUPSUB: discoveryTopic,
 	VITE_P2P_PUPSUB_DEV: discoveryTopic,
 	// only the local relay: the tests must not depend on Aleph or reach real relays
-	VITE_ALEPH_RELAY_DISCOVERY: 'false'
+	VITE_ALEPH_RELAY_DISCOVERY: 'false',
+	// window.__decontactE2E (src/lib/network/e2e-hook.js), which a production build lacks
+	VITE_E2E: 'true'
 };
 await run('pnpm', ['exec', 'vite', 'build'], env);
 previewProcess = spawn(

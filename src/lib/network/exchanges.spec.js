@@ -79,6 +79,19 @@ describe('the exchanges of this device', () => {
 		expect(Object.keys(JSON.parse(storage.getItem('decontact.exchanges.v1')))).toEqual([carol]);
 	});
 
+	it('forgets the link of an inviter we removed (#82)', () => {
+		const storage = memoryStorage();
+		const store = createExchangeStore(storage);
+		store.opened(link(), now);
+		store.opened(link({ inviter: carol }), now);
+		store.chose(alice, 'share', now);
+		expect(store.forget(alice, now)).toBe(true);
+		expect(store.get(alice, now)).toBeUndefined();
+		expect(createExchangeStore(storage).all(now).map((it) => it.inviter)).toEqual([carol]);
+		expect(store.forget(alice, now)).toBe(false);
+		expect(store.forget('__proto__', now)).toBe(false);
+	});
+
 	it('accepts only the known choices', () => {
 		const store = createExchangeStore(memoryStorage());
 		store.opened(link(), now);

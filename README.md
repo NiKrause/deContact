@@ -80,7 +80,8 @@ The app finds Le Space's relays on Aleph by itself. To try it with two people:
 - **Security notes.**
   - Nothing secret is stored in the clear: the browser keeps only the sealed vault record, and OrbitDB's keystore lives in memory. While the app is open, the root, the identity's key and its X25519 key are in the page's memory, so a script running in the page could use them.
   - Cards and requests are sealed to the X25519 counterpart of the reader's `did:key`. Signing and decrypting depend on one secret: if the identity's key leaks, both do.
-  - Removing a contact removes your card from their book and stops your updates. What they already received stays with them, and their invitation to write into your book stays valid.
+  - Removing a contact removes your card from their book, stops your updates and revokes their invitation into your book: a card they write back with it no longer shows in your list, and their app stops updating it, until you exchange cards again. What they already received stays with them.
+  - A revocation is visible in the clear: whoever opens your book sees the document `revoked:<DID>` and so knows that you removed that DID ([#85](https://github.com/NiKrause/deContact/issues/85)). Relays still store a card written under a revoked invitation; your app ignores it ([#93](https://github.com/NiKrause/deContact/issues/93)).
   - Documents written in the clear before the encryption are sealed again on the first start, but the log keeps the old plaintext entries.
   - The first passkey's PRF output is the vault's root. Removing a passkey revokes nothing it already opened, and the first passkey always restores the identity.
   - The vault record is public. It is published over OrbitDB (and the relays) under a name only a slot's holder can work out; it names each passkey's credential id and label.
