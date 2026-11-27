@@ -7,13 +7,13 @@ export default {
 	// what search engines and link previews read (seo.js), and the picture of the preview
 	// (scripts/brand/og-image.html): the page of each language has its own
 	meta: {
-		title: 'deContact – your peer-to-peer address book',
+		title: 'deContact – self-updating · local · peer-to-peer',
 		description:
-			'A local-first, peer-to-peer address book. Scan a QR code, exchange cards, and your contacts keep themselves up to date, without a server that owns them.',
+			'The self-updating, local, peer-to-peer address book. Scan a QR code, exchange cards, and your contacts keep themselves up to date, without a server that owns them.',
 		previewDescription: 'Scan a QR code, exchange cards. Your contacts keep themselves up to date, without a server that owns them.',
-		imageAlt: 'deContact: two contact cards being exchanged, and the words: a local-first, peer-to-peer address book.',
-		imageLead: 'A local-first,<br />peer-to-peer address book.',
-		noscript: 'A local-first, peer-to-peer address book. deContact runs in your browser and needs JavaScript.',
+		imageAlt: 'deContact: two contact cards being exchanged, and the words: self-updating, local, peer-to-peer.',
+		imageLead: 'self-updating · local ·<br />peer-to-peer',
+		noscript: 'The self-updating, local, peer-to-peer address book. deContact runs in your browser and needs JavaScript.',
 		source: 'Source code and documentation on GitHub'
 	},
 	// what the app says about its build (AppInfo.svelte)

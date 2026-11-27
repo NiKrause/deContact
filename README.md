@@ -2,7 +2,7 @@
 
 # deContact
 
-**A local-first, peer-to-peer address book. Your contacts keep themselves up to date — without a server that owns them.**
+**Self-updating · local · peer-to-peer. An address book whose contacts keep themselves up to date — without a server that owns them.**
 
 [![Tests](https://github.com/NiKrause/deContact/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/NiKrause/deContact/actions/workflows/main.yml)
 [![Release](https://img.shields.io/github/v/tag/NiKrause/deContact?sort=semver&label=release)](https://github.com/NiKrause/deContact/tags)
