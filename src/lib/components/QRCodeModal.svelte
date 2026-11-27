@@ -7,8 +7,8 @@
     import { notify } from "../../utils/utils.js";
     import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
     import { _ } from "#lib/i18n/index.js";
+    import { appUrl } from "#lib/app-url.js";
 
-    const page_url = import.meta.env.VITE_PAGE_URL?import.meta.env.VITE_PAGE_URL+'/#':'https://deContact.xyz/#';
 
     export let qrCodeData
     export let qrCodeOpen
@@ -28,7 +28,8 @@
             .then((token) => { if (issue === issuing) onBoardingToken = token })
             .catch((error) => console.log("could not create an invitation link:", error?.message))
     }
-    $: linkUrl = (fullDeContactUrl && onBoardingToken)?`${page_url}/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}`:qrCodeData
+    // the invitation link leads back to this app, wherever it runs (app-url.js)
+    $: linkUrl = (fullDeContactUrl && onBoardingToken)?`${appUrl()}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}`:qrCodeData
 </script>
 
     <Modal bind:open={ qrCodeOpen }

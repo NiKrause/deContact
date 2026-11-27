@@ -32,7 +32,9 @@ export async function invitationLink(page, { twoWay = true } = {}) {
 	await expect(qrCode).toHaveAttribute('alt', new RegExp(`onBoardingToken=1\\.[A-Za-z0-9_-]{22}\\.\\d+\\.${twoWay ? 1 : 0}\\.`));
 	const link = await qrCode.getAttribute('alt');
 	await page.keyboard.press('Escape');
-	return process.env.PAGE_URL + link.slice(link.indexOf('#'));
+	// the link leads back to the app that showed it, not to some other address
+	expect(link.startsWith(`${process.env.PAGE_URL}#/onboarding/`)).toBe(true);
+	return link;
 }
 
 /** somebody new opens an invitation link: a passkey, then the onboarding view */
