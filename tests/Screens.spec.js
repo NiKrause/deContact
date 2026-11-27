@@ -14,7 +14,8 @@ import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboardi
 // A tour of every screen, saved as a screenshot at each reference width (#110), so a change
 // to the UI can be compared before and after: CI keeps them as the artifact "screens" of
 // the test job, and test-results/screens/index.html shows them side by side.
-// It asserts little: each screen opens. It is not a pixel diff.
+// It asserts little: each screen opens, and no screen scrolls sideways at any of the widths
+// (#98). It is not a pixel diff.
 
 /**
  * The reference devices of #110, in CSS pixels, portrait. Until they are measured on the
@@ -156,8 +157,8 @@ async function openTab(page, name) {
 
 /**
  * The screen as shown now, at each width: the whole page, or only the window for a dialog.
- * Back at the width the tour clicks at afterwards. Whether the page scrolls sideways goes
- * into the index and the report, without failing the tour.
+ * Back at the width the tour clicks at afterwards. A page wider than the screen fails the
+ * tour (#98), after the rest of it, and is marked in the index.
  */
 async function shoot(page, screen, title, { dialog = false } = {}) {
 	for (const device of DEVICES) {
@@ -172,14 +173,9 @@ async function shoot(page, screen, title, { dialog = false } = {}) {
 		});
 		const wide = await page.evaluate(() => document.documentElement.scrollWidth);
 		const sideways = wide > device.width ? wide : undefined;
-		if (sideways)
-			test
-				.info()
-				.annotations.push({
-					type: 'scrolls sideways',
-					description: `${screen} at ${device.width} px: ${wide} px wide`
-				});
 		shots.push({ screen, title, width: device.width, file, sideways });
+		// soft: the tour goes on, so every screen that is too wide is named
+		expect.soft(wide, `${screen} at ${device.width} px scrolls sideways`).toBeLessThanOrEqual(device.width);
 	}
 	await page.setViewportSize(size(CLICK_AT));
 }
