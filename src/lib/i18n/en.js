@@ -142,7 +142,15 @@ export default {
 		update: 'Update',
 		new: 'New',
 		delete: 'Delete',
-		add: 'Add'
+		add: 'Add',
+		// asked before Delete (#110): a contact of somebody else is removed, one of ours deleted
+		removeTitle: 'Remove {name}?',
+		removeTitleNameless: 'Remove this contact?',
+		removeText: 'They no longer get your updates, and your card leaves their address book.',
+		remove: 'Remove',
+		deleteTitle: 'Delete {name}?',
+		deleteTitleNameless: 'Delete this card?',
+		deleteText: 'The card leaves your address book.'
 	},
 	qr: {
 		heading: 'Share your contact',
@@ -316,7 +324,14 @@ export default {
 		peersHelp: 'This is the amount of peers which are connected in our peer-to-peer network',
 		webrtc: 'WebRTC (applies after reload)',
 		dropFollowers: 'Drop Followed & Follower DBs',
-		dropAddressBook: 'Drop AddressDB'
+		dropAddressBook: 'Drop AddressDB',
+		// collapsed at the bottom: what only a developer needs (#110)
+		developer: 'Developer',
+		drop: 'Drop',
+		dropFollowersTitle: 'Drop the copies of other address books?',
+		dropFollowersText: "This device forgets its copies of your contacts' address books. Your own card and your passkeys stay.",
+		dropAddressBookTitle: 'Drop your address book on this device?',
+		dropAddressBookText: 'This device forgets your address book: your card and your contacts. What other devices and relays keep of it stays.'
 	},
 	statistics: {
 		connected: 'Seed Node connected / Swarm connected'

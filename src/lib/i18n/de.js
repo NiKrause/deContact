@@ -141,7 +141,14 @@ export default {
 		update: 'Aktualisieren',
 		new: 'Neu',
 		delete: 'Löschen',
-		add: 'Hinzufügen'
+		add: 'Hinzufügen',
+		removeTitle: '{name} entfernen?',
+		removeTitleNameless: 'Diesen Kontakt entfernen?',
+		removeText: 'Die Person bekommt keine Änderungen mehr von dir, und deine Karte verschwindet aus ihrem Adressbuch.',
+		remove: 'Entfernen',
+		deleteTitle: '{name} löschen?',
+		deleteTitleNameless: 'Diese Karte löschen?',
+		deleteText: 'Die Karte verschwindet aus deinem Adressbuch.'
 	},
 	qr: {
 		heading: 'Kontakt teilen',
@@ -314,7 +321,13 @@ export default {
 		peersHelp: 'So viele Peers sind gerade mit unserem Peer-to-Peer-Netzwerk verbunden',
 		webrtc: 'WebRTC (gilt nach dem Neuladen)',
 		dropFollowers: 'Gefolgte und Follower-DBs löschen',
-		dropAddressBook: 'Adress-DB löschen'
+		dropAddressBook: 'Adress-DB löschen',
+		developer: 'Entwicklung',
+		drop: 'Löschen',
+		dropFollowersTitle: 'Die Kopien fremder Adressbücher löschen?',
+		dropFollowersText: 'Dieses Gerät vergisst seine Kopien der Adressbücher deiner Kontakte. Deine eigene Karte und deine Passkeys bleiben.',
+		dropAddressBookTitle: 'Dein Adressbuch auf diesem Gerät löschen?',
+		dropAddressBookText: 'Dieses Gerät vergisst dein Adressbuch: deine Karte und deine Kontakte. Was andere Geräte und Relays davon haben, bleibt.'
 	},
 	statistics: {
 		connected: 'Seed-Node verbunden / Schwarm verbunden'

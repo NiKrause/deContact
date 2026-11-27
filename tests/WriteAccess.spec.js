@@ -132,6 +132,9 @@ test("a removed contact's card stays out until they are invited again", async ({
 		await test.step('Alice removes Bob: his invitation is revoked', async () => {
 			await selectContact(alice.page, people.bob.last);
 			await alice.page.getByRole('button', { name: 'Delete' }).click();
+			// asked first (#110)
+			await expect(alice.page.getByRole('heading', { name: `Remove ${people.bob.first} ${people.bob.last}?` })).toBeVisible();
+			await alice.page.getByRole('button', { name: 'Remove', exact: true }).click();
 			await expect.poll(() => alice.saw(`revoked the invitation of ${bob.did}`), { timeout: 30000 }).toBe(true);
 			await expect.poll(() => alice.saw(`removed our card from the address book of ${bob.did}`), { timeout: 60000 }).toBe(true);
 			const docs = await documents(alice.page, book);

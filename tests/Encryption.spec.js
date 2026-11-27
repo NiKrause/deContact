@@ -85,6 +85,7 @@ test('a third peer reads nothing, and a removed contact gets no more updates', a
 		await test.step('Alice removes Bob: her card leaves his book', async () => {
 			await selectContact(alice.page, people.bob.last);
 			await alice.page.getByRole('button', { name: 'Delete' }).click();
+			await alice.page.getByRole('button', { name: 'Remove', exact: true }).click();
 			await expect.poll(() => alice.saw(`removed our card from the address book of ${bob.did}`), { timeout: 60000 }).toBe(true);
 			await expect.poll(() => names(alice.page), { timeout: 30000 }).not.toContain(`${people.bob.first} ${people.bob.last}`);
 			await expect.poll(() => names(bob.page), { timeout: 90000, message: "Alice's card gone from Bob's book" })

@@ -1,5 +1,5 @@
 <script>
-    import { TextInput, Button, Column, Grid, Row, Toggle } from "carbon-components-svelte";
+    import { Accordion, AccordionItem, Button, ConfirmModal, TextInput, Toggle } from "carbon-components-svelte";
     import PasskeySettings from "./PasskeySettings.svelte";
     import SecureOffer from "./SecureOffer.svelte";
     import { session } from "#lib/identity/session.js";
@@ -15,87 +15,114 @@
 
     // read when the network starts (p2p-operations.js)
     $effect(() => window.localStorage.setItem('useWebRTC', $useWebRTC.toString()))
+
+    /** which drop waits for its confirmation */
+    let confirmFollowers = $state(false)
+    let confirmBook = $state(false)
+
+    /** the copies of other people's books we keep, and their cards that came from them */
+    async function dropFollowers() {
+        const addressRecords = await $dbMyAddressBook.all();
+        console.log("dropping DropFollowerDBs db!",addressRecords)
+        for (const addressRecord of addressRecords) {
+            if(addressRecord.value.own) continue
+            // placeholders and revocations (#82) name no book of somebody else
+            if(!addressRecord.value.sharedAddress) continue
+            console.log("dropping follower db",addressRecord.value.sharedAddress)
+            const followerDB2DDrop = await $orbitdb.open(addressRecord.value.sharedAddress)
+            await followerDB2DDrop.drop()
+            if(addressRecord.value.subscriber){
+                const deleteHash = await $dbMyAddressBook.del(addressRecord.key)
+                console.log("deleteHash",deleteHash)
+            }
+        }
+        console.log("addressRecords",addressRecords)
+        selectedAddr.set({})
+        selectedTab.set(0)
+    }
+
+    /** this device's copy of our address book */
+    async function dropBook() {
+        console.log("dropping address db!")
+        await $dbMyAddressBook.drop()
+        const addressRecords = await $dbMyAddressBook.all();
+        console.log("addressRecords",addressRecords)
+        selectedAddr.set({})
+        selectedTab.set(0)
+    }
 </script>
 
 <!--
- @component Settings component displays current address of db and my handle
- The handle is used in order to set write permissions for the databases
+ @component Settings: the language, the passkeys and recovery words, WebRTC; at the bottom,
+ collapsed, what only a developer needs (#110): the DID, the peer id and peers, and the two
+ drop actions, each behind a confirmation.
 -->
-<Grid>
-    <Row>
-        <Column sm={3}><LanguageSwitch /></Column>
-    </Row>
+<div class="settings">
+    <section><LanguageSwitch /></section>
 
-    <Row>
-        <Column sm={3}><TextInput labelText={$_('settings.did')}
-                                  helperText={$_('settings.didHelp')}
-                                  size="sm"
-                                  readonly
-                                  value={$orbitdb?.identity?.id} /></Column>
-    </Row>
+    <!-- a temporary identity (#97) has no vault yet: securing it comes first -->
+    <section>{#if $session?.temporary}<SecureOffer inSettings />{:else}<PasskeySettings />{/if}</section>
 
-    <Row class="custom-row">
-        <!-- a temporary identity (#97) has no vault yet: securing it comes first -->
-        <Column>{#if $session?.temporary}<SecureOffer inSettings />{:else}<PasskeySettings />{/if}</Column>
-    </Row>
+    <section>
+        <!-- off: other browsers are reached only through the relay; read when the network starts -->
+        <Toggle id="webrtc-toggle" labelText={$_('settings.webrtc')} labelA={$_('common.off')} labelB={$_('common.on')} bind:toggled={$useWebRTC} />
+    </section>
 
-    <Row>
-        <Column sm={3}><TextInput labelText={$_('settings.peerId')}
-                                  helperText={$_('settings.peerIdHelp')}
-                                  readonly size="sm"
-                                  value={$libp2p?.peerId?.toString()} /></Column>
-    </Row>
+    <Accordion class="developer">
+        <AccordionItem title={$_('settings.developer')} data-testid="developer">
+            <div class="fields">
+                <TextInput labelText={$_('settings.did')} helperText={$_('settings.didHelp')} size="sm" readonly value={$orbitdb?.identity?.id} />
+                <TextInput labelText={$_('settings.peerId')} helperText={$_('settings.peerIdHelp')} size="sm" readonly value={$libp2p?.peerId?.toString()} />
+                <TextInput labelText={$_('settings.peers')} helperText={$_('settings.peersHelp')} size="sm" readonly value={$connectedPeers} />
+                <div class="drops">
+                    <Button data-cy="DropFollowerDBs" kind="danger-tertiary" size="sm" on:click={() => (confirmFollowers = true)}>{$_('settings.dropFollowers')}</Button>
+                    <Button data-cy="DropAddressDB" kind="danger-tertiary" size="sm" on:click={() => (confirmBook = true)}>{$_('settings.dropAddressBook')}</Button>
+                </div>
+            </div>
+        </AccordionItem>
+    </Accordion>
+</div>
 
-    <Row class="custom-row">
-        <Column sm={3}><TextInput labelText={$_('settings.peers')}
-                                  helperText={$_('settings.peersHelp')}
-                                  readonly
-                                  size="sm"
-                                  value={$connectedPeers} /></Column>
-    </Row>
-    <Row>
-        <Column sm={3}>
-            <!-- off: other browsers are reached only through the relay; read when the network starts -->
-            <Toggle id="webrtc-toggle" labelText={$_('settings.webrtc')} labelA={$_('common.off')} labelB={$_('common.on')} bind:toggled={$useWebRTC} /></Column>
-    </Row>
-    <Row class="custom-row">
-        <Column sm={1}><Button data-cy="DropFollowerDBs" size="sm" on:click={async () => {
-            const addressRecords = await $dbMyAddressBook.all();
-            console.log("dropping DropFollowerDBs db!",addressRecords)
-            for (const addressRecord of addressRecords) {
-                if(addressRecord.value.own) continue
-                // placeholders and revocations (#82) name no book of somebody else
-                if(!addressRecord.value.sharedAddress) continue
-                console.log("dropping follower db",addressRecord.value.sharedAddress)
-                 const followerDB2DDrop = await $orbitdb.open(addressRecord.value.sharedAddress)
-                 await followerDB2DDrop.drop()
-                 if(addressRecord.value.subscriber){
-                    const deleteHash = await $dbMyAddressBook.del(addressRecord.key)
-                    console.log("deleteHash",deleteHash)
-                 }
-            }
-            console.log("addressRecords",addressRecords)
-            selectedAddr.set({})
-            selectedTab.set(0)
-        }}>{$_('settings.dropFollowers')}</Button></Column>
-        <Column>&nbsp;</Column>
-        <Column sm={1}><Button data-cy="DropAddressDB" size="sm" on:click={async () => {
-            console.log("dropping address db!")
-            await $dbMyAddressBook.drop()
-            const addressRecords = await $dbMyAddressBook.all();
-            console.log("addressRecords",addressRecords)
-            selectedAddr.set({})
-            selectedTab.set(0)
-        }}>{$_('settings.dropAddressBook')}</Button></Column>
-    </Row>
+<ConfirmModal
+        bind:open={confirmFollowers}
+        title={$_('settings.dropFollowersTitle')}
+        confirmText={$_('settings.drop')}
+        cancelText={$_('common.cancel')}
+        confirm={dropFollowers}>
+    <p>{$_('settings.dropFollowersText')}</p>
+</ConfirmModal>
+<ConfirmModal
+        bind:open={confirmBook}
+        title={$_('settings.dropAddressBookTitle')}
+        confirmText={$_('settings.drop')}
+        cancelText={$_('common.cancel')}
+        confirm={dropBook}>
+    <p>{$_('settings.dropAddressBookText')}</p>
+</ConfirmModal>
 
-</Grid>
 <style>
-    :global(.bx--label) {
-        color: white;
+    .settings {
+        display: flex;
+        flex-direction: column;
+        gap: 2.5rem;
+        max-width: 40rem;
+        /* the passkeys' and the developer's long values wrap or scroll inside, not the page */
+        min-width: 0;
     }
-
-    :global(.bx--row) {
-        margin-bottom: 40px; /* Adjust the bottom margin to increase space between rows */
+    .fields {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .drops {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .drops :global(.bx--btn) {
+        margin: 0;
+    }
+    :global(.settings .bx--accordion__content) {
+        padding-right: 1rem;
     }
 </style>
