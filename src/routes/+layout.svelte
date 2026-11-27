@@ -181,6 +181,13 @@
         z-index: 1;
         margin: 5rem;
     }
+    /* a phone: Carbon's 18rem toast and 5rem on each side would reach past the screen's edge (#98) */
+    @media (max-width: 41.98rem) {
+        :global(.bx--toast-notification) {
+            margin: 1rem;
+            max-width: calc(100% - 2rem);
+        }
+    }
     :global(.statusRed) {
         color: red;
         width: 16px;
