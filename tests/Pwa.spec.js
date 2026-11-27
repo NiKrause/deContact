@@ -57,7 +57,7 @@ test('installable, and it starts offline', async ({ browser }) => {
 // the page of each language (src/lib/seo.js): its address below the app's, its title, its picture
 const pages = [
 	{ locale: 'en', page: '', title: 'deContact – self-updating · local · peer-to-peer', image: 'og-image.png', ogLocale: 'en_US' },
-	{ locale: 'de', page: 'de/', title: 'deContact – selbstaktualisierend · lokal · Peer-to-Peer', image: 'og-image-de.png', ogLocale: 'de_DE' }
+	{ locale: 'de', page: 'de/', title: 'deContact – Selbstaktualisierend · Lokal · Peer-to-Peer', image: 'og-image-de.png', ogLocale: 'de_DE' }
 ];
 
 for (const { locale, page, title, image, ogLocale } of pages) {
