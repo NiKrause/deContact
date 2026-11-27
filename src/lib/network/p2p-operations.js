@@ -759,7 +759,9 @@ export async function chooseExchange(inviter, choice) {
     // saved before the network was up: the placeholder their card is to replace
     else await writePlaceholder(inviter, exchange.token, exchange.peer)
     leaveInvitationLink(inviter)
-    await retryExchanges() // with 'share' and no invitation at hand: ask for one now
+    // with 'share' and no invitation at hand: ask for one now, in the background, as every
+    // later try is; the form need not wait for the other phone (#110)
+    void retryExchanges().catch((error) => console.log('could not ask the inviter again:', error?.message))
 }
 
 /** the onboarding view is gone: a request that waited is answered, or asked for in the dialog */
@@ -1029,7 +1031,10 @@ export async function saveOwnCard(card) {
     const withThisDevice = withDevice(card, _libp2p?.peerId?.toString()) ?? card
     await _dbMyAddressBook.put(withThisDevice)
     await getAddressRecords()
-    await writeMyCardIntoFollowedBooks(withThisDevice)
+    // over the network, in the background: the card is saved once our own book has it, and
+    // the form need not wait for the books of others (#110)
+    void writeMyCardIntoFollowedBooks(withThisDevice).catch((error) =>
+        console.log('could not write our card into the books we follow:', error?.message))
 }
 
 /**
