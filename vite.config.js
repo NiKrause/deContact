@@ -4,15 +4,28 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { deployVersion } from './scripts/app-version.js';
 // the address search engines and link previews are given (src/hooks.server.js, lib/seo.js):
 // GitHub Pages, unless a build names another
 process.env.VITE_SITE_URL ||= 'https://nikrause.github.io/deContact/';
 
 // what the app says about its build (lib/components/AppInfo.svelte): the version, the
 // commit, and when it was built, which for GitHub Pages is when it was published
-process.env.VITE_APP_VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
+const packageVersion = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
+// one more with every deploy: the commits since the tag of package.json's version (scripts/app-version.js)
+process.env.VITE_APP_VERSION ||= deployVersion(packageVersion, commitsSince(`v${packageVersion}`));
 process.env.VITE_COMMIT ||= process.env.GITHUB_SHA || gitCommit();
 process.env.VITE_BUILT_AT ||= new Date().toISOString();
+
+/** how many commits HEAD is ahead of `tag`, or undefined (no tag, a shallow checkout, no git) */
+function commitsSince(tag) {
+	try {
+		const count = execSync(`git rev-list --count ${tag}..HEAD`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+		return /^\d+$/.test(count) ? Number(count) : undefined;
+	} catch {
+		return undefined;
+	}
+}
 
 function gitCommit() {
 	try {

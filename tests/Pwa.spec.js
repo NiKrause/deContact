@@ -101,7 +101,13 @@ test('every screen says which build runs: version, publication, commit, source',
 	const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 	await page.goto(process.env.PAGE_URL);
 	const info = page.getByTestId('app-info');
-	await expect(info).toContainText(`Version ${version}`);
+	// package.json's major and minor; the patch counts the deploys since its tag, where the
+	// checkout has the history (scripts/app-version.js), and is package.json's otherwise
+	const [major, minor, patch] = version.split('.').map(Number);
+	const shown = (await info.textContent()).match(/Version (\d+)\.(\d+)\.(\d+)/);
+	expect(shown, await info.textContent()).toBeTruthy();
+	expect([Number(shown[1]), Number(shown[2])]).toEqual([major, minor]);
+	expect(Number(shown[3])).toBeGreaterThanOrEqual(patch);
 	await expect(info).toContainText('published');
 	const commit = page.getByTestId('app-commit');
 	await expect(commit).toHaveAttribute('href', /^https:\/\/github\.com\/NiKrause\/deContact\/commit\/[0-9a-f]{40}$/);
