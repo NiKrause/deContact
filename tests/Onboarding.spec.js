@@ -21,7 +21,8 @@ const people = {
 	dave: { email: 'dave@example.com' }
 };
 const fullName = (person) => `${person.first} ${person.last}`;
-const DIALOG = 'Send My Contact Data';
+/** the request dialog, on a person's page */
+const dialog = (person) => person.page.getByTestId('request-dialog');
 
 test('Save and share while the inviter\'s phone is not answering', async ({ browser }) => {
 	test.setTimeout(360000);
@@ -76,7 +77,7 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 			}
 			for (const person of [alice, bob]) {
 				expect(person.saw('asking to confirm the request')).toBe(false);
-				await expect(person.page.getByRole('button', { name: DIALOG })).toHaveCount(0);
+				await expect(dialog(person)).toHaveCount(0);
 			}
 		});
 	} finally {
@@ -96,7 +97,7 @@ test('Save only; a second person with the same link is asked for', async ({ brow
 			await expect(bob.page.getByTestId('inviter-card')).toHaveText(`${fullName(people.alice)} was added to your address book`, { timeout: 120000 });
 			await expect.poll(() => bob.saw(`holding the request of ${alice.did} until we chose`), { timeout: 60000 }).toBe(true);
 			await expect(bob.page.getByRole('button', { name: `Save and share with ${people.alice.first}` })).toBeVisible();
-			await expect(bob.page.getByRole('button', { name: DIALOG })).toHaveCount(0);
+			await expect(dialog(bob)).toHaveCount(0);
 		});
 
 		await test.step('Bob saves only, with his email alone: nothing of his reaches Alice', async () => {
@@ -121,13 +122,13 @@ test('Save only; a second person with the same link is asked for', async ({ brow
 		await test.step('Carol opens the same link: Alice is asked, once', async () => {
 			carol = await openLink(browser, link);
 			await expect.poll(() => alice.saw(`rejected the invitation link of ${carol.did}: it was already used`), { timeout: 120000 }).toBe(true);
-			const send = alice.page.getByRole('button', { name: DIALOG });
+			const send = alice.page.getByRole('button', { name: 'Share and ask for theirs' });
 			await expect(send).toBeVisible({ timeout: 30000 });
 			await send.click();
 			await expect.poll(() => names(carol.page), { timeout: 90000, message: "Alice's card in Carol's book" }).toContain(fullName(people.alice));
 			// Alice's dialog asked back; on Carol's side that request waits for her choice
 			await expect.poll(() => carol.saw(`holding the request of ${alice.did} until we chose`), { timeout: 60000 }).toBe(true);
-			await expect(carol.page.getByRole('button', { name: DIALOG })).toHaveCount(0);
+			await expect(dialog(carol)).toHaveCount(0);
 		});
 
 		await test.step('Carol saves and shares: her real card reaches Alice', async () => {

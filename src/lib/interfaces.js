@@ -1,14 +1,14 @@
 /**
- * AddressModalOptions
+ * AddressModalOptions: what the request dialog shows (addressModal.js, AddressModal.svelte)
  * @memberof interfaces
- * @description AddressModalOptions
  * @typedef {Object} AddressModalOptions
- * @property {string} [heading] - the heading
- * @property {string} SendMyContactData - the button label when sending contact data
- * @property {string} CancelOperationButtonText - the button label when cancelling the operation
- * @property {boolean} [showCancel] - should a cancel Button be shown
+ * @property {any} data - the request, opened and verified (contact-messages.js): who asks
+ *   (`from`), when (`timestamp`), and whether it answers one of ours (`nopingpong`)
+ */
 
- * @property {string} [message] - The message
- * @property {string} [TrueButtonText] - The Text for the True Button
- * @property {string} [FalseButtonText] - Text for the false Button
+/**
+ * ConfirmDialogOptions: the notice of a first visit (experimentalUseModal.js)
+ * @memberof interfaces
+ * @typedef {Object} ConfirmDialogOptions
+ * @property {{ text?: string }} data - the text to show
  */

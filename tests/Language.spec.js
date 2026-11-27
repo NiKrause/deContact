@@ -91,16 +91,18 @@ test('German after switching in Settings: kept after a reload, and in the reques
 			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
 			await bob.page.getByTestId('scan-field').fill(await contactAddressOf(alice.page));
 			await bob.page.getByRole('button', { name: 'Scan' }).click();
-			const send = alice.page.getByRole('button', { name: 'Meine Kontaktdaten senden' });
+			const send = alice.page.getByRole('button', { name: 'Teilen und um ihre bitten' });
 			await expect(send).toBeVisible({ timeout: 90000 });
-			await expect(alice.page.getByText('deContact-Kontaktanfrage')).toBeVisible();
-			await expect(alice.page.getByTestId('request-from')).toContainText(`Von: ${fullName(people.bob)}`);
-			await expect(alice.page.getByText(`Kontaktdaten von ${fullName(people.bob)} ${people.bob.city} anfordern`)).toBeVisible();
-			await expect(alice.page.getByRole('button', { name: 'Abbrechen' })).toBeVisible();
+			await expect(alice.page.getByRole('heading', { name: 'Kontaktanfrage' })).toBeVisible();
+			await expect(alice.page.getByTestId('request-from')).toHaveText(
+				`${fullName(people.bob)} (${people.bob.city}) möchte deine Kontaktdaten.`
+			);
+			await expect(alice.page.getByRole('button', { name: 'Nur meine teilen' })).toBeVisible();
+			await expect(alice.page.getByRole('button', { name: 'Ablehnen' })).toBeVisible();
 			await send.click();
 			// her card reaches Bob; he is asked back in English
 			await expect.poll(() => names(bob.page), { timeout: 90000, message: "Alice's card in Bob's book" }).toContain(fullName(people.alice));
-			await expect(bob.page.getByRole('button', { name: 'Send My Contact Data' })).toBeVisible({ timeout: 90000 });
+			await expect(bob.page.getByRole('button', { name: 'Share mine' })).toBeVisible({ timeout: 90000 });
 		});
 	} finally {
 		await Promise.all([alice, bob].filter(Boolean).map((person) => person.close()));

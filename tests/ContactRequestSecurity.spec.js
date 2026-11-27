@@ -43,7 +43,7 @@ test('forged senders and used invitation links are rejected', async ({ browser }
 			await expect.poll(() => alice.saw(`rejected the invitation link of ${carol.did}: it was already used`), { timeout: 120000 })
 				.toBe(true);
 			await expect.poll(() => alice.saw(`asking to confirm the request of ${carol.did}`)).toBe(true);
-			const cancel = alice.page.getByRole('button', { name: 'Cancel' }).first();
+			const cancel = alice.page.getByRole('button', { name: 'Decline' });
 			await expect(cancel).toBeVisible();
 			await cancel.click();
 		});
