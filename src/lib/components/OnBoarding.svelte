@@ -207,8 +207,9 @@
 </div>
 
 <style>
+    /* below Carbon's fixed header, 3rem tall: the line about the inviter's card comes first */
     .onboarding {
-        margin: 3rem;
+        margin: 4.5rem 3rem 3rem;
         max-width: 40rem;
         display: flex;
         flex-direction: column;
@@ -217,7 +218,7 @@
     /* a phone: the page has no side margin there (+page.svelte), the form keeps 16 px */
     @media (max-width: 41.98rem) {
         .onboarding {
-            margin: 1rem 0;
+            margin: 4rem 0 1rem;
             padding-inline: 1rem;
         }
     }

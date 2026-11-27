@@ -43,6 +43,14 @@ deContact gives every person a self-owned address book. It lives in the browser 
 - 🔍 **Contact list with search.** A Progressive Web App built with SvelteKit and Carbon.
 - 🗣️ **English and German.** The app follows your browser's language and can be switched under **Settings** (or on the first screen); both work offline.
 
+## Screens
+<table>
+<tr><td align="center" valign="top"><img src="docs/screens/show-my-code.png" width="200" alt="Show my code: the QR code of an invitation link, under the line Ready, reachable through the relay"><br><sub><b>Show my code</b><br>ready and reachable: the first person to scan gets the card</sub></td><td align="center" valign="top"><img src="docs/screens/scan-a-code.png" width="200" alt="Scan a code: the camera of the other phone held up to the code"><br><sub><b>Scan a code</b><br>the camera reads it; the invitation opens</sub></td><td align="center" valign="top"><img src="docs/screens/invitation.png" width="200" alt="The invitation: Alice's card with her photo has arrived; the form for Bob's own card below"><br><sub><b>The invitation</b><br>her card is there; his own in three fields</sub></td></tr>
+<tr><td align="center" valign="top"><img src="docs/screens/request.png" width="200" alt="A request: Carol's photo and name, with Share and ask for theirs, Only share mine and Decline"><br><sub><b>A request</b><br>with the asker's photo; the choice is yours</sub></td><td align="center" valign="top"><img src="docs/screens/contacts.png" width="200" alt="Contacts: Bob with his initials, Carol with her photo and city"><br><sub><b>Contacts</b><br>photo or initials, name, city</sub></td><td align="center" valign="top"><img src="docs/screens/my-card.png" width="200" alt="My card: Alice's photo, name and city, as her contacts see it, with Edit"><br><sub><b>My card</b><br>as your contacts see it</sub></td></tr>
+</table>
+
+<sub>On a phone 412 px wide, from the screen tour (`tests/Screens.spec.js`); the people and their portraits are made up. `node scripts/readme-screens.mjs` copies them again after a tour.</sub>
+
 ## How it works
 1. Bob scans Alice's QR code (her DID and her device) and sends her a request over libp2p, peer to peer. The request carries the address of his book and a signed invitation.
 2. Alice confirms and writes her card into Bob's book. Bob does the same in hers.
