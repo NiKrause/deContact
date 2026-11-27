@@ -34,7 +34,7 @@ export function normalizeWords(text) {
         .filter(Boolean)
 }
 
-/** whether these are 24 recovery words with a checksum that holds (a word misread from paper fails it) */
+/** whether these are 24 recovery words with a checksum that holds (a word misread from paper fails it, but for 1 in 256) */
 export function checkWords(words) {
     return Array.isArray(words) && words.length === WORD_COUNT && validateMnemonic(words.join(' '))
 }

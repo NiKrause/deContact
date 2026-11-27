@@ -148,11 +148,17 @@ describe('the recovery words', () => {
         const words = newRecoveryWords()
         const typed = words.map((word, i) => `${i + 1}. ${word.toUpperCase()}`).join(',\n')
         expect(normalizeWords(typed)).toEqual(words)
-        const misread = [...words]
-        misread[3] = misread[3] === 'abandon' ? 'ability' : 'abandon'
+        expect(checkWords(words.slice(0, 12))).toBe(false)
+
+        // A misread word fails the 8-bit checksum in 255 of 256 cases: random words would
+        // let this test fail now and then. BIP39's test vector (all-zero entropy) with its
+        // fourth word misread is one of the 255.
+        const vector = [...Array(23).fill('abandon'), 'art']
+        expect(checkWords(vector)).toBe(true)
+        const misread = [...vector]
+        misread[3] = 'ability'
         expect(checkWords(misread)).toBe(false)
         await expect(seedFromWords(misread)).rejects.toThrow(/not 24 valid/)
-        expect(checkWords(words.slice(0, 12))).toBe(false)
     })
 
     it('open the vault on an empty device as the same DID, and never make one', async () => {
