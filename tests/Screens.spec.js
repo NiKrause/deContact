@@ -74,6 +74,9 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 		await test.step('the QR dialog, Statistics and Settings', async () => {
 			await openTab(page, 'Contacts');
 			await page.getByRole('button', { name: 'QR Code' }).click();
+			// the pointer off the dialog: over its close button, Carbon shows a tooltip, and the
+			// first Escape closes that tooltip instead of the dialog (WCAG 1.4.13)
+			await page.mouse.move(0, 0);
 			await expect(page.locator('img.qrcode')).toHaveAttribute('alt', /onBoardingToken=/);
 			await shoot(page, '05-qr-dialog', 'The QR dialog', { dialog: true });
 			await page.keyboard.press('Escape');

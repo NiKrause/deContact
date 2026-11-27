@@ -1,8 +1,6 @@
 <script>
-    import { createEventDispatcher } from "svelte";
     import { Modal, Checkbox, RadioButtonGroup, RadioButton } from 'carbon-components-svelte';
     import QrCodeImage from "./QrCodeImage.svelte"
-    const dispatch = createEventDispatcher();
     import { libp2p, orbitdb } from "../../stores.js";
     import { notify } from "../../utils/utils.js";
     import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
@@ -11,26 +9,31 @@
     import { contactAddress } from "#lib/network/contact-address.js";
 
 
-    export let qrCodeData
-    export let qrCodeOpen
+    /**
+     * qrCodeData: our DID; qrCodeOpen: whether the dialog shows; onclose: it was closed
+     * @type {{ qrCodeData: string | undefined, qrCodeOpen?: boolean, onclose: () => void }}
+     */
+    let { qrCodeData, qrCodeOpen = $bindable(false), onclose } = $props()
 
-    let onBoardingToken
+    let onBoardingToken = $state()
     /**
      * What the code does:
      * - 'now': an invitation link; the first person who opens it gets our card at once;
      * - 'ask': our contact address; whoever scans it in deContact sends us a request, and we decide.
      */
-    let mode = 'now'
+    let mode = $state('now')
     /** with 'now': whoever opens the link may share their card with us in return (#86) */
-    let twoWay = true
-    $: shareNow = mode === 'now'
+    let twoWay = $state(true)
+    const shareNow = $derived(mode === 'now')
     /** one sentence that says what happens when somebody scans the code */
-    $: summary = !shareNow ? 'qr.summaryAsk' : twoWay ? 'qr.summaryBoth' : 'qr.summaryNow'
+    const summary = $derived(!shareNow ? 'qr.summaryAsk' : twoWay ? 'qr.summaryBoth' : 'qr.summaryNow')
 
     // a new one-time token each time the dialog opens, the link is chosen or the checkbox
     // changes (it is signed in); the contact address needs none
     let issuing = 0
-    $: if (qrCodeOpen && $orbitdb && shareNow) issueToken(twoWay)
+    $effect(() => {
+        if (qrCodeOpen && $orbitdb && shareNow) issueToken(twoWay)
+    })
     function issueToken(twoWay) {
         const issue = ++issuing
         onBoardingToken = undefined
@@ -39,13 +42,13 @@
             .catch((error) => console.log("could not create an invitation link:", error?.message))
     }
     // requests go to this device, peer to peer (contact-protocol.js): the code names it
-    $: peer = $libp2p?.peerId?.toString()
+    const peer = $derived($libp2p?.peerId?.toString())
     // the invitation link leads back to this app, wherever it runs, to the page of the
     // language on screen: a messenger's preview of it is in that language (app-url.js,
     // seo.js); with 'ask', the contact address for the Scan field (contact-address.js)
-    $: linkUrl = (shareNow && onBoardingToken)
+    const linkUrl = $derived((shareNow && onBoardingToken)
         ? `${appUrlIn($language)}#/onboarding/${qrCodeData}?onBoardingToken=${onBoardingToken}&peer=${peer}`
-        : contactAddress(qrCodeData, peer)
+        : contactAddress(qrCodeData, peer))
 </script>
 
 <!-- What the person shows: the code first and as large as the screen allows, what it does
@@ -55,13 +58,13 @@
        size="sm"
        modalHeading={$_('qr.heading')}
        iconDescription={$_('common.close')}
-       on:close={() => dispatch('close')}>
+       on:close={() => onclose()}>
     <div class="qr-dialog">
         {#if qrCodeData && qrCodeOpen}
             <!-- a tap copies what the code holds, for sending it another way -->
-            <button type="button" class="qr-copy" aria-label={$_(shareNow ? 'qr.copyLink' : 'qr.copyAddress')} on:click={async () => {
+            <button type="button" class="qr-copy" aria-label={$_(shareNow ? 'qr.copyLink' : 'qr.copyAddress')} onclick={async () => {
                     await navigator.clipboard.writeText(linkUrl);
-                    dispatch('close')
+                    onclose()
                     notify($_(shareNow ? 'notify.invitationCopied' : 'notify.addressCopied'));
                 }}>
                 <QrCodeImage value={linkUrl} />

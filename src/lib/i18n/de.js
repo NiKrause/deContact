@@ -86,8 +86,17 @@ export default {
 		name: 'Nachname',
 		firstName: 'Vorname',
 		search: 'Suchen …',
+		searchLabel: 'Kontakte durchsuchen',
 		clearSearch: 'Suche leeren',
-		selectRow: 'Diesen Kontakt unter Meine Adresse öffnen',
+		table: {
+			selectRow: 'Diesen Kontakt unter Meine Adresse öffnen',
+			selectAll: 'Alle Kontakte auswählen',
+			expandRow: 'Zeile aufklappen',
+			collapseRow: 'Zeile zuklappen',
+			expandAll: 'Alle Zeilen aufklappen',
+			collapseAll: 'Alle Zeilen zuklappen',
+			expandColumn: 'Zeilen aufklappen'
+		},
 		invited: 'eingeladen',
 		canceled: 'Anfrage abgelehnt',
 		nextPage: 'Nächste Seite',

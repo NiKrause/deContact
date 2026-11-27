@@ -65,18 +65,14 @@ test('German after switching in Settings: kept after a reload, and in the reques
 			await expect(alice.page.getByLabel('DID', { exact: true })).toHaveValue(alice.did);
 		});
 
-		await test.step("on a phone, the tabs' dropdown names the tab in German too", async () => {
+		await test.step('on a phone, the tabs are named in German too', async () => {
 			const page = alice.page;
 			const desktop = page.viewportSize();
-			// below 42rem Carbon shows the tabs as a dropdown, labelled with the selected tab
+			// Carbon keeps the tabs on a phone (since 0.114 no dropdown): a row that scrolls sideways
 			await page.setViewportSize({ width: 390, height: 844 });
-			const trigger = page.locator('.bx--tabs-trigger');
-			const shown = trigger.locator('.bx--tabs-trigger-text');
-			await expect(trigger).toBeVisible();
-			await expect(shown).toHaveText('Einstellungen');
-			await trigger.click();
+			await expect(page.getByRole('tab', { name: 'Einstellungen', selected: true })).toBeVisible();
 			await page.getByRole('tab', { name: 'Kontakte' }).click();
-			await expect(shown).toHaveText('Kontakte');
+			await expect(page.getByRole('tab', { name: 'Kontakte', selected: true })).toBeVisible();
 			await page.setViewportSize(desktop);
 		});
 

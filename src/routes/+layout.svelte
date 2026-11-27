@@ -11,7 +11,7 @@
     import PasskeyGate from "#lib/components/PasskeyGate.svelte";
     import SecureOffer from "#lib/components/SecureOffer.svelte";
     import AppInfo from "#lib/components/AppInfo.svelte";
-    import { myDal, qrCodeOpen, qrCodeData, helia, orbitdb, myAddressBook } from "../stores.js";
+    import { qrCodeOpen, qrCodeData, helia, orbitdb, myAddressBook } from "../stores.js";
 
     import { startNetwork, startAddressBook, close } from "../lib/network/p2p-operations.js"
     import {
@@ -37,11 +37,12 @@
     // the language before the first screen: a choice made earlier, else the browser's (#89)
     startLocale()
 
-    let theme = "g90";
+    /** @type {import('carbon-components-svelte/src/Theme/Theme.svelte').CarbonTheme} */
+    let theme = $state("g90");
 
     /** what the peer icon's colour says, in words, with the number next to it */
-    $: peersState = $connectedPeers === 0 ? 'header.peers.none' : $connectedPeers === 1 ? 'header.peers.seed' : 'header.peers.swarm'
-    $: peersText = `${$_(peersState)} ${$_('header.peers.count', { count: $connectedPeers })}`
+    const peersState = $derived($connectedPeers === 0 ? 'header.peers.none' : $connectedPeers === 1 ? 'header.peers.seed' : 'header.peers.swarm')
+    const peersText = $derived(`${$_(peersState)} ${$_('header.peers.count', { count: $connectedPeers })}`)
 
     // the vault comes first: the gate below asks it whether this browser keeps one
     let networkStarted
@@ -92,7 +93,8 @@
         }
     }
 
-    let stepDialog
+    /** @type {any} */
+    let stepDialog = $state()
     onMount( async () => {
         // every passkey prompt after the first of an action says what it is for, in the
         // language on screen (its lang attribute) and in deContact's words
@@ -121,16 +123,15 @@
         '': Home,
         '/onboarding': OnBoarding
     }
-    $: console.log("$hash",$hash)
-    $: view = routes[$hash] ?? Home
+    const View = $derived(routes[$hash] ?? Home)
 
         //    const urlParams = new URLSearchParams(window.location.search); //TODO url params we need when we "onboard" a new user via scanning a URL
 </script>
-<svelte:window on:beforeinstallprompt={ () => { console.log("beforeinstallprompt") }} on:beforeunload={ warnBeforeLeaving } />
+<svelte:window onbeforeinstallprompt={ () => { console.log("beforeinstallprompt") }} onbeforeunload={ warnBeforeLeaving } />
 
     <Header
         class="header-title"
-        company="deContact"
+        companyName="deContact"
         platformName={$_('app.tagline')}
         href="./#/">
 
@@ -164,15 +165,14 @@
     </HeaderUtilities>
 </Header>
 <QRCodeModal
-        on:close={ () => $qrCodeOpen = false }
+        onclose={ () => $qrCodeOpen = false }
         bind:qrCodeOpen={ $qrCodeOpen }
-        qrCodeData={ $qrCodeData }
-        dbMyDal={ $myDal } />
+        qrCodeData={ $qrCodeData } />
 <!--<slot></slot>-->
 {#if $session || ($temporaryAhead && $hash==='/onboarding')}
     <!-- one branch for both: the form stays as it is while its temporary identity starts (OnBoarding.svelte, #97) -->
     {#if $session && $hash!=='/onboarding'}<SecureOffer />{/if}
-    <svelte:component this={ view } />
+    <View />
 {:else}
     <PasskeyGate onboarding={ $hash==='/onboarding' } { handedOver } />
 {/if}

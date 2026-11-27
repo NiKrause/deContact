@@ -26,7 +26,7 @@
 		"@sveltejs/kit": "^3.4.1",
 		"@sveltejs/vite-plugin-svelte": "^7.3.2",
 		"@types/eslint": "8.56.0",
-		"carbon-components-svelte": "^0.82.7",
+		"carbon-components-svelte": "^0.114.9",
 		"dotenv": "^16.4.1",
 		"eslint": "^8.56.0",
 		"eslint-config-prettier": "^9.1.0",
@@ -76,7 +76,7 @@
 		"@orbitdb/core": "4.0.0",
 		"bip39": "^3.1.0",
 		"blockstore-level": "4.0.1",
-		"carbon-icons-svelte": "^12.4.2",
+		"carbon-icons-svelte": "^13.18.2",
 		"datastore-level": "13.0.1",
 		"dotenv": "^16.4.1",
 		"helia": "7.1.16",
@@ -109,8 +109,7 @@
 			"ws@>=8.0.0 <8.21.0": "^8.21.0"
 		},
 		"patchedDependencies": {
-			"@orbitdb/core@4.0.0": "patches/@orbitdb__core@4.0.0.patch",
-			"carbon-components-svelte@0.82.11": "patches/carbon-components-svelte@0.82.11.patch"
+			"@orbitdb/core@4.0.0": "patches/@orbitdb__core@4.0.0.patch"
 		}
 	}
 }

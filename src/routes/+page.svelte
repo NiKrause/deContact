@@ -17,7 +17,6 @@
     import ContactList from "#lib/components/ContactList.svelte";
     import Settings from "#lib/components/Settings.svelte";
     import Statistics from "#lib/components/Statistics.svelte";
-    import TabLabels from "#lib/components/TabLabels.svelte";
 
     import {
         orbitdb,
@@ -37,11 +36,15 @@
     import { notify } from "../utils/utils.js";
     import { _ } from "#lib/i18n/index.js";
 
-    $: $selectedRowIds.length>0?loadContact($selectedRowIds[0]):null; //as the datatable gets clicked we load the contact into the contact form
+    // a row picked in the list: its contact goes into the form
+    $effect(() => {
+        if ($selectedRowIds.length > 0) loadContact($selectedRowIds[0])
+    })
     /** the tabs' labels, in the language on screen */
-    $: tabLabels = [$_('tabs.contacts'), $_('tabs.myAddress'), $_('tabs.statistics'), $_('tabs.settings')];
-    let scannedAddress;
-    let scanner;
+    const tabLabels = $derived([$_('tabs.contacts'), $_('tabs.myAddress'), $_('tabs.statistics'), $_('tabs.settings')]);
+    let scannedAddress = $state();
+    /** @type {any} */
+    let scanner = $state();
     /** a contact address pasted into the field, else the camera */
     function scanOrOpenCamera() {
         if (scannedAddress?.trim()) return scan()
@@ -79,8 +82,6 @@
         <Tab label={tabLabels[1]} data-cy="address"/>
         <Tab label={tabLabels[2]}  data-cy="statistics"/>
         <Tab label={tabLabels[3]}  data-cy="settings"/>
-        <!-- the dropdown on a phone names the tab in the language on screen too -->
-        <TabLabels labels={tabLabels}/>
         <svelte:fragment slot="content">
             <TabContent>
                 <Grid fullWidth class="scan-bar">

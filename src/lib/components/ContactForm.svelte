@@ -12,12 +12,13 @@
      const menuText = (tr) => (id) => tr(id === "open" ? "common.openMenu" : "common.closeMenu")
 
      /** our own card, or a new one: it may get a photo (#87) */
-     $: ours = $selectedAddr.owner === $orbitdb?.identity?.id || !$selectedAddr._id
+     const ours = $derived($selectedAddr.owner === $orbitdb?.identity?.id || !$selectedAddr._id)
 
-     let photoInput
+     /** @type {HTMLInputElement | undefined} */
+     let photoInput = $state()
      /** what went wrong with the photo: a key of the catalogue @type {string | undefined} */
-     let photoProblem
-     let readingPhoto = false
+     let photoProblem = $state()
+     let readingPhoto = $state(false)
 
      /** the picked or taken image, made small and without its metadata (photo.js); saved with the card */
      async function choosePhoto(event) {
@@ -53,8 +54,8 @@
                     <ContactPhoto photo={$selectedAddr.photo} size={96} alt={$_('form.photo')} testid="form-photo" />
                     {#if ours}
                         <!-- no capture attribute: on a phone the system then offers the camera and the gallery -->
-                        <input bind:this={photoInput} type="file" accept="image/*" hidden on:change={choosePhoto} />
-                        <Button kind="tertiary" size="sm" disabled={readingPhoto} on:click={() => photoInput.click()}>{$_('form.choosePhoto')}</Button>
+                        <input bind:this={photoInput} type="file" accept="image/*" hidden onchange={choosePhoto} />
+                        <Button kind="tertiary" size="sm" disabled={readingPhoto} on:click={() => photoInput?.click()}>{$_('form.choosePhoto')}</Button>
                         {#if $selectedAddr.photo}
                             <Button kind="ghost" size="sm" on:click={removePhoto}>{$_('form.removePhoto')}</Button>
                         {/if}
@@ -89,13 +90,13 @@
         </Row>
         <Row>
             <Column><Dropdown
-                    titleText={$_('form.category')}
+                    labelText={$_('form.category')}
                     bind:selectedId={$selectedAddr.category}
                     translateWithId={menuText($_)}
                     items={categoryItems($_)}
             /></Column>
             <Column>
-                {#if $selectedAddr.owner === $orbitdb?.identity?.id || !$selectedAddr._id}
+                {#if ours}
                     <Checkbox labelText={$_('form.own')} name="own" bind:checked={$selectedAddr.own}/>
                 {/if}
             </Column>
