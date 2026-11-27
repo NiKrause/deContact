@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addVirtualAuthenticator, confirmExperimental, createAddressBook } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, confirmExperimental, contactAddressOf, createAddressBook } from './helpers/passkeys.js';
 
 // The other specs only click through the dialogs. This one checks that each address
 // really ends up in the other address book, and logs which way it travelled:
@@ -20,7 +20,7 @@ for (const webRTC of [true, false]) {
 		const bob = await startPerson(browser, people.bob, { webRTC });
 		try {
 			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
-			await bob.page.getByRole('textbox', { role: 'scanContact' }).fill(alice.did);
+			await bob.page.getByRole('textbox', { role: 'scanContact' }).fill(await contactAddressOf(alice.page));
 			await bob.page.getByRole('button', { name: 'Scan' }).click();
 
 			// Alice is asked and answers; Bob is asked back and answers

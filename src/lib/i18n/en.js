@@ -96,9 +96,9 @@ export default {
 	},
 	qr: {
 		heading: 'Scan (DID) - Decentralized Identity',
-		scanWhat: 'Scan DID or URL?',
-		didOnly: 'DID only',
-		url: 'URL',
+		scanWhat: 'Contact address or link?',
+		didOnly: 'Contact address',
+		url: 'Link',
 		twoWay: 'Two-way exchange',
 		twoWayHelp:
 			'Whoever scans this code can also share their contact details with you. They decide whether to.'
@@ -265,6 +265,9 @@ export default {
 		contactDeleted: 'Contact deleted successfully! {hash}',
 		invitationCopied: 'copied invitation',
 		requestSent: 'sent SEND_ADDRESS_REQUEST to {did}',
+		requestNotDelivered: 'could not reach {did} yet - the app keeps trying',
+		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',
+		noContactAddress: 'This is no contact address. Scan the QR code of the person you want to ask.',
 		cardWritten: 'wrote my address into requesters db with hash {hash}',
 		requestDeclined: 'wrote canceled request with hash {hash}',
 		openedWithWords: 'opened with the recovery words - add a passkey for this device in Settings',

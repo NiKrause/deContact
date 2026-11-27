@@ -243,3 +243,12 @@ export function spellings(hex) {
 	}
 	return [...forms];
 }
+
+/**
+ * What the QR code shows besides the invitation link: the DID and the device to ask it on
+ * (src/lib/network/contact-address.js). Requests go peer to peer, so a DID alone reaches
+ * nobody.
+ */
+export function contactAddressOf(page) {
+	return page.evaluate(() => `${window.orbitdb.identity.id}?peer=${window.helia.libp2p.peerId.toString()}`);
+}

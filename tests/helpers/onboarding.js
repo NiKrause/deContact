@@ -19,8 +19,12 @@ import {
 const IDENTITY_INFO = 'decontact/identity/v1';
 export const TWO_WAY_HELP = 'Whoever scans this code can also share their contact details with you. They decide whether to.';
 
-/** the topic `did` receives requests on (p2p-operations.js CONTENT_TOPIC) */
-export const topicOf = (did) => `/dContact/3/message/proto/${did}`;
+/**
+ * An app in the background: its device does not answer contact requests (the end-to-end
+ * build's hook, src/lib/network/e2e-hook.js), or does again.
+ */
+export const answerRequests = (page, answering) =>
+	page.evaluate((answering) => (answering ? window.__decontactE2E.resumeRequests() : window.__decontactE2E.pauseRequests()), answering);
 
 /**
  * The invitation link in the QR code of `page`, pointing at the app under test.

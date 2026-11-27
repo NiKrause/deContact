@@ -83,12 +83,14 @@ export function createExchangeStore(storage, key = 'decontact.exchanges.v1') {
          * We opened a verified link of `inviter`. Opening it again (a reload) keeps the
          * choice; another link of theirs starts over.
          *
-         * @param {{ inviter: string, token: string, expiresAt: number, twoWay: boolean }} link
+         * @param {{ inviter: string, token: string, expiresAt: number, twoWay: boolean, peer?: string }} link
+         *   peer: the inviter's device the link names, where requests go (contact-protocol.js)
          */
-        opened({ inviter, token, expiresAt, twoWay }, now = Date.now()) {
+        opened({ inviter, token, expiresAt, twoWay, peer }, now = Date.now()) {
             const exchanges = load()
             const known = current(exchanges, inviter, now)
             exchanges[inviter] = known?.token === token ? known : { inviter, token, expiresAt, twoWay: Boolean(twoWay) }
+            if (typeof peer === 'string') exchanges[inviter].peer = peer
             save(exchanges, now)
             return { ...exchanges[inviter] }
         },

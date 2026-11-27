@@ -16,7 +16,7 @@ flowchart LR
         UI["UI<br/>contacts, QR, settings"]
         ODB["OrbitDB 4<br/>documents DB per address book"]
         H["Helia 7<br/>bitswap + LevelDB blockstore"]
-        L["libp2p 3<br/>WebSockets · WebRTC · circuit relay<br/>gossipsub · pubsub peer discovery"]
+        L["libp2p 3<br/>WebSockets · WebRTC · circuit relay<br/>gossipsub · pubsub peer discovery<br/>/decontact/request/1.0.0"]
         UI --> ODB --> H --> L
     end
 
@@ -35,7 +35,7 @@ flowchart LR
 
 | Layer | Used for |
 |---|---|
-| **libp2p** | Connections between browsers and relays: WebSockets to the relay, WebRTC between browsers, circuit relay as fallback, gossipsub for messages and peer discovery |
+| **libp2p** | Connections between browsers and relays: WebSockets to the relay, WebRTC between browsers, circuit relay as fallback, gossipsub for OrbitDB and peer discovery, and deContact's own protocol for [contact requests](#requests), peer to peer |
 | **Helia** | Content-addressed blocks (OrbitDB entries, manifests) over bitswap, stored in IndexedDB (LevelDB) |
 | **OrbitDB** | One `documents` database per address book, a CRDT log that merges concurrent writes. 4.0.0 with a [sync patch](#orbitdb-sync-patch) |
 | **Passkey vault** | One root secret, opened by any of your passkeys or your recovery words ([below](#identity-passkeys-and-the-vault)) |
@@ -136,7 +136,7 @@ Only the owner of an address book reads it ([#59](https://github.com/NiKrause/de
 - **The key is the DID.** The X25519 counterpart of an Ed25519 `did:key` is its key-agreement key (the did:key method defines it, libsodium calls it `crypto_sign_ed25519_pk_to_curve25519`). Anybody works it out from the DID alone. So there is no key directory, nothing to look up before the first request, and no key anybody could register under somebody else's DID. The private half comes from the same seed as the identity's Ed25519 key (`deriveSubkey(root, 'decontact/identity/v1')`), so every passkey and every device has it. It is imported into WebCrypto as a key that cannot be extracted.
 - **A seal.** A fresh ephemeral X25519 key pair; HKDF-SHA256 over the shared secret, with both public keys as salt and `decontact/seal/v1` as info; AES-GCM-256 with a fresh nonce. The additional data names what was sealed and where it belongs (the book's owner and the document's `_id`, or the request's recipient): a seal moved elsewhere does not open there. Ported from simple-todo `privacy01` (`key-wrapping.js`, `db-encryption.js`).
 - **Cards.** A document keeps in the clear what the [access controller](#who-may-write-into-an-address-book) checks: its `_id`, and on a contact's card also `owner` and `invitation`. Everything else (names, address, email, [photo](#what-a-card-holds), the address of the writer's own book) goes into `sealed`. The controller and its rules did not change, so relays still check every entry without a key. OrbitDB's own `encryption.data` is not used: it seals the whole payload, and a relay without the key would see no key, owner or invitation and would refuse every contact's card.
-- **Requests.** The signed request is sealed to the recipient and published as `{ v: 3, sealed }` on the recipient's topic. Inside are the signed request and the sender's name (first name, last name, city), because the recipient can no longer read the sender's book to see who asks.
+- **Requests.** The signed request is sealed to the recipient and [delivered to their device](#requests) as `{ v: 3, sealed }`. Inside are the signed request and the sender's name (first name, last name, city), because the recipient can no longer read the sender's book to see who asks.
 - **Removing a contact.** Deleting somebody's card under **Contacts** removes our card from their book, so no later change of ours reaches them, and removes their card, placeholder and book from ours. It also [revokes their invitation](#removing-a-contact-revokes-their-invitation) into our book. What they already received stays with them.
 - **Entries from before.** Documents of the own book that were written in the clear before this change are sealed again when the app starts. The log keeps the old plaintext entries.
 
@@ -182,9 +182,10 @@ sequenceDiagram
     BB->>R: connect (wss), reserve a circuit slot
     AB-->>BB: find each other via pubsub peer discovery,<br/>connect over WebRTC (or the relayed circuit)
 
-    Bob->>BB: scan / paste Alice's DID
+    Bob->>BB: scan Alice's QR code: her DID and her device (peer id)
     BB->>BB: write placeholder contact:did(Alice) into Bob's book
-    BB->>AB: REQUEST_ADDRESS {Bob's book address, invitation for Alice, Bob's name},<br/>signed with Bob's did:key, sealed to Alice's<br/>gossipsub topic /dContact/3/message/proto/did(Alice)
+    BB->>AB: stream /decontact/request/1.0.0 to Alice's peer (WebRTC or the relayed circuit):<br/>REQUEST_ADDRESS {Bob's book address, invitation for Alice, Bob's name},<br/>signed with Bob's did:key, sealed to Alice
+    AB-->>BB: receipt: received
 
     AB->>R: open Bob's book by its address
     R-->>AB: manifest + entries (from the relay's replica or from Bob)
@@ -194,7 +195,7 @@ sequenceDiagram
     AB->>BB: write card contact:did(Alice) + invitation into Bob's book,<br/>sealed to Bob (OrbitDB sync: directly or through the relay)
     Note over R: the relay checks the entry with the same<br/>access controller and keeps its replica (ciphertext)
 
-    AB->>BB: REQUEST_ADDRESS {Alice's book address, invitation for Bob, Alice's name}, sealed to Bob
+    AB->>BB: REQUEST_ADDRESS {Alice's book address, invitation for Bob, Alice's name}, sealed to Bob,<br/>to the peer Bob's request came from
     BB->>Bob: "Alice requests your contact data"
     Bob->>BB: Send my contact data
     BB->>AB: write card contact:did(Bob) + invitation into Alice's book, sealed to Alice
@@ -213,9 +214,10 @@ Every request is signed with the sender's `did:key`, the identity of their vault
 
 From each sender only the newest request waits for an answer.
 
-A pubsub message can be missed (an app in the background), so the sender's app resends its request until the recipient's card has arrived in its book. A resend names the request it repeats (`resentOf`, that request's timestamp by the sender's clock, signed with the rest). The recipient remembers the timestamp of the last request of that sender it answered in the dialog: a resend of that request or an earlier one asks nobody again, while a request made anew (scanning again, asking back) always asks ([`answered.js`](../src/lib/network/answered.js)). An older app ignores the field and asks as before.
+**Peer to peer.** A request goes to the recipient's device on deContact's own libp2p protocol, `/decontact/request/1.0.0` ([`contact-protocol.js`](../src/lib/network/contact-protocol.js)): one stream, over WebRTC or a relay's circuit, carrying the sealed request and, back, a receipt that it arrived and opened. There is no topic per DID any more, so no relay subscribes to anything for it and no third peer sees a request go by. A relay that carries the circuit sees that two peers talk, when and how much; the request itself is sealed end to end.
 
-A peer subscribed to the topic sees that something was sent to the recipient, when, and from which libp2p peer; not who sent it, the sender's book or their name ([#58](https://github.com/NiKrause/deContact/issues/58), finding 3).
+- **Whom to dial.** A DID does not say where its owner's app runs. The QR code names the device: the invitation link carries `&peer=<peer id>`, and the contact address for the Scan field is `<DID>?peer=<peer id>` ([`contact-address.js`](../src/lib/network/contact-address.js)). A DID alone reaches nobody; the app says so. The recipient answers to the peer the request came from. Where libp2p knows no address of that peer yet (pubsub peer discovery announces browsers every few seconds), it is dialled through each relay we are connected to: `<relay>/p2p-circuit/p2p/<peer>`, where browsers hold their reservations.
+- **Resends.** An app in the background does not answer the protocol, so the sender's app tries again, with growing pauses, until a receipt comes back; after that, the card comes by OrbitDB. A resend names the request it repeats (`resentOf`, that request's timestamp by the sender's clock, signed with the rest; the placeholder keeps it across a reload). The recipient remembers the timestamp of the last request of that sender it answered in the dialog: a resend of that request or an earlier one asks nobody again, while a request made anew (scanning again, asking back) always asks ([`answered.js`](../src/lib/network/answered.js)).
 
 ### Invitation links
 
@@ -250,7 +252,7 @@ sequenceDiagram
 - **The first person** who sends a request with the token gets Alice's card without a dialog. Anybody else, anybody after 24 hours, and a link created on another of Alice's devices make her app ask, as for any other request; the resends of a request she answered in the dialog ask her no second time.
 - **The form.** While Alice's card is on its way, Bob's app shows the form; once it is there, her name and [photo](#what-a-card-holds) above it: email, first name and last name first, the address behind *Add address*. The email alone is enough. Bob chooses **Save and share with Alice** or **Save only**; a link without a two-way exchange, or one whose token does not check out against the DID in it, offers only **Save**. No request dialog appears during the onboarding: a request of Alice's that arrives before Bob saves waits for his choice, and *Save only* declines it, as Cancel does in the dialog. Bob's app writes no placeholder card of his own (his DID as the last name) anywhere.
 - **Sharing back without being asked.** Bob may write into Alice's book only with an invitation she signed for his DID, and she cannot sign one before she knows it. So, when the token allows a two-way exchange, Bob's request carries `twoWay: true`: "send me an invitation, in case I share". For her own valid token and its first invitee, Alice's device answers without asking: a request with her invitation, `nopingpong` and the same token, which tells Bob's app what it answers. It writes no placeholder for Bob into her book and does not resend. Bob's app asks for the invitation together with the card, so that it is there while Alice still holds her phone, and uses it only if he shares. After *Save and share* it asks until the invitation has arrived.
-- **Waiting for Alice's phone.** A PWA in the background misses pubsub messages. Bob's app resends the request with the same token every 15 seconds until Alice's card (and, after *Save and share*, her invitation) has arrived, until the token expires, and says "Waiting for Alice's phone…" (with her DID until her card is there). His choice is kept in `localStorage` (`decontact.exchanges.v1`; in memory until a [temporary identity](#starting-without-a-passkey) is secured) until the token expires: an invitation that comes after a reload is used, or declined, without asking him again ([`exchanges.js`](../src/lib/network/exchanges.js)).
+- **Waiting for Alice's phone.** A PWA in the background does not answer the protocol. Bob's app resends the request with the same token every 15 seconds until Alice's card (and, after *Save and share*, her invitation) has arrived, until the token expires, and says "Waiting for Alice's phone…" (with her DID until her card is there). His choice is kept in `localStorage` (`decontact.exchanges.v1`; in memory until a [temporary identity](#starting-without-a-passkey) is secured) until the token expires: an invitation that comes after a reload is used, or declined, without asking him again ([`exchanges.js`](../src/lib/network/exchanges.js)).
 - **Both ways stay current.** Alice remembers Bob's book (a hidden record in hers), so a later change of her card reaches him even when he saved only. After *Save and share* his changes reach her the same way.
 - **Apps from before #86.** The token's format did not change; its last field was "request address from peer". An older app that opens a new link gets Alice's card only. A request from an older app of Alice's, which asked Bob back on its own, waits for his choice like any request of hers.
 

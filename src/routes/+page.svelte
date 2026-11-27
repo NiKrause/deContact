@@ -31,10 +31,21 @@
     } from "../stores.js";
     import { loadContact } from "../operations.js";
     import { requestAddress } from "../lib/network/p2p-operations.js"
+    import { parseContactAddress } from "#lib/network/contact-address.js"
+    import { notify } from "../utils/utils.js";
     import { _ } from "#lib/i18n/index.js";
 
     $: $selectedRowIds.length>0?loadContact($selectedRowIds[0]):null; //as the datatable gets clicked we load the contact into the contact form
     let scannedAddress;
+    /** a contact address or an invitation link: whom to ask, on which device (contact-address.js) */
+    function scan() {
+        const address = parseContactAddress(scannedAddress)
+        if (!address) {
+            notify($_('notify.noContactAddress'), 'warning')
+            return
+        }
+        return requestAddress(address.did, false, address.onBoardingToken, address.peer)
+    }
 </script>
 
 <div class="content">
@@ -55,11 +66,11 @@
                 <Grid fullWidth>
                     <Row>
                         <Column>
-                            <TextInput role="scanContact" size="sm" bind:value={scannedAddress} on:keydown={(e) => e.code==='Enter'?requestAddress(scannedAddress):null} />
+                            <TextInput role="scanContact" size="sm" bind:value={scannedAddress} on:keydown={(e) => e.code==='Enter'?scan():null} />
                         </Column>
                             <Column>
                                     <Button size="sm"
-                                            on:click={async () => await requestAddress(scannedAddress)}>
+                                            on:click={async () => await scan()}>
                                         <Scan size="16"/> &nbsp; {$_('home.scan')}
                                     </Button>
                                     <Button size="sm" on:click={() => {

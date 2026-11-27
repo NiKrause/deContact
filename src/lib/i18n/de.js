@@ -96,9 +96,9 @@ export default {
 	},
 	qr: {
 		heading: 'Scannen (DID) – dezentrale Identität',
-		scanWhat: 'DID oder URL scannen?',
-		didOnly: 'Nur DID',
-		url: 'URL',
+		scanWhat: 'Kontaktadresse oder Link?',
+		didOnly: 'Kontaktadresse',
+		url: 'Link',
 		twoWay: 'Gegenseitig austauschen',
 		twoWayHelp:
 			'Wer diesen Code scannt, kann auch seine Kontaktdaten mit dir teilen. Ob, entscheidet die Person selbst.'
@@ -266,6 +266,9 @@ export default {
 		contactDeleted: 'Kontakt gelöscht! {hash}',
 		invitationCopied: 'Einladung kopiert',
 		requestSent: 'Kontaktanfrage an {did} gesendet',
+		requestNotDelivered: '{did} ist noch nicht erreichbar – die App versucht es weiter',
+		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',
+		noContactAddress: 'Das ist keine Kontaktadresse. Scanne den QR-Code der Person, die du fragen willst.',
 		cardWritten: 'Deine Karte steht jetzt im Adressbuch der anfragenden Person (Hash {hash})',
 		requestDeclined: 'Anfrage abgelehnt (Hash {hash})',
 		openedWithWords:

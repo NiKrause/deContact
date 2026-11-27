@@ -41,6 +41,7 @@ import {
 import { EXCHANGE_RETRY_MS, createExchangeStore, exchangeNeeds } from "./exchanges.js";
 import { liftRevocation, removedUs, revoke, withoutRevoked } from "./revocations.js";
 import { answeredBefore } from "./answered.js";
+import { answerContactRequests, deliverContactRequest } from "./contact-protocol.js";
 // localStorage, held in memory while the identity is temporary (#97)
 import { deviceStorage } from "#lib/identity/held-storage.js";
 
@@ -78,11 +79,14 @@ libp2p.subscribe((val) => {
 });
 
 /**
- * The PubSub topic where deContact is publishing and subscribing
- * REQUEST_ADDRESS requests
- * @type {string}
+ * The device of each DID we heard from: the peer their request came from
+ * (contact-protocol.js). Our answers and our own requests go there.
  */
-export const CONTENT_TOPIC = "/dContact/3/message/proto";
+const peerOf = new Map();
+/** the recipients our request reached: the app resends no more (startInvitationCheckWorker) */
+const delivered = new Set();
+/** whether requests are answered (the end-to-end tests turn it off: an app in the background) */
+let answeringRequests = true;
 
 /**
  * Starting libp2p and Helia. The address book starts once the vault is open and the
@@ -151,15 +155,13 @@ export async function startAddressBook(signer, keys) {
     orbitdb.set(_orbitdb)
     window.orbitdb = _orbitdb
 
-    await _libp2p.services.pubsub.subscribe(CONTENT_TOPIC+"/"+_orbitdb.identity.id)
-
-    _libp2p.services.pubsub.addEventListener('message', event => {
-        const topic = event.detail.topic
-        const message = new TextDecoder().decode(event.detail.data)
-        if(!topic.startsWith(CONTENT_TOPIC)) return
-        console.log(`Message received on topic '${topic}': ${message}`)
-        handleMessage(message).catch((error) => console.log("could not handle a contact message:", error?.message))
-    })
+    // contact requests come peer to peer, on deContact's own protocol: no topic, nothing
+    // for a relay or a third peer to subscribe to (contact-protocol.js)
+    await answerContactRequests(_libp2p, (text, from) =>
+        handleMessage(text, from).catch((error) => {
+            console.log("could not handle a contact message:", error?.message)
+            return false
+        }))
 
     /**
      * My Address Book (with own contact data and contact data of others
@@ -179,7 +181,15 @@ export async function startAddressBook(signer, keys) {
     dbMyAddressBook.set(_dbMyAddressBook)
     window.mydb = _dbMyAddressBook
     // the end-to-end tests' hook (#81): only in a build for them, never in production
-    if (import.meta.env.VITE_E2E === 'true') (await import('./e2e-hook.js')).installE2EHook(_orbitdb)
+    if (import.meta.env.VITE_E2E === 'true') {
+        (await import('./e2e-hook.js')).installE2EHook(_orbitdb, {
+            // an app in the background: its peer does not answer the protocol
+            pauseRequests: () => (answeringRequests = false),
+            resumeRequests: () => (answeringRequests = true),
+            // a message of the test's own making, delivered as the app delivers requests
+            deliver: async (peer, text) => deliverContactRequest(_libp2p, peer, text, { relayPeers: await relayPeerIds() })
+        })
+    }
     await getAddressRecords()
 
     initReplicationBackup(_orbitdb.identity.id)
@@ -215,25 +225,58 @@ export async function close() {
 }
 
 /**
- * A message arrived on our topic. Anything that is not a request signed by its sender,
- * for us, recent and not seen before is dropped (contact-messages.js).
+ * A request arrived from the peer `from`. Anything that is not a request signed by its
+ * sender, for us, recent and not seen before is dropped (contact-messages.js).
+ *
+ * @returns {Promise<boolean>} whether it was a request for us: the receipt says so
  */
-async function handleMessage(text) {
+async function handleMessage(text, from) {
+    if (!answeringRequests) throw new Error('not answering requests')
     const opened = await openMessage(text, { me: _orbitdb?.identity?.id, keys: _keys })
     if (!opened.ok) {
         console.log(`dropped contact message${opened.sender ? ` from ${opened.sender}` : ''}: ${opened.reason}`)
-        return
+        return false
     }
     const request = opened.message
+    // the device of the sender: where our answer goes
+    peerOf.set(request.sender, from)
     if (!replayGuard.firstTime(request)) {
         console.log(`dropped contact message from ${request.sender}: seen before`)
-        return
+        return true
     }
     // keep only the newest request of each sender
     const queued = pendingRequests.get(request.sender)
     if (queued && queued.request.timestamp > request.timestamp) return
     pendingRequests.set(request.sender, { request, receivedAt: Date.now() })
     processMessageQueue()
+    return true
+}
+
+/** the relays we hold a connection to: a peer is dialled through them (contact-protocol.js) */
+async function relayPeerIds() {
+    const ids = new Set()
+    for (const connection of _libp2p.getConnections()) {
+        try {
+            const peer = await _libp2p.peerStore.get(connection.remotePeer)
+            if (RELAY_TAGS.some((tag) => peer.tags.has(tag))) ids.add(connection.remotePeer.toString())
+        } catch {
+            // not in the peer store: not one of our relays
+        }
+    }
+    return ids
+}
+
+/**
+ * A request for `did`, to their device: `peer`, or the one their own request came from.
+ *
+ * @returns {Promise<{ delivered: boolean, received?: boolean, error?: string }>}
+ */
+async function deliver(did, peer, msg) {
+    const target = peer ?? peerOf.get(did)
+    if (!target) return { delivered: false, error: 'we know no device of theirs' }
+    const result = await deliverContactRequest(_libp2p, target, msg, { relayPeers: await relayPeerIds() })
+    if (result.delivered) peerOf.set(did, target)
+    return result
 }
 
 /**
@@ -419,8 +462,9 @@ async function answerInviter(request, requesterDB, exchange) {
  */
 async function sendInvitation(invitee, onBoardingToken) {
     const msg = await addressRequest(invitee, { onBoardingToken, nopingpong: true })
-    await _libp2p.services.pubsub.publish(CONTENT_TOPIC + "/" + invitee, new TextEncoder().encode(msg))
-    console.log(`sent an invitation to ${invitee} for the two-way exchange`)
+    const result = await deliver(invitee, undefined, msg)
+    if (result.delivered) console.log(`sent an invitation to ${invitee} for the two-way exchange`)
+    else console.log(`could not send an invitation to ${invitee}: ${result.error}`)
 }
 
 /** a hidden record of somebody's book, so that we keep our card in it up to date and keep a backup */
@@ -611,12 +655,14 @@ function allowDialogs() {
  *
  * @param inviter the DID in the link
  * @param onBoardingToken the token in the link
+ * @param peer the inviter's device in the link: where requests go (contact-protocol.js)
  * @returns {Promise<{ twoWay: boolean }>} whether we may share our card back: the token
  *   is the inviter's, valid, and allows it
  */
-export async function openInvitationLink(inviter, onBoardingToken) {
+export async function openInvitationLink(inviter, onBoardingToken, peer) {
     onboardingWith = inviter
     holdDialogs()
+    if (peer) peerOf.set(inviter, peer)
     const verified = onBoardingToken === undefined
         ? { ok: false, reason: 'has no token' }
         : await verifyOnboardingToken(onBoardingToken, { inviter })
@@ -625,7 +671,7 @@ export async function openInvitationLink(inviter, onBoardingToken) {
         console.log(`the invitation link of ${inviter} ${verified.reason}: they will be asked`)
         return { twoWay: false }
     }
-    const exchange = exchanges().opened({ inviter, token: onBoardingToken, expiresAt: verified.token.expiresAt, twoWay: verified.token.twoWay })
+    const exchange = exchanges().opened({ inviter, token: onBoardingToken, expiresAt: verified.token.expiresAt, twoWay: verified.token.twoWay, peer })
     return { twoWay: exchange.twoWay }
 }
 
@@ -635,8 +681,8 @@ export async function openInvitationLink(inviter, onBoardingToken) {
  * need (retryExchanges).
  */
 export async function sendInvitationLinkRequest(inviter, onBoardingToken) {
-    if (!exchanges().get(inviter)) return requestAddress(inviter, false, onBoardingToken) // asked for, as any request
-    await writePlaceholder(inviter, onBoardingToken)
+    if (!exchanges().get(inviter)) return requestAddress(inviter, false, onBoardingToken, peerOf.get(inviter)) // asked for, as any request
+    await writePlaceholder(inviter, onBoardingToken, peerOf.get(inviter))
     await retryExchanges()
 }
 
@@ -649,7 +695,7 @@ export async function chooseExchange(inviter, choice) {
     const exchange = exchanges().chose(inviter, choice)
     if (!exchange) console.log(`no valid invitation link of ${inviter}: nothing chosen`)
     // saved before the network was up: the placeholder their card is to replace
-    else await writePlaceholder(inviter, exchange.token)
+    else await writePlaceholder(inviter, exchange.token, exchange.peer)
     leaveInvitationLink(inviter)
     await retryExchanges() // with 'share' and no invitation at hand: ask for one now
 }
@@ -707,8 +753,13 @@ async function retryExchanges() {
         try {
             // a new message each time: the recipient drops one it has seen before
             const msg = await addressRequest(exchange.inviter, { onBoardingToken: exchange.token, twoWay: needs.twoWay })
-            await _libp2p.services.pubsub.publish(CONTENT_TOPIC + "/" + exchange.inviter, new TextEncoder().encode(msg))
-            console.log(`sent the request of the invitation link to ${exchange.inviter}${needs.twoWay ? ', asking for an invitation' : ''}`)
+            const result = await deliver(exchange.inviter, exchange.peer, msg)
+            if (result.delivered) {
+                console.log(`sent the request of the invitation link to ${exchange.inviter}${needs.twoWay ? ', asking for an invitation' : ''}`)
+            } else {
+                // their app is in the background, or not reachable yet: the next round tries again
+                console.log(`could not deliver the request of the invitation link to ${exchange.inviter}: ${result.error}`)
+            }
         } catch (error) {
             console.log(`could not send the request of the invitation link to ${exchange.inviter}:`, error?.message)
         }
@@ -719,49 +770,73 @@ async function retryExchanges() {
 }
 
 /**
- * 1. Alice requests an address from Bob via pub sub
- * 2. Alice adds write permission to Bobs identity //TODO please make sure Alice can only write one address into Bobs db and can only update and delete his own.
- * 3. Bob keeps a backup of Alice (encrypted)
- * 4. If Bob changes his address he is iterating through all of his subscribers, opens their address book and updates writes his data in.
+ * We ask somebody for their card: our request, with our book and an invitation into it,
+ * goes peer to peer to their device (contact-protocol.js). A placeholder under the key of
+ * their card waits in our book until the card arrives, and names the device and the time
+ * of the request, so that a resend after a reload still names it (answered.js).
  *
- * @param scannedAddress a DID or any other handle supported by the system (e.g. ethereum addresses=
+ * @param _scannedAddress their DID
  * @param nopingpong set to true if Bob should not ask again to exchange the contacts if just happened (prevent the ping pong)
  * @param onBoardingToken if set we send an onBoardingToken back to Alice so she doesn't need a confirmation
+ * @param peer their device (contact-address.js); else the one their own request came from
  * @returns {Promise<void>}
  */
-export const requestAddress = async (_scannedAddress,nopingpong, onBoardingToken) => {
+export const requestAddress = async (_scannedAddress, nopingpong, onBoardingToken, peer) => {
     const scannedAddress = _scannedAddress.trim()
 
     try {
-        console.log("request requestAddress from", _scannedAddress);
+        console.log("request requestAddress from", scannedAddress);
+        const device = peer ?? peerOf.get(scannedAddress)
+        if (!device) {
+            console.log(`could not ask ${scannedAddress}: we know no device of theirs`)
+            notify(t('notify.noDevice'), 'warning')
+            return
+        }
+        peerOf.set(scannedAddress, device)
         // the invitation lets the recipient write their card into our address book
         const now = Date.now()
         const msg = await addressRequest(scannedAddress, { onBoardingToken, nopingpong, now })
         requestedAt.set(scannedAddress, now)
+        delivered.delete(scannedAddress)
 
-        await writePlaceholder(scannedAddress, onBoardingToken)
+        await writePlaceholder(scannedAddress, onBoardingToken, device, now)
 
-        await _libp2p.services.pubsub.publish(CONTENT_TOPIC+"/"+scannedAddress, new TextEncoder().encode(msg))
-
+        const result = await deliver(scannedAddress, device, msg)
+        if (result.delivered) {
+            delivered.add(scannedAddress)
+            console.log(`sent a request to ${scannedAddress}`)
+            notify(t('notify.requestSent', { did: scannedAddress }));
+        } else {
+            // their app is in the background, or not reachable yet: the worker tries again
+            console.log(`could not deliver the request to ${scannedAddress}: ${result.error}`)
+            notify(t('notify.requestNotDelivered', { did: scannedAddress }), 'warning');
+        }
         startInvitationCheckWorker()
-        notify(t('notify.requestSent', { did: scannedAddress }));
     } catch (error) {
         console.error('Error in requestAddress:', error);
     }
 }
 
-/** a placeholder under the key their card will have; keep a card we already have */
-async function writePlaceholder(did, onBoardingToken) {
-    if (await _dbMyAddressBook.get(contactKey(did))) return
+/**
+ * A placeholder under the key their card will have, naming their device and when we
+ * asked; a card we already have stays. A placeholder of an earlier request is renewed.
+ */
+async function writePlaceholder(did, onBoardingToken, peer, askedAt) {
+    const existing = await _dbMyAddressBook.get(contactKey(did))
+    if (existing && !isPlaceholder(existing.value, did)) return
     const dummyContact = { _id: contactKey(did), owner: did, firstName: 'invited', lastName: did }
     if (onBoardingToken !== undefined) dummyContact.onBoardingToken = onBoardingToken
-    await _dbMyAddressBook.put(dummyContact)
+    if (peer !== undefined) dummyContact.peer = peer
+    if (askedAt !== undefined) dummyContact.requestedAt = askedAt
+    if (existing && JSON.stringify({ ...existing.value, ...dummyContact }) === JSON.stringify(existing.value)) return
+    await _dbMyAddressBook.put({ ...(existing?.value ?? {}), ...dummyContact })
     await getAddressRecords()
 }
 
 /**
- * Periodically checks for 'invited' contacts and attempts to resend the address request.
- * The interval increases exponentially: first 10 seconds, then 100 seconds, then 10000 seconds, and so on.
+ * Resends our requests that did not reach their recipient: their app was in the
+ * background, or not reachable yet. One that arrived (a receipt came back) is not resent;
+ * the card comes by OrbitDB. The interval grows: 10 seconds, then 20, 30 and so on.
  */
 function startInvitationCheckWorker() {
 
@@ -772,7 +847,11 @@ function startInvitationCheckWorker() {
         // a card of somebody we removed is no placeholder, whatever it says: a resend would invite them again (#82)
         const allContacts = await countingRecords();
         // the links we opened resend by themselves (retryExchanges)
-        const invitedContacts = allContacts.filter(contact => contact.value.firstName === 'invited' && !exchanges().get(contact.value.owner));
+        const invitedContacts = allContacts.filter((contact) =>
+            contact.value.firstName === 'invited' &&
+            !exchanges().get(contact.value.owner) &&
+            !delivered.has(contact.value.owner) &&
+            (contact.value.peer ?? peerOf.get(contact.value.owner)) !== undefined)
 
         if (invitedContacts.length === 0) {
             console.log("No 'invited' contacts found. Worker will not schedule further checks.");
@@ -780,14 +859,20 @@ function startInvitationCheckWorker() {
         }
 
         for (const contact of invitedContacts) {
+            const owner = contact.value.owner
             // a new message each time: the recipient drops one it has seen before; it names the
             // request it repeats, so a recipient who answered that one is not asked again
-            const msg = await addressRequest(contact.value.owner, {
+            const msg = await addressRequest(owner, {
                 onBoardingToken: contact.value.onBoardingToken || undefined,
-                resentOf: requestedAt.get(contact.value.owner)
+                resentOf: contact.value.requestedAt ?? requestedAt.get(owner)
             })
-            await _libp2p.services.pubsub.publish(CONTENT_TOPIC + "/" + contact.value.owner, new TextEncoder().encode(msg));
-            console.log(`Resent address request to ${contact.value.owner}`);
+            const result = await deliver(owner, contact.value.peer, msg)
+            if (result.delivered) {
+                delivered.add(owner)
+                console.log(`Resent address request to ${owner}`);
+            } else {
+                console.log(`could not resend the request to ${owner}: ${result.error}`);
+            }
         }
 
         // Schedule the next execution

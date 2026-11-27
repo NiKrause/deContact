@@ -81,12 +81,18 @@ importers:
       '@libp2p/interface':
         specifier: 3.4.0
         version: 3.4.0
+      '@libp2p/peer-id':
+        specifier: 6.0.18
+        version: 6.0.18
       '@libp2p/ping':
         specifier: 3.1.18
         version: 3.1.18
       '@libp2p/pubsub-peer-discovery':
         specifier: 12.0.0
         version: 12.0.0
+      '@libp2p/utils':
+        specifier: 7.4.6
+        version: 7.4.6
       '@libp2p/webrtc':
         specifier: 7.0.3
         version: 7.0.3
@@ -3825,7 +3831,7 @@ snapshots:
       '@multiformats/multiaddr-matcher': 3.0.2
       '@peculiar/x509': 2.2.0
       acme-client: 5.4.0
-      any-signal: 4.1.1
+      any-signal: 4.2.0
       delay: 7.0.0
       interface-datastore: 10.0.1
       multiformats: 14.0.7
@@ -4156,7 +4162,7 @@ snapshots:
       '@libp2p/utils': 7.4.6
       '@multiformats/multiaddr': 13.0.3
       '@multiformats/multiaddr-matcher': 3.0.2
-      any-signal: 4.1.1
+      any-signal: 4.2.0
       interface-datastore: 10.0.1
       it-all: 3.0.11
       it-drain: 3.0.12
@@ -4346,7 +4352,7 @@ snapshots:
       '@multiformats/multiaddr-matcher': 3.0.2
       main-event: 1.0.5
       p-event: 8.0.2
-      progress-events: 1.0.1
+      progress-events: 1.1.0
       uint8arraylist: 3.0.2
 
   '@libp2p/tls@3.1.15':
@@ -4450,7 +4456,7 @@ snapshots:
       it-length-prefixed: 11.0.1
       it-protobuf-stream: 3.0.1
       it-pushable: 3.2.4
-      it-stream-types: 2.0.2
+      it-stream-types: 2.0.4
       main-event: 1.0.5
       multiformats: 14.0.7
       node-datachannel: 0.33.6
@@ -6170,7 +6176,7 @@ snapshots:
     dependencies:
       abort-error: 1.0.2
       it-queueless-pushable: 2.0.5
-      it-stream-types: 2.0.2
+      it-stream-types: 2.0.4
       race-signal: 2.0.2
       uint8arraylist: 3.0.2
 
@@ -6196,7 +6202,7 @@ snapshots:
     dependencies:
       abort-error: 1.0.2
       it-byte-stream: 3.0.0
-      it-stream-types: 2.0.2
+      it-stream-types: 2.0.4
       uint8-varint: 3.0.0
       uint8arraylist: 3.0.2
 
@@ -6242,7 +6248,7 @@ snapshots:
     dependencies:
       abort-error: 1.0.2
       it-length-prefixed-stream: 3.0.1
-      it-stream-types: 2.0.2
+      it-stream-types: 2.0.4
       uint8arraylist: 3.0.2
 
   it-pushable@3.2.4:
