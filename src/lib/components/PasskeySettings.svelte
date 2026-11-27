@@ -17,6 +17,7 @@
     import { passkeyProblem } from '#lib/identity/passkeys.js'
     import { notify } from '../../utils/utils.js'
     import { _, formatDate, t } from '#lib/i18n/index.js'
+    import { appUrl } from '#lib/app-url.js'
 
     let busy = $state(false)
     /** what went wrong, read in the language on screen @type {(() => string) | undefined} */
@@ -75,9 +76,8 @@
         btoa(String.fromCharCode(...new TextEncoder().encode(text))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 
     function showLink() {
-        const page = `${location.origin}${location.pathname}`
         // in the fragment: it never leaves the browser that opens the link
-        link = `${page}#/link?vault=${base64url(vaultRecordText())}`
+        link = `${appUrl()}#/link?vault=${base64url(vaultRecordText())}`
     }
 
     function download() {

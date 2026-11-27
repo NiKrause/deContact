@@ -112,7 +112,7 @@ test('the onboarding in German, switched on the first screen', async ({ browser 
 			const qrCode = alice.page.locator('img.qrcode');
 			await expect(qrCode).toHaveAttribute('alt', /onBoardingToken=1\./);
 			const alt = await qrCode.getAttribute('alt');
-			link = process.env.PAGE_URL + alt.slice(alt.indexOf('#'));
+			link = alt;
 			await alice.page.keyboard.press('Escape');
 		});
 

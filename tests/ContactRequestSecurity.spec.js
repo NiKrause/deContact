@@ -107,7 +107,7 @@ async function invitationLink(page) {
 	await expect(qrCode).toHaveAttribute('alt', /onBoardingToken=/);
 	const link = await qrCode.getAttribute('alt');
 	await page.keyboard.press('Escape');
-	return process.env.PAGE_URL + link.slice(link.indexOf('#'));
+	return link;
 }
 
 /** somebody new opens an invitation link */
