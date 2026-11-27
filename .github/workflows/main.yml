@@ -42,6 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        # the history and the tags: the version counts the commits since the tag of
+        # package.json's version, one more with every deploy (scripts/app-version.js)
+        fetch-depth: 0
     - uses: pnpm/action-setup@v4
     - uses: actions/setup-node@v4
       with:
