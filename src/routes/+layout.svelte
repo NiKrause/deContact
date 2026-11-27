@@ -29,7 +29,6 @@
     import { somethingToLose, wantsSignIn } from "#lib/identity/temporary.js"
 
     import { connectedPeers } from "../stores.js";
-    import { confirmExperimentalUse } from "./confirmExperimentalUse.js";
     import Home from './+page.svelte'
     import OnBoarding from "#lib/components/OnBoarding.svelte";
     import { _, language, passkeyStepStrings, startLocale } from "#lib/i18n/index.js";
@@ -100,7 +99,6 @@
         // language on screen (its lang attribute) and in deContact's words
         stepDialog.strings = passkeyStepStrings()
         connectPasskeyStepDialog(stepDialog)
-        if($hash!=='/onboarding') await confirmExperimentalUse();
 
         // the network starts while the person unlocks; the address book once both are done
         const network = startNetwork().then(

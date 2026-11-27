@@ -66,7 +66,6 @@ The patch applies to every OrbitDB in this repository, the E2E tests' local rela
 ## Accessibility
 
 - **Checked on every screen.** `tests/Accessibility.spec.js` runs axe-core with the rules of WCAG 2.1 A and AA on each screen:
-  - the notice of a first visit;
   - the passkey screen;
   - the four tabs;
   - the QR code;

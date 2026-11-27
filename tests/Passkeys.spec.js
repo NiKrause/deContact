@@ -6,7 +6,6 @@ import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
 import {
 	addCard,
 	addVirtualAuthenticator,
-	confirmExperimental,
 	createAddressBook,
 	didOf,
 	everythingStoredAsText,
@@ -138,7 +137,6 @@ test('a passkey opens the address book, again after a reload, and nothing secret
 			await page.evaluate(() => {
 				localStorage.setItem('seedPhrase', 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
 				localStorage.setItem('seed', 'ab'.repeat(32));
-				localStorage.setItem('testConfirmation', 'true');
 			});
 			await page.reload();
 			await expect(page.getByTestId('legacy-reset')).toBeVisible();
@@ -182,7 +180,6 @@ test('an empty browser restores the identity and the own address book with the s
 	const { page } = device;
 	try {
 		await page.goto(process.env.PAGE_URL);
-		await confirmExperimental(page);
 		const did = await createAddressBook(page, 'Alice phone');
 		await addCard(page, alice);
 		const book = await page.evaluate(() => window.mydb.address);
@@ -198,7 +195,6 @@ test('an empty browser restores the identity and the own address book with the s
 		await test.step('nothing is left in this browser; the passkey is', async () => {
 			await forgetThisDevice(page);
 			await page.goto(process.env.PAGE_URL);
-			await confirmExperimental(page);
 			await expect(page.getByRole('button', { name: 'Create a new address book' })).toBeVisible();
 			await takeCeremonies(page);
 		});
@@ -228,7 +224,6 @@ test('a passkey that opens nothing gets no address book without asking', async (
 	try {
 		// a passkey of this site that never made an address book (registered, nothing kept)
 		await page.goto(process.env.PAGE_URL);
-		await confirmExperimental(page);
 		await page.evaluate(async () => {
 			await navigator.credentials.create({
 				publicKey: {
@@ -410,7 +405,6 @@ test('a new browser exchanges cards first and secures them with a passkey afterw
 		await test.step('after a reload the passkey unlocks the same DID with the same contacts', async () => {
 			await page.reload();
 			// the notice of a first visit, which the invitation link skipped
-			await confirmExperimental(page);
 			await page.getByRole('button', { name: 'Unlock with passkey' }).click();
 			expect(await didOf(page)).toBe(bob.did);
 			expect(await takeCeremonies(page)).toEqual([['get', true, 1]]);

@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import {
 	addVirtualAuthenticator,
-	confirmExperimental,
 	continuePasskeyStep,
 	didOf,
 	names,
@@ -49,7 +48,6 @@ test('a second device with a passkey of its own writes as the same DID', async (
 
 		await test.step('device B: the link and the words open the vault', async () => {
 			await page.goto(link);
-			await confirmExperimental(page);
 			await expect(page.getByTestId('vault-handed-over')).toBeVisible();
 			// the record left the address bar
 			expect(page.url()).not.toContain('vault=');

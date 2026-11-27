@@ -3,7 +3,7 @@ import { createSecretSigner } from '@le-space/orbitdb-identity-provider-webauthn
 import { createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 import { base64url } from 'multiformats/bases/base64';
 import { encryptionKeyOfDid, seal } from '../src/lib/encryption/sealing.js';
-import { addVirtualAuthenticator, confirmExperimental, createAddressBook, prfOutputs, recordCeremonies } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, createAddressBook, prfOutputs, recordCeremonies } from './helpers/passkeys.js';
 import { openLink, openLinkWithPasskey } from './helpers/onboarding.js';
 
 // part of the data format (src/lib/identity/vault.js, src/lib/network/contact-messages.js)
@@ -93,7 +93,6 @@ async function register(browser, person) {
 	const user = await newBrowser(browser);
 	const { page } = user;
 	await page.goto(process.env.PAGE_URL);
-	await confirmExperimental(page);
 	await createAddressBook(page, person.first);
 	await page.getByRole('tab', { name: 'Settings' }).click();
 	const didField = page.getByLabel('DID', { exact: true });

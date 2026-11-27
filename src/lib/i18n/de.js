@@ -189,10 +189,6 @@ export default {
 		asked: 'Angefragt am {value}',
 		sealed: 'Die Anfrage ist von ihrem Adressbuch signiert, und nur du kannst sie lesen.'
 	},
-	experimental: {
-		heading: 'Bestätigung',
-		text: 'Hinweis: Das ist noch experimentelle Software. Diese reine Peer-to-Peer-Web-App (PWA) ist (noch) nicht für den Produktiveinsatz gedacht und nicht für Fälle, in denen echtes Geld oder echte Kontaktdaten auf dem Spiel stehen!\nBei Fragen wende dich an die Entwickler.'
-	},
 	onboarding: {
 		shared: 'Kontaktdaten wurden mit dir geteilt',
 		added: '{name} ist jetzt in deinem Adressbuch',
@@ -245,6 +241,8 @@ export default {
 		wordsLabel: 'Deine 24 Wiederherstellungswörter',
 		openWithWords: 'Öffnen',
 		importFile: 'Oder importiere eine Tresordatei von einem anderen Gerät',
+		chooseFile: 'Tresordatei wählen',
+		experimental: 'deContact ist experimentelle Software: Verlass dich bei wichtigen Kontaktdaten noch nicht darauf.',
 		opening: 'Tresor wird geöffnet …',
 		noneCreated:
 			'Es wurde kein Adressbuch angelegt. Öffne einen Geräte-Link, importiere eine Tresordatei oder nutze deine Wiederherstellungswörter.',

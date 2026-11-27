@@ -4,7 +4,6 @@ import path from 'node:path';
 import {
 	addVirtualAuthenticator,
 	addCard,
-	confirmExperimental,
 	contactAddressOf,
 	createAddressBook,
 	newPerson,
@@ -50,14 +49,11 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 	shots.length = 0;
 	let alice, bob, carol;
 	try {
-		await test.step('the first start: the notice, the passkey screen, an empty address book', async () => {
+		await test.step('the first start: the passkey screen, an empty address book', async () => {
 			const context = await browser.newContext({ viewport: size(CLICK_AT) });
 			const page = await context.newPage();
 			await addVirtualAuthenticator(page);
 			await page.goto(process.env.PAGE_URL);
-			await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
-			await shoot(page, '01-notice', 'First start: the notice', { dialog: true });
-			await confirmExperimental(page);
 			await expect(page.getByTestId('passkey-gate')).toBeVisible();
 			await shoot(page, '02-passkey', 'First start: the passkey screen');
 
