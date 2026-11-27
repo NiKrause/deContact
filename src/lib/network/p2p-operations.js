@@ -42,6 +42,7 @@ import { EXCHANGE_RETRY_MS, createExchangeStore, exchangeNeeds } from "./exchang
 import { liftRevocation, removedUs, revoke, withoutRevoked } from "./revocations.js";
 import { answeredBefore } from "./answered.js";
 import { answerContactRequests, deliverContactRequest } from "./contact-protocol.js";
+import { devicesOf, withDevice } from "./devices.js";
 // localStorage, held in memory while the identity is temporary (#97)
 import { deviceStorage } from "#lib/identity/held-storage.js";
 
@@ -192,7 +193,8 @@ export async function startAddressBook(signer, keys) {
     }
     await getAddressRecords()
 
-    initReplicationBackup(_orbitdb.identity.id)
+    // this device in our own card, once the books we keep our card in are open (devices.js)
+    initReplicationBackup(_orbitdb.identity.id).then(() => ensureOwnDevice())
 
     void retryExchanges() // the links we opened before a reload
     startInvitationCheckWorker()
@@ -272,11 +274,50 @@ async function relayPeerIds() {
  * @returns {Promise<{ delivered: boolean, received?: boolean, error?: string }>}
  */
 async function deliver(did, peer, msg) {
-    const target = peer ?? peerOf.get(did)
-    if (!target) return { delivered: false, error: 'we know no device of theirs' }
-    const result = await deliverContactRequest(_libp2p, target, msg, { relayPeers: await relayPeerIds() })
-    if (result.delivered) peerOf.set(did, target)
+    const targets = devicesFor(did, peer)
+    if (targets.length === 0) return { delivered: false, error: 'we know no device of theirs' }
+    const relayPeers = await relayPeerIds()
+    let result
+    for (const target of targets) {
+        result = await deliverContactRequest(_libp2p, target, msg, { relayPeers })
+        if (result.delivered) {
+            peerOf.set(did, target)
+            return result
+        }
+    }
     return result
+}
+
+/**
+ * Where to ask `did`, in order: the device named (a QR code, a placeholder), the one their
+ * own request came from, then the devices their card names, most recently seen first
+ * (devices.js).
+ */
+function devicesFor(did, peer) {
+    const card = _myAddressBook?.find((it) => it.owner === did && !isPlaceholder(it, did))
+    const named = [peer, peerOf.get(did), ...devicesOf(card).map((device) => device.peer)]
+    return [...new Set(named.filter((it) => typeof it === 'string' && it))]
+}
+
+/**
+ * This device in our own card (devices.js): written, and passed on to every book we keep
+ * our card in, only when the card does not name it recently enough. Contacts then reach
+ * this device with their requests.
+ */
+export async function ensureOwnDevice() {
+    const me = _orbitdb?.identity?.id
+    const peer = _libp2p?.peerId?.toString()
+    if (!me || !peer || !_dbMyAddressBook) return
+    // the card ownCard() writes into other books: the one marked as ours, else the first of ours
+    const records = (await countingRecords()).filter((record) => record.value?.owner === me)
+    const own = records.find((record) => record.value.own) ?? records[0]
+    if (!own) return
+    const next = withDevice(own.value, peer)
+    if (!next) return
+    await _dbMyAddressBook.put(next)
+    await getAddressRecords()
+    await writeMyCardIntoFollowedBooks(next)
+    console.log(`our card names this device now: ${peer}`)
 }
 
 /**
@@ -786,13 +827,12 @@ export const requestAddress = async (_scannedAddress, nopingpong, onBoardingToke
 
     try {
         console.log("request requestAddress from", scannedAddress);
-        const device = peer ?? peerOf.get(scannedAddress)
+        const device = devicesFor(scannedAddress, peer)[0]
         if (!device) {
             console.log(`could not ask ${scannedAddress}: we know no device of theirs`)
             notify(t('notify.noDevice'), 'warning')
             return
         }
-        peerOf.set(scannedAddress, device)
         // the invitation lets the recipient write their card into our address book
         const now = Date.now()
         const msg = await addressRequest(scannedAddress, { onBoardingToken, nopingpong, now })
@@ -851,7 +891,7 @@ function startInvitationCheckWorker() {
             contact.value.firstName === 'invited' &&
             !exchanges().get(contact.value.owner) &&
             !delivered.has(contact.value.owner) &&
-            (contact.value.peer ?? peerOf.get(contact.value.owner)) !== undefined)
+            devicesFor(contact.value.owner, contact.value.peer).length > 0)
 
         if (invitedContacts.length === 0) {
             console.log("No 'invited' contacts found. Worker will not schedule further checks.");
@@ -959,9 +999,11 @@ export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { w
  * already keep our card in.
  */
 export async function saveOwnCard(card) {
-    await _dbMyAddressBook.put(card)
+    // with this device in it, so that contacts reach it (devices.js)
+    const withThisDevice = withDevice(card, _libp2p?.peerId?.toString()) ?? card
+    await _dbMyAddressBook.put(withThisDevice)
     await getAddressRecords()
-    await writeMyCardIntoFollowedBooks(card)
+    await writeMyCardIntoFollowedBooks(withThisDevice)
 }
 
 /**

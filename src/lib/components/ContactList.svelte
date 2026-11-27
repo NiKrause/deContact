@@ -16,8 +16,8 @@
             String(field).toLowerCase().includes(query))
     }
 
-    // eslint-disable-next-line no-unused-vars
-    const withoutPhoto = ({ photo, ...row }) => row
+    // the devices a card names are for the app (devices.js), not for reading
+    const withoutPhoto = ({ photo, devices, ...row }) => row
 
     /**
      * The first name of a placeholder, in the language on screen: the stored markers of a

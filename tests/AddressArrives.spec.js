@@ -7,6 +7,8 @@ import { addVirtualAuthenticator, confirmExperimental, contactAddressOf, createA
 //   replica of both books either way.
 // - WebRTC off: the browsers only meet through the relay; the address has to come from
 //   the relay's replica or over the relayed circuit.
+// Afterwards Alice's card in Bob's book names her device (devices.js), so her DID alone,
+// without the device of a QR code, reaches her.
 
 const people = {
 	alice: { first: 'Alice', last: 'Wolkenfabrik', city: 'Musterstadt' },
@@ -41,6 +43,16 @@ for (const webRTC of [true, false]) {
 				console.log(`[${label}] Bob's dials: ${JSON.stringify([...new Set(bob.dials)].slice(0, 8), null, 1)}`);
 				if (!webRTC) expect(path.connections.filter((c) => c.startsWith('webrtc'))).toEqual([]);
 			}
+
+			// her card names her device; his request by her DID alone goes there
+			const alicesPeer = await alice.page.evaluate(() => window.helia.libp2p.peerId.toString());
+			await expect.poll(() => devicesInCard(bob.page, alice.did), { timeout: 90000, message: "Alice's device in her card in Bob's book" })
+				.toContain(alicesPeer);
+			await bob.page.getByRole('tab', { name: 'Contacts' }).click();
+			await bob.page.getByRole('textbox', { role: 'scanContact' }).fill(alice.did);
+			await bob.page.getByRole('button', { name: 'Scan' }).click();
+			await expect(alice.page.getByTestId('request-from')).toContainText(`${people.bob.first} ${people.bob.last}`, { timeout: 90000 });
+			await alice.page.getByRole('button', { name: 'Cancel' }).first().click();
 		} finally {
 			await Promise.all([alice.close(), bob.close()]);
 		}
@@ -73,6 +85,14 @@ async function startPerson(browser, person, { webRTC }) {
 	await page.getByPlaceholder('Enter city...').fill(person.city);
 	await page.getByRole('button', { name: 'Add' }).click();
 	return { page, did, dials, close: () => context.close() };
+}
+
+/** the devices the card of `did` in this browser's own book names */
+function devicesInCard(page, did) {
+	return page.evaluate(async (did) => {
+		const card = (await window.mydb.all()).map((record) => record.value).find((value) => value.owner === did && Array.isArray(value.devices));
+		return (card?.devices ?? []).map((device) => device.peer);
+	}, did);
 }
 
 /** names in this browser's own address book */
