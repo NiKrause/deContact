@@ -65,7 +65,8 @@ test("Bob sees Alice's photo after the onboarding; a third peer sees no image by
 			await bob.page.getByRole('link', { name: 'Contacts' }).click();
 			const row = rowOf(bob.page, people.alice.last);
 			await expect(row.getByTestId('contact-photo')).toHaveAttribute('src', photo, { timeout: 60000 });
-			await row.getByRole('button', { name: 'Expand current row' }).click();
+			// her contact page
+			await row.click();
 			await expect(bob.page.getByTestId('contact-details-photo')).toHaveAttribute('src', photo);
 			// the details list the other fields in words, not the data URL
 			const details = bob.page.getByTestId('contact-details');
@@ -115,6 +116,7 @@ test("Bob sees Alice's photo after the onboarding; a third peer sees no image by
 			await expect(alice.page.getByTestId('form-photo')).toHaveCount(0);
 			await alice.page.getByRole('button', { name: 'Update' }).click();
 			await expect.poll(() => ownPhoto(alice.page), { timeout: 30000 }).toBeUndefined();
+			await bob.page.getByRole('button', { name: 'All contacts' }).click();
 			await expect(rowOf(bob.page, people.alice.last).getByTestId('contact-photo')).toHaveCount(0, { timeout: 120000 });
 			await expect(rowOf(bob.page, people.alice.last)).toBeVisible();
 		});
@@ -198,9 +200,9 @@ function ownPhoto(page) {
 	});
 }
 
-/** the row of a contact in the list (not the row of its details, when they are open) */
+/** the row of a contact in the list under Contacts */
 function rowOf(page, lastName) {
-	return page.getByRole('row', { name: new RegExp(lastName) }).first();
+	return page.getByTestId('contact-row').filter({ hasText: lastName }).first();
 }
 
 /** our own card: My Address opens it (#110) */

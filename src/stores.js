@@ -74,7 +74,8 @@ export const qrCodeData = writable()
 export const selectedRowIds = writable([])
 /** Contacts shows the form for a contact being added by hand (#110) */
 export const addingContact = writable(false)
-const contact = {
+/** the empty card every form starts from; frozen: the form edits a copy, never this */
+const contact = Object.freeze({
     _id:"",
     firstName: "",
     lastName: "",
@@ -89,9 +90,11 @@ const contact = {
     own:true,
     category: 'business',
     sharedAddress:""
-}
-export const selectedAddr = writable( contact)
+})
 
 /** an empty card for the form: our own before its first save (own), or a contact added by hand */
 export const blankCard = (own) => ({ ...contact, own })
+// a copy: the first card typed into the form once went into the template itself, so every
+// later "Add contact" started with our own name and its _id, and offered Update and Delete
+export const selectedAddr = writable(blankCard(true))
 // export const selectedAddress = writable( )

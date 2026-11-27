@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, everythingStoredAsText, names, newPerson, askByAddress } from './helpers/passkeys.js';
+import { contactAddressOf, everythingStoredAsText, names, newPerson, askByAddress, openContact } from './helpers/passkeys.js';
 
 // Every card is sealed to the owner of the book it sits in, every request to its
 // recipient (#59, finding 3 of #58). Three people:
@@ -83,8 +83,8 @@ test('a third peer reads nothing, and a removed contact gets no more updates', a
 		});
 
 		await test.step('Alice removes Bob: her card leaves his book', async () => {
-			await selectContact(alice.page, people.bob.last);
-			await alice.page.getByRole('button', { name: 'Delete' }).click();
+			await openContact(alice.page, people.bob.last);
+			await alice.page.getByRole('button', { name: 'Remove contact' }).click();
 			await alice.page.getByRole('button', { name: 'Remove', exact: true }).click();
 			await expect.poll(() => alice.saw(`removed our card from the address book of ${bob.did}`), { timeout: 60000 }).toBe(true);
 			await expect.poll(() => names(alice.page), { timeout: 30000 }).not.toContain(`${people.bob.first} ${people.bob.last}`);
@@ -153,12 +153,6 @@ async function openOwnCard(page, lastName) {
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 
-/** selects a contact in the list, which opens it in the form */
-async function selectContact(page, lastName) {
-	await page.getByRole('link', { name: 'Contacts' }).click();
-	await page.getByRole('row', { name: new RegExp(lastName) }).locator('label').click();
-	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
-}
 
 /** the cities in this browser's own address book */
 function cities(page) {

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { names, newPerson } from './helpers/passkeys.js';
+import { names, newPerson, openContact } from './helpers/passkeys.js';
 import { invitationLink, times } from './helpers/onboarding.js';
 
 // Self-updating: Alice moves, and Bob's address book shows her new address without
@@ -101,14 +101,10 @@ function addressIn(page, did) {
 	}, did);
 }
 
-/** what the contact list shows of a contact when its row is expanded (the only one expanded) */
+/** what the contact's page shows; it reads the book as it is now (#110) */
 async function detailsInList(page, lastName) {
-	await page.getByRole('link', { name: 'Contacts' }).click();
-	const row = page.getByRole('row', { name: new RegExp(lastName) }).first();
-	if ((await row.getByRole('button', { name: 'Collapse current row' }).count()) === 0) {
-		await row.getByRole('button', { name: 'Expand current row' }).click();
-	}
-	return (await page.getByTestId('contact-details').first().textContent()) ?? '';
+	if (!(await page.getByTestId('contact-page').isVisible())) await openContact(page, lastName);
+	return (await page.getByTestId('contact-details').textContent()) ?? '';
 }
 
 /** whether the relay holds this entry of a book */

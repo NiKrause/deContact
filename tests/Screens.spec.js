@@ -136,19 +136,21 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 
 		await test.step('Contacts with contacts, a contact expanded and opened', async () => {
 			await openTab(page, 'Contacts');
-			// the first: once expanded, the row of the details below names him too
-			const row = page.getByRole('row', { name: new RegExp(people.bob.last) }).first();
+			const row = page.getByTestId('contact-row').filter({ hasText: people.bob.last });
 			await expect(row).toBeVisible({ timeout: 30000 });
 			await expect(
-				page.getByRole('row', { name: new RegExp(people.carol.last) }).first()
+				page.getByTestId('contact-row').filter({ hasText: people.carol.last })
 			).toBeVisible({ timeout: 30000 });
 			await shoot(page, '12-contacts', 'Contacts, with contacts');
-			await row.getByRole('button', { name: 'Expand current row' }).click();
-			await expect(row.getByRole('button', { name: 'Collapse current row' })).toBeVisible();
-			await shoot(page, '13-contact-expanded', 'A contact, expanded');
-			await row.locator('label').click();
-			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(people.bob.last);
-			await shoot(page, '14-contact-opened', 'A contact, opened');
+			await row.click();
+			await expect(page.getByTestId('contact-page')).toBeVisible();
+			await shoot(page, '13-contact-page', "A contact's page");
+			await page.getByRole('button', { name: 'All contacts' }).click();
+			await page.getByRole('button', { name: 'Add contact' }).click();
+			// empty, a new card: Add, not Update (our own card once leaked in here)
+			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue('');
+			await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeVisible();
+			await shoot(page, '14-add-contact', 'Adding a contact by hand');
 		});
 	} finally {
 		writeIndex();

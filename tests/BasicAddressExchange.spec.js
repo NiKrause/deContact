@@ -63,7 +63,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		await expect.poll(() => cardOf(pageAlice, users[1].did), { timeout: 90000, message: "Bob's update in Alice's book" })
 			.toMatchObject({ lastName: users[2].lastname, street: users[2].street, city: users[2].city });
 		await pageAlice.getByRole('link', { name: 'Contacts' }).click();
-		await expect(pageAlice.getByRole('row', { name: new RegExp(users[2].lastname) })).toBeVisible({ timeout: 30000 });
+		await expect(pageAlice.getByTestId('contact-row').filter({ hasText: users[2].lastname })).toBeVisible({ timeout: 30000 });
 	});
 
 	test('Alice updates her address and Bob receives the update', async () => {
@@ -79,7 +79,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 		await expect.poll(() => cardOf(pageBob, users[0].did), { timeout: 90000, message: "Alice's update in Bob's book" })
 			.toMatchObject({ lastName: users[3].lastname, street: users[3].street, city: users[3].city });
 		await pageBob.getByRole('link', { name: 'Contacts' }).click();
-		await expect(pageBob.getByRole('row', { name: new RegExp(users[3].lastname) })).toBeVisible({ timeout: 30000 });
+		await expect(pageBob.getByTestId('contact-row').filter({ hasText: users[3].lastname })).toBeVisible({ timeout: 30000 });
 	});
 	
 

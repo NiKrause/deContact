@@ -8,6 +8,7 @@
     import UserFollow from "carbon-icons-svelte/lib/UserFollow.svelte";
     import ContactForm from "#lib/components/ContactForm.svelte";
     import ContactList from "#lib/components/ContactList.svelte";
+    import ContactPage from "#lib/components/ContactPage.svelte";
     import Settings from "#lib/components/Settings.svelte";
     import Exchange from "#lib/components/Exchange.svelte";
     import MainNav from "#lib/components/MainNav.svelte";
@@ -17,7 +18,9 @@
         showNotification,
         notificationMessage,
         notificationKind,
-        selectedRowIds
+        selectedRowIds,
+        selectedAddr,
+        orbitdb
     } from "../stores.js";
     import { closeContact, loadContact, newContact, showMyCard } from "../operations.js";
     import { untrack } from "svelte";
@@ -38,6 +41,8 @@
     })
     /** a contact picked from the list, or one being added by hand: the form instead of the list */
     const contactOpen = $derived($selectedRowIds.length > 0 || $addingContact);
+    /** a contact we keep by hand is ours to edit; anybody else's card is theirs, read-only */
+    const editable = $derived($addingContact || ($selectedAddr?.owner && $selectedAddr.owner === $orbitdb?.identity?.id));
 </script>
 
 <div class="shell">
@@ -48,7 +53,7 @@
         {:else if place === "contacts"}
             {#if contactOpen}
                 <Button kind="ghost" size="sm" icon={ArrowLeft} on:click={closeContact}>{$_("contacts.back")}</Button>
-                <ContactForm />
+                {#if editable}<ContactForm />{:else}<ContactPage />{/if}
             {:else}
                 <div class="place-head">
                     <h2>{$_("nav.contacts")}</h2>
