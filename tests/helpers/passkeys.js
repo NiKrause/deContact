@@ -148,6 +148,22 @@ export async function askByAddress(page, address) {
 	await page.getByRole('button', { name: 'Ask', exact: true }).click();
 }
 
+/** the list under Contacts, as it shows (#110): one text per contact */
+export async function listedContacts(page) {
+	await page.getByRole('link', { name: 'Contacts' }).click();
+	const back = page.getByRole('button', { name: 'All contacts' });
+	if (await back.isVisible()) await back.click();
+	return page.getByTestId('contact-row').allTextContents();
+}
+
+/** a contact's page: Contacts → their row (#110) */
+export async function openContact(page, lastName) {
+	await listedContacts(page);
+	await page.getByTestId('contact-row').filter({ hasText: lastName }).first().click();
+	await expect(page.getByTestId('contact-page')).toBeVisible();
+	await expect(page.getByTestId('contact-name')).toContainText(lastName);
+}
+
 /** names in this browser's own address book */
 export function names(page) {
 	return page.evaluate(async () => {

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, names, newPerson, askByAddress } from './helpers/passkeys.js';
+import { contactAddressOf, names, newPerson, askByAddress, listedContacts, openContact } from './helpers/passkeys.js';
 import { times } from './helpers/onboarding.js';
 
 // Who may write into an address book, through the app and the relay (#81), and what
@@ -80,7 +80,7 @@ test('only the owner, and an invited contact with their own card, write into an 
 			await bob.page.getByPlaceholder('Enter city...').fill(NEW_CITY);
 			await bob.page.getByRole('button', { name: 'Update' }).click();
 			await expect.poll(() => cities(alice.page), { timeout: 90000, message: "Bob's new city in Alice's book" }).toContain(NEW_CITY);
-			await expect.poll(() => listed(alice.page)).toContainEqual(expect.stringContaining(people.bob.last));
+			await expect.poll(() => listedContacts(alice.page)).toContainEqual(expect.stringContaining(people.bob.last));
 			after = await documents(alice.page, book);
 		});
 
@@ -130,8 +130,8 @@ test("a removed contact's card stays out until they are invited again", async ({
 		const bobsInvitation = (await documents(bob.page, book)).find((doc) => doc.key === contactKey(bob.did)).value.invitation;
 
 		await test.step('Alice removes Bob: his invitation is revoked', async () => {
-			await selectContact(alice.page, people.bob.last);
-			await alice.page.getByRole('button', { name: 'Delete' }).click();
+			await openContact(alice.page, people.bob.last);
+			await alice.page.getByRole('button', { name: 'Remove contact' }).click();
 			// asked first (#110)
 			await expect(alice.page.getByRole('heading', { name: `Remove ${people.bob.first} ${people.bob.last}?` })).toBeVisible();
 			await alice.page.getByRole('button', { name: 'Remove', exact: true }).click();
@@ -142,7 +142,7 @@ test("a removed contact's card stays out until they are invited again", async ({
 			// only the key in the clear; who removed him and when are sealed to Alice
 			expect(Object.keys(revocation.value).sort()).toEqual(['_id', 'sealed']);
 			expect(docs.some((doc) => doc.key === contactKey(bob.did))).toBe(false);
-			await expect.poll(() => listed(alice.page)).not.toContainEqual(expect.stringContaining(people.bob.last));
+			await expect.poll(() => listedContacts(alice.page)).not.toContainEqual(expect.stringContaining(people.bob.last));
 		});
 
 		await test.step("Bob's app stops writing his card into Alice's book", async () => {
@@ -169,7 +169,7 @@ test("a removed contact's card stays out until they are invited again", async ({
 				message: "Bob's card in Alice's book"
 			}).toBe('Unwanted');
 			await expect.poll(() => alice.saw(`ignored the card of ${bob.did}: we removed them`), { timeout: 30000 }).toBe(true);
-			const rows = await listed(alice.page);
+			const rows = await listedContacts(alice.page);
 			expect(rows.some((row) => row.includes('Unwanted') || row.includes(people.bob.last)), rows.join(' | ')).toBe(false);
 		});
 
@@ -177,9 +177,9 @@ test("a removed contact's card stays out until they are invited again", async ({
 			await exchangeCards(bob, alice);
 			await expect.poll(() => alice.saw(`lifted the revocation of ${bob.did}: we invite them again`), { timeout: 30000 }).toBe(true);
 			expect((await documents(alice.page, book)).some((doc) => doc.key === `revoked:${bob.did}`)).toBe(false);
-			await expect.poll(() => listed(alice.page), { timeout: 90000, message: "Bob's card in Alice's list" })
+			await expect.poll(() => listedContacts(alice.page), { timeout: 90000, message: "Bob's card in Alice's list" })
 				.toContainEqual(expect.stringContaining(people.bob.last));
-			await expect.poll(() => listed(alice.page)).not.toContainEqual(expect.stringContaining('Unwanted'));
+			await expect.poll(() => listedContacts(alice.page)).not.toContainEqual(expect.stringContaining('Unwanted'));
 		});
 
 		await test.step("Bob's updates reach Alice again", async () => {
@@ -277,11 +277,6 @@ async function relayHasEntry(address, entryHash) {
 	return (await response.json()).hasEntry === true;
 }
 
-/** the rows of the contact list on screen */
-async function listed(page) {
-	await page.getByRole('link', { name: 'Contacts' }).click();
-	return page.getByRole('row').allTextContents();
-}
 
 /** our own card: My Address opens it, it is not in the list (#110) */
 async function openOwnCard(page, lastName) {
@@ -289,12 +284,6 @@ async function openOwnCard(page, lastName) {
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 
-/** selects a contact in the list, which opens it in the form */
-async function selectContact(page, lastName) {
-	await page.getByRole('link', { name: 'Contacts' }).click();
-	await page.getByRole('row', { name: new RegExp(lastName) }).locator('label').click();
-	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
-}
 
 /** the cities in this browser's own address book */
 function cities(page) {

@@ -117,13 +117,14 @@ export default {
 		close: 'Close notification'
 	},
 	contacts: {
-		name: 'Name',
-		firstName: 'Firstname',
 		search: 'Search...',
 		searchLabel: 'Search contacts',
 		add: 'Add contact',
 		back: 'All contacts',
-		// an expanded row: the card in words, the technical parts collapsed (#110)
+		remove: 'Remove contact',
+		empty: 'No contacts yet. Show your code or scan theirs on Exchange.',
+		nameless: 'Somebody without a name on their card',
+		// a contact's page: the card in words, the technical parts collapsed (#110)
 		details: {
 			email: 'Email',
 			address: 'Address',
@@ -133,21 +134,8 @@ export default {
 			book: 'Address book'
 		},
 		clearSearch: 'Clear search input',
-		// what Carbon's table says to a screen reader (its translateWithId)
-		table: {
-			selectRow: 'Open this contact',
-			selectAll: 'Select all contacts',
-			expandRow: 'Expand current row',
-			collapseRow: 'Collapse current row',
-			expandAll: 'Expand all rows',
-			collapseAll: 'Collapse all rows',
-			expandColumn: 'Expand rows'
-		},
 		invited: 'invited',
 		canceled: 'request canceled',
-		nextPage: 'Next page',
-		previousPage: 'Previous page',
-		page: 'page {page}',
 		itemRange: {
 			one: '{min}–{max} of {total} item',
 			other: '{min}–{max} of {total} items'

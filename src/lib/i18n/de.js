@@ -113,12 +113,13 @@ export default {
 		close: 'Meldung schließen'
 	},
 	contacts: {
-		name: 'Nachname',
-		firstName: 'Vorname',
 		search: 'Suchen …',
 		searchLabel: 'Kontakte durchsuchen',
 		add: 'Kontakt hinzufügen',
 		back: 'Alle Kontakte',
+		remove: 'Kontakt entfernen',
+		empty: 'Noch keine Kontakte. Zeig unter Austausch deinen Code oder scanne ihren.',
+		nameless: 'Jemand ohne Namen auf der Karte',
 		details: {
 			email: 'E-Mail',
 			address: 'Adresse',
@@ -128,20 +129,8 @@ export default {
 			book: 'Adressbuch'
 		},
 		clearSearch: 'Suche leeren',
-		table: {
-			selectRow: 'Diesen Kontakt öffnen',
-			selectAll: 'Alle Kontakte auswählen',
-			expandRow: 'Zeile aufklappen',
-			collapseRow: 'Zeile zuklappen',
-			expandAll: 'Alle Zeilen aufklappen',
-			collapseAll: 'Alle Zeilen zuklappen',
-			expandColumn: 'Zeilen aufklappen'
-		},
 		invited: 'eingeladen',
 		canceled: 'Anfrage abgelehnt',
-		nextPage: 'Nächste Seite',
-		previousPage: 'Vorherige Seite',
-		page: 'Seite {page}',
 		itemRange: {
 			one: '{min}–{max} von {total} Eintrag',
 			other: '{min}–{max} von {total} Einträgen'
