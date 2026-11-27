@@ -88,6 +88,14 @@ export default {
 		firstName: 'Vorname',
 		search: 'Suchen …',
 		searchLabel: 'Kontakte durchsuchen',
+		details: {
+			email: 'E-Mail',
+			address: 'Adresse',
+			category: 'Kategorie',
+			technical: 'Technische Details',
+			did: 'DID',
+			book: 'Adressbuch'
+		},
 		clearSearch: 'Suche leeren',
 		table: {
 			selectRow: 'Diesen Kontakt unter Meine Adresse öffnen',

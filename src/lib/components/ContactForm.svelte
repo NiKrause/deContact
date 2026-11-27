@@ -1,6 +1,6 @@
 <script>
      import { selectedAddr, orbitdb } from "../../stores.js";
-     import { addContact, deleteContact, updateContact } from "../../operations.js";
+     import { addContact, deleteContact, newContact, updateContact } from "../../operations.js";
      import { Button, Checkbox, Column, ConfirmModal, Dropdown, Grid, Row, TextInput } from "carbon-components-svelte";
      import ContactPhoto from "./ContactPhoto.svelte";
      import { photoFromFile } from "#lib/photo/photo.js";
@@ -116,7 +116,7 @@
                 {#if $selectedAddr._id}
                     {#if $selectedAddr.owner === $orbitdb?.identity?.id}
                         <Button data-cy="updateContact" size="sm" on:click={() => updateContact()}>{$_('form.update')}</Button>
-                        <Button data-cy="newContact" size="sm" on:click={() => $selectedAddr = {}}>{$_('form.new')}</Button>
+                        <Button data-cy="newContact" size="sm" on:click={newContact}>{$_('form.new')}</Button>
                     {/if}
                     <Button data-cy="deleteContact" kind="danger-tertiary" size="sm" on:click={() => (confirmDelete = true)}>{$_('form.delete')}</Button>
 

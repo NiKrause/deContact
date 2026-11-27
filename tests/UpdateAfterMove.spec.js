@@ -79,10 +79,9 @@ test('Alice moves: Bob gets her new address, also when his app was closed meanwh
 	}
 });
 
-/** a person moves: their own card, selected in the list, gets a new street, postal code and city */
+/** a person moves: their own card, under My Address (#110), gets a new street, postal code and city */
 async function move(page, lastName, { street, postalCode, city }) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
-	await page.getByRole('row', { name: new RegExp(lastName) }).first().locator('label').click();
+	await page.getByRole('tab', { name: 'My Address' }).click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 	await page.getByPlaceholder('Enter street...').fill(street);
 	await page.getByPlaceholder('Enter zipcode...').fill(postalCode);
@@ -102,14 +101,14 @@ function addressIn(page, did) {
 	}, did);
 }
 
-/** what the contact list shows of a contact when its row is opened */
+/** what the contact list shows of a contact when its row is expanded (the only one expanded) */
 async function detailsInList(page, lastName) {
 	await page.getByRole('tab', { name: 'Contacts' }).click();
-	const details = page.locator('pre', { hasText: lastName });
-	if ((await details.count()) === 0) {
-		await page.getByRole('row', { name: new RegExp(lastName) }).first().getByRole('button', { name: 'Expand current row' }).click();
+	const row = page.getByRole('row', { name: new RegExp(lastName) }).first();
+	if ((await row.getByRole('button', { name: 'Collapse current row' }).count()) === 0) {
+		await row.getByRole('button', { name: 'Expand current row' }).click();
 	}
-	return (await details.first().textContent()) ?? '';
+	return (await page.getByTestId('contact-details').first().textContent()) ?? '';
 }
 
 /** whether the relay holds this entry of a book */

@@ -419,8 +419,8 @@ test('a new browser exchanges cards first and secures them with a passkey afterw
 		});
 
 		await test.step("his invitation into Alice's book still holds: a change of his card reaches her", async () => {
-			await page.getByRole('tab', { name: 'Contacts' }).click();
-			await page.getByRole('row', { name: new RegExp(people.bob.last) }).first().locator('label').click();
+			// his own card, under My Address (#110)
+			await page.getByRole('tab', { name: 'My Address' }).click();
 			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(people.bob.last);
 			await page.getByPlaceholder('Enter city...').fill('Beispielort');
 			await page.getByRole('button', { name: 'Update' }).click();

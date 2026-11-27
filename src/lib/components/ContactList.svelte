@@ -1,10 +1,12 @@
 <script>
-    import { DataTable, Toolbar, ToolbarContent, ToolbarSearch, Pagination } from "carbon-components-svelte";
+    import { Accordion, AccordionItem, DataTable, Toolbar, ToolbarContent, ToolbarSearch, Pagination } from "carbon-components-svelte";
     import { readable } from "svelte/store";
-    import { myAddressBook, selectedRowIds } from "../../stores.js";
+    import { myAddressBook, orbitdb, selectedRowIds } from "../../stores.js";
     import { generateQRForAddress } from "../../operations.js"
     import ContactPhoto from "./ContactPhoto.svelte";
     import { _ } from "#lib/i18n/index.js";
+    /** our contacts: our own card is under My Address, not in this list (#110) */
+    const contacts = $derived(($myAddressBook ?? []).filter((row) => !(row.own && row.owner === $orbitdb?.identity?.id)))
     let pageSize = $state(50);
     let page = $state(1);
     let filteredRowIds = $state([]);
@@ -17,8 +19,13 @@
             String(field).toLowerCase().includes(query))
     }
 
-    // the devices a card names are for the app (devices.js), not for reading
-    const withoutPhoto = ({ photo, devices, ...row }) => row
+    /** what a card says, as text; anything else (an older card's oddities) is not shown */
+    const text = (value) => (typeof value === "string" ? value.trim() : "")
+    /** the address in lines: street; postal code and city; country */
+    const addressOf = (row) =>
+        [text(row.street), [text(row.postalCode), text(row.city)].filter(Boolean).join(" "), text(row.countryRegion)].filter(Boolean)
+    /** a category the form knows, in the language on screen */
+    const categoryOf = (row, tr) => (["private", "business", "other"].includes(row.category) ? tr(`form.categories.${row.category}`) : "")
 
     /**
      * The first name of a placeholder, in the language on screen: the stored markers of a
@@ -68,7 +75,7 @@
 <DataTable
         class="contact-list"
         expandable
-        rows={$myAddressBook}
+        rows={contacts}
         {pageSize}
         {page}
         radio
@@ -106,9 +113,35 @@
             {cell.display ? cell.display(cell.value, row) : cell.value}
         {/if}
     </svelte:fragment>
+    <!-- what the card says, in words; the DID and the book address only on request (#110) -->
     <svelte:fragment slot="expandedRow" let:row>
-        <ContactPhoto photo={row.photo} size={128} testid="contact-details-photo" />
-        <pre>{JSON.stringify(withoutPhoto(row), null, 2)}</pre>
+        <div class="details" data-testid="contact-details">
+            <ContactPhoto photo={row.photo} size={128} testid="contact-details-photo" />
+            <dl>
+                {#if text(row.email)}
+                    <dt>{$_("contacts.details.email")}</dt>
+                    <dd><a href="mailto:{text(row.email)}">{text(row.email)}</a></dd>
+                {/if}
+                {#if addressOf(row).length}
+                    <dt>{$_("contacts.details.address")}</dt>
+                    <dd>{#each addressOf(row) as line, i (i)}<span class="line">{line}</span>{/each}</dd>
+                {/if}
+                {#if categoryOf(row, $_)}
+                    <dt>{$_("contacts.details.category")}</dt>
+                    <dd>{categoryOf(row, $_)}</dd>
+                {/if}
+            </dl>
+            {#if text(row.owner) || text(row.sharedAddress)}
+                <Accordion size="sm">
+                    <AccordionItem title={$_("contacts.details.technical")}>
+                        <dl class="technical">
+                            {#if text(row.owner)}<dt>{$_("contacts.details.did")}</dt><dd>{text(row.owner)}</dd>{/if}
+                            {#if text(row.sharedAddress)}<dt>{$_("contacts.details.book")}</dt><dd>{text(row.sharedAddress)}</dd>{/if}
+                        </dl>
+                    </AccordionItem>
+                </Accordion>
+            {/if}
+        </div>
     </svelte:fragment>
 </DataTable>
 <Pagination
@@ -136,10 +169,29 @@
         .stacked-name {
             color: var(--cds-text-primary, #161616);
         }
-        /* the details of a contact: long addresses wrap instead of widening the screen */
-        :global(.contact-list pre) {
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-        }
+    }
+    .details {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0.5rem 0 1rem;
+    }
+    dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.5rem 1.5rem;
+        margin: 0;
+    }
+    dt {
+        color: var(--cds-text-secondary, #c6c6c6);
+    }
+    dd {
+        margin: 0;
+        /* a DID or a book address wraps instead of widening the screen */
+        overflow-wrap: anywhere;
+        min-width: 0;
+    }
+    .line {
+        display: block;
     }
 </style>

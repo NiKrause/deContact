@@ -49,7 +49,9 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 	test('Bob updates his address and Alice receives the update', async () => {
 		test.setTimeout(180000);
 
-		await pageBob.getByRole('row', { name: users[1].identity }).locator('label').click();
+		// his own card: under My Address, not in his list (#110)
+		await pageBob.getByRole('tab', { name: 'My Address' }).click();
+		await expect(pageBob.getByPlaceholder('Enter lastname...')).toHaveValue(users[1].lastname);
 		await pageBob.getByPlaceholder('Enter lastname...').click();
 		await pageBob.getByPlaceholder('Enter lastname...').fill(users[2].lastname);
 		await pageBob.getByPlaceholder('Enter street...').click();
@@ -69,8 +71,7 @@ test.describe('Simple exchange of address between Alice and Bob', async () => {
 
 	test('Alice updates her address and Bob receives the update', async () => {
 		test.setTimeout(180000);
-		await pageAlice.getByRole('tab', { name: 'Contacts' }).click();
-		await pageAlice.getByRole('row', { name: new RegExp(users[0].lastname) }).first().locator('label').click();
+		await pageAlice.getByRole('tab', { name: 'My Address' }).click();
 		await expect(pageAlice.getByPlaceholder('Enter lastname...')).toHaveValue(users[0].lastname);
 		await pageAlice.getByPlaceholder('Enter lastname...').fill(users[3].lastname);
 		await pageAlice.getByPlaceholder('Enter street...').fill(users[3].street);

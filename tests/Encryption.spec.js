@@ -93,7 +93,7 @@ test('a third peer reads nothing, and a removed contact gets no more updates', a
 		});
 
 		await test.step('her next change reaches Carol, not Bob', async () => {
-			await selectContact(alice.page, people.alice.last);
+			await openOwnCard(alice.page, people.alice.last);
 			await alice.page.getByPlaceholder('Enter city...').fill(NEW_CITY);
 			await alice.page.getByRole('button', { name: 'Update' }).click();
 			await expect.poll(() => cities(carol.page), { timeout: 90000, message: "Alice's new city in Carol's book" }).toContain(NEW_CITY);
@@ -147,6 +147,12 @@ function storedValues(page, address) {
 		const raw = db.raw ?? db;
 		return (await raw.all()).map((record) => record.value);
 	}, address);
+}
+
+/** our own card: My Address opens it, it is not in the list (#110) */
+async function openOwnCard(page, lastName) {
+	await page.getByRole('tab', { name: 'My Address' }).click();
+	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 
 /** selects a contact in the list, which opens it in the form */

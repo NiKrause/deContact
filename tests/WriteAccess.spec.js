@@ -76,7 +76,7 @@ test('only the owner, and an invited contact with their own card, write into an 
 		const NEW_CITY = 'Neustadt am Beispiel';
 		let after;
 		await test.step('Bob still updates his own card, and Alice sees it', async () => {
-			await selectContact(bob.page, people.bob.last);
+			await openOwnCard(bob.page, people.bob.last);
 			await bob.page.getByPlaceholder('Enter city...').fill(NEW_CITY);
 			await bob.page.getByRole('button', { name: 'Update' }).click();
 			await expect.poll(() => cities(alice.page), { timeout: 90000, message: "Bob's new city in Alice's book" }).toContain(NEW_CITY);
@@ -151,7 +151,7 @@ test("a removed contact's card stays out until they are invited again", async ({
 				message: "the revocation in Bob's copy of Alice's book"
 			}).toBe(true);
 			const updates = times(bob, `updated our card in ${book}`);
-			await selectContact(bob.page, people.bob.last);
+			await openOwnCard(bob.page, people.bob.last);
 			await bob.page.getByPlaceholder('Enter city...').fill('Neustadt am Beispiel');
 			await bob.page.getByRole('button', { name: 'Update' }).click();
 			await expect.poll(() => bob.saw(`not updating our card in ${book}: its owner removed us`), { timeout: 30000 }).toBe(true);
@@ -187,7 +187,7 @@ test("a removed contact's card stays out until they are invited again", async ({
 				timeout: 60000,
 				message: "the revocation gone from Bob's copy of Alice's book"
 			}).toBe(false);
-			await selectContact(bob.page, people.bob.last);
+			await openOwnCard(bob.page, people.bob.last);
 			await bob.page.getByPlaceholder('Enter city...').fill('Altstadt am Beispiel');
 			await bob.page.getByRole('button', { name: 'Update' }).click();
 			await expect.poll(() => cities(alice.page), { timeout: 90000, message: "Bob's new city in Alice's book" }).toContain('Altstadt am Beispiel');
@@ -283,6 +283,12 @@ async function relayHasEntry(address, entryHash) {
 async function listed(page) {
 	await page.getByRole('tab', { name: 'Contacts' }).click();
 	return page.getByRole('row').allTextContents();
+}
+
+/** our own card: My Address opens it, it is not in the list (#110) */
+async function openOwnCard(page, lastName) {
+	await page.getByRole('tab', { name: 'My Address' }).click();
+	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 
 /** selects a contact in the list, which opens it in the form */

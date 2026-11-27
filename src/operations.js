@@ -6,6 +6,7 @@ import {
     selectedAddr,
     selectedTab,
     selectedRowIds,
+    blankCard,
     qrCodeData,
     qrCodeOpen,
     orbitdb,
@@ -26,6 +27,28 @@ export async function loadContact(id) {
     selectedAddr.set(_selectedAddr)
     selectedTab.set(1)
 }
+
+/**
+ * My Address with no contact picked from the list (#110): our own card, or before its first
+ * save the empty form for it. A card the form already holds stays: our own with changes not
+ * saved yet, the first one being typed, or a contact being added by hand.
+ */
+export function showMyCard() {
+    const me = _orbitdb?.identity?.id
+    const mine = me ? _myAddressBook?.find((it) => it.owner === me && it.own) : undefined
+    const shown = _selectedAddr ?? {}
+    if (mine && shown._id === mine._id) return
+    if (!shown._id && (shown.own ? !mine : shown.own === false && typedIn(shown))) return
+    selectedAddr.set(mine ? { ...mine } : blankCard(true))
+}
+
+/** "New": the form empty, for a contact added by hand */
+export function newContact() {
+    selectedAddr.set(blankCard(false))
+}
+
+/** whether somebody typed something into this card */
+const typedIn = (card) => ['firstName', 'lastName', 'email', 'street', 'postalCode', 'city', 'countryRegion'].some((field) => String(card[field] ?? '').trim() !== '')
 
 /**
  * Adds a new contact to the orbitdb dbMyAddressBook.
