@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, chromium } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
@@ -7,10 +7,13 @@ import {
 	addCard,
 	contactAddressOf,
 	createAddressBook,
+	editMyCard,
 	newPerson,
 	names
 } from './helpers/passkeys.js';
 import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboarding.js';
+import { madeUpPortrait } from './helpers/portrait.js';
+import { qrVideo } from './helpers/qr-video.js';
 
 // A tour of every screen, saved as a screenshot at each reference width (#110), so a change
 // to the UI can be compared before and after: CI keeps them as the artifact "screens" of
@@ -41,6 +44,11 @@ const people = {
 	carol: { first: 'Carol', last: 'Beispiel', city: 'Beispielstadt' }
 };
 const fullName = (person) => `${person.first} ${person.last}`;
+/** made-up portraits for their cards (helpers/portrait.js): the README shows them */
+const portraits = {
+	alice: { sky: ['#9cc3e6', '#f4e1c1'], skin: '#d9a066', hair: '#5a3825', shirt: '#2f6f62' },
+	carol: { sky: ['#c9b3e6', '#f6dcc8'], skin: '#8d5524', hair: '#1f1a17', shirt: '#a23b72' }
+};
 
 /** every picture taken, for the index: { screen, title, width, file, sideways } */
 const shots = [];
@@ -49,7 +57,7 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 	test.setTimeout(600000);
 	mkdirSync(OUT, { recursive: true });
 	shots.length = 0;
-	let alice, bob, carol;
+	let alice, bob, carol, camera;
 	try {
 		await test.step('the first start: the passkey screen, an empty address book', async () => {
 			const context = await browser.newContext({ viewport: size(CLICK_AT) });
@@ -82,6 +90,7 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await openTab(page, 'My card');
 			await shoot(page, '04-my-card', 'My card, before the first card');
 			await addCard(page, people.alice);
+			await choosePortrait(page, portraits.alice);
 			await expect(page.getByTestId('my-card')).toBeVisible();
 			await shoot(page, '04c-my-card-saved', 'My card, as others see it');
 			// Edit opens the form; Cancel drops the change
@@ -118,6 +127,8 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await bob.page.setViewportSize(size(CLICK_AT));
 			await shoot(bob.page, '08-invitee-form', "The invitee's form, as it opens");
 			await expect(bob.page.getByTestId('inviter-card')).toBeVisible({ timeout: 120000 });
+			// her photo and the line about her card, not under the fixed header at any width
+			await clearOfHeader(bob.page, bob.page.getByTestId('onboarding'), 'the invitee form');
 			await fillOnboardingCard(bob.page, people.bob);
 			await shoot(
 				bob.page,
@@ -137,9 +148,12 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 		await test.step('the request dialog: Carol asks Alice by her contact address', async () => {
 			carol = await newPerson(browser, people.carol);
 			await carol.page.setViewportSize(size(CLICK_AT));
+			await choosePortrait(carol.page, portraits.carol);
 			await askByAddress(carol.page, await contactAddressOf(page));
 			const send = page.getByRole('button', { name: 'Share and ask for theirs' });
 			await expect(send).toBeVisible({ timeout: 90000 });
+			// her photo, as the small copy her request carries
+			await expect(page.getByTestId('request-photo')).toBeVisible();
 			await shoot(page, '11-request-dialog', 'The request dialog', { dialog: true });
 			await send.click();
 			// Alice asks back: Carol's card comes to her
@@ -169,13 +183,60 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeVisible();
 			await shoot(page, '14-add-contact', 'Adding a contact by hand');
 		});
+
+		await test.step('Scan a code: the camera, held up to an invitation', async () => {
+			// a browser whose fake camera films Alice's invitation QR code: for 12 seconds half
+			// of it, as while the phone is still being held up, then all of it
+			const video = test.info().outputPath('invitation.y4m');
+			writeFileSync(video, qrVideo(await invitationLink(page), { width: 960, height: 540, fps: 2, approach: 24, frames: 6 }));
+			camera = await chromium.launch({
+				args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-video-capture=${video}`]
+			});
+			const scanner = await (await camera.newContext({ viewport: size(CLICK_AT) })).newPage();
+			await addVirtualAuthenticator(scanner);
+			await scanner.goto(process.env.PAGE_URL);
+			await createAddressBook(scanner, 'Scanner');
+			await scanner.getByRole('link', { name: 'Exchange' }).click();
+			await scanner.getByRole('button', { name: 'Scan a code' }).click();
+			// the camera runs
+			await expect.poll(() => scanner.locator('video').evaluate((element) => element.currentTime), { timeout: 30000 }).toBeGreaterThan(0.5);
+			await shoot(scanner, '15-scan', 'Scan a code: the camera', { dialog: true });
+			// and reads the code once it is all in the picture
+			await expect.poll(() => scanner.evaluate(() => location.hash), { timeout: 60000, message: 'the invitation opened' }).toContain('/onboarding/');
+		});
 	} finally {
 		writeIndex();
 		await Promise.all([alice, bob, carol].filter(Boolean).map((person) => person.close()));
+		await camera?.close();
 	}
 });
 
 const size = ({ width, height }) => ({ width, height });
+
+/** `locator` lies below Carbon's fixed header at every width (the header covers what is under it) */
+async function clearOfHeader(page, locator, what) {
+	for (const device of DEVICES) {
+		await page.setViewportSize(size(device));
+		await page.evaluate(() => window.scrollTo(0, 0));
+		const header = await page.locator('header').first().boundingBox();
+		const box = await locator.boundingBox();
+		expect.soft(box?.y, `${what} at ${device.width} px under the header`).toBeGreaterThanOrEqual(header.y + header.height);
+	}
+	await page.setViewportSize(size(CLICK_AT));
+}
+
+/** our own card gets a made-up portrait: My card → Edit → Choose photo → Update */
+async function choosePortrait(page, colours) {
+	await editMyCard(page);
+	const chooser = page.waitForEvent('filechooser');
+	await page.getByRole('button', { name: 'Choose photo' }).click();
+	await (await chooser).setFiles({ name: 'portrait.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(await madeUpPortrait(page, colours)) });
+	await expect(page.getByTestId('form-photo')).toBeVisible();
+	await page.getByRole('button', { name: 'Update' }).click();
+	await expect(page.getByTestId('my-card-photo')).toBeVisible();
+	// the notice goes after two seconds; the pictures show the card without it
+	await expect(page.locator('.bx--toast-notification')).toHaveCount(0, { timeout: 10000 });
+}
 
 /** one of the four places (#110), through the navigation, at the width the tour clicks at */
 async function openTab(page, name) {
@@ -190,6 +251,8 @@ async function openTab(page, name) {
  * tour (#98), after the rest of it, and is marked in the index.
  */
 async function shoot(page, screen, title, { dialog = false } = {}) {
+	// the pointer out of the way: no row lit up, no tooltip
+	await page.mouse.move(0, 0);
 	for (const device of DEVICES) {
 		await page.setViewportSize(size(device));
 		// some parts lay out again after a resize (the navigation moves to the bottom on a phone)

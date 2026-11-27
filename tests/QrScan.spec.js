@@ -1,8 +1,8 @@
 import { test, expect, chromium } from '@playwright/test';
 import { writeFileSync } from 'node:fs';
-import qrcode from 'qrcode-generator';
 import { newPerson } from './helpers/passkeys.js';
 import { invitationLink } from './helpers/onboarding.js';
+import { qrVideo } from './helpers/qr-video.js';
 
 // Scanning with the camera (QrScanner.svelte, <qr-scanner> of @le-space/libp2p-webrtc-qr).
 // Bob's browser has a fake camera that films Alice's invitation QR code: Chromium plays a
@@ -14,34 +14,6 @@ const people = {
 	alice: { first: 'Alice', last: 'Wolkenfabrik', city: 'Musterstadt' },
 	bob: { first: 'Bob', last: 'Stromwerk', city: 'Beispielort' }
 };
-
-/**
- * A Y4M video (4:2:0, a few identical frames) of the QR code of `text`, black on white,
- * centred with its quiet zone: what the fake camera shows.
- */
-function qrVideo(text, { width = 1280, height = 720, frames = 10 } = {}) {
-	const qr = qrcode(0, 'M');
-	qr.addData(text);
-	qr.make();
-	const modules = qr.getModuleCount();
-	const quiet = 4;
-	const scale = Math.floor((Math.min(width, height) * 0.9) / (modules + 2 * quiet));
-	const size = (modules + 2 * quiet) * scale;
-	const left = Math.floor((width - size) / 2);
-	const top = Math.floor((height - size) / 2);
-	const luma = Buffer.alloc(width * height, 235);
-	for (let row = 0; row < modules; row++) {
-		for (let col = 0; col < modules; col++) {
-			if (!qr.isDark(row, col)) continue;
-			const y0 = top + (row + quiet) * scale;
-			const x0 = left + (col + quiet) * scale;
-			for (let y = y0; y < y0 + scale; y++) luma.fill(16, y * width + x0, y * width + x0 + scale);
-		}
-	}
-	const chroma = Buffer.alloc((width / 2) * (height / 2), 128);
-	const frame = Buffer.concat([Buffer.from('FRAME\n'), luma, chroma, chroma]);
-	return Buffer.concat([Buffer.from(`YUV4MPEG2 W${width} H${height} F10:1 Ip A1:1 C420jpeg\n`), ...Array(frames).fill(frame)]);
-}
 
 test("Bob scans Alice's invitation QR code with the camera", async ({ browser }, testInfo) => {
 	test.setTimeout(300000);

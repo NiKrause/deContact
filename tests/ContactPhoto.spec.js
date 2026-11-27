@@ -3,6 +3,7 @@ import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
 import { contactAddressOf, everythingStoredAsText, newPerson, askByAddress, editMyCard } from './helpers/passkeys.js';
 import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboarding.js';
 import { bytesOfDataUrl, metadataOf, withExif } from './helpers/exif.js';
+import { madeUpPortrait } from './helpers/portrait.js';
 
 // A contact photo in the sealed part of the card (#87).
 // 1. Alice chooses a photo under My Address: a made-up portrait, as a JPEG whose EXIF names a
@@ -155,30 +156,6 @@ test("the request dialog shows a small copy of the asker's photo", async ({ brow
 		await Promise.all([alice.close(), carol.close()]);
 	}
 });
-
-/** a made-up portrait as a JPEG, drawn on a canvas of this page: a gradient, a head and shoulders */
-async function madeUpPortrait(page) {
-	const bytes = await page.evaluate(async () => {
-		const canvas = document.createElement('canvas');
-		canvas.width = 1200;
-		canvas.height = 1600;
-		const context = canvas.getContext('2d');
-		const sky = context.createLinearGradient(0, 0, 0, canvas.height);
-		sky.addColorStop(0, '#7fb2e5');
-		sky.addColorStop(1, '#f2d7b6');
-		context.fillStyle = sky;
-		context.fillRect(0, 0, canvas.width, canvas.height);
-		context.fillStyle = '#c68642';
-		context.beginPath();
-		context.arc(600, 640, 216, 0, 2 * Math.PI);
-		context.fill();
-		context.fillStyle = '#3b5b92';
-		context.fillRect(300, 990, 600, 610);
-		const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-		return Array.from(new Uint8Array(await blob.arrayBuffer()));
-	});
-	return Uint8Array.from(bytes);
-}
 
 /**
  * How the photo would show if it were stored in the clear: the start of its data URL, a
