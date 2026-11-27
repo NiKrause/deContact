@@ -88,4 +88,7 @@ const contact = {
     sharedAddress:""
 }
 export const selectedAddr = writable( contact)
+
+/** an empty card for the form: our own before its first save (own), or a contact added by hand */
+export const blankCard = (own) => ({ ...contact, own })
 // export const selectedAddress = writable( )

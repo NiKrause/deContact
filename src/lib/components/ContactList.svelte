@@ -1,10 +1,12 @@
 <script>
     import { Accordion, AccordionItem, DataTable, Toolbar, ToolbarContent, ToolbarSearch, Pagination } from "carbon-components-svelte";
     import { readable } from "svelte/store";
-    import { myAddressBook, selectedRowIds } from "../../stores.js";
+    import { myAddressBook, orbitdb, selectedRowIds } from "../../stores.js";
     import { generateQRForAddress } from "../../operations.js"
     import ContactPhoto from "./ContactPhoto.svelte";
     import { _ } from "#lib/i18n/index.js";
+    /** our contacts: our own card is under My Address, not in this list (#110) */
+    const contacts = $derived(($myAddressBook ?? []).filter((row) => !(row.own && row.owner === $orbitdb?.identity?.id)))
     let pageSize = $state(50);
     let page = $state(1);
     let filteredRowIds = $state([]);
@@ -73,7 +75,7 @@
 <DataTable
         class="contact-list"
         expandable
-        rows={$myAddressBook}
+        rows={contacts}
         {pageSize}
         {page}
         radio

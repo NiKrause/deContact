@@ -29,7 +29,8 @@
         selectedRowIds,
         exchangesWaiting
     } from "../stores.js";
-    import { loadContact } from "../operations.js";
+    import { loadContact, showMyCard } from "../operations.js";
+    import { untrack } from "svelte";
     import { requestAddress } from "../lib/network/p2p-operations.js"
     import { parseContactAddress } from "#lib/network/contact-address.js"
     import QrScanner from "#lib/components/QrScanner.svelte"
@@ -39,6 +40,12 @@
     // a row picked in the list: its contact goes into the form
     $effect(() => {
         if ($selectedRowIds.length > 0) loadContact($selectedRowIds[0])
+    })
+    /** My Address, opened without a contact picked from the list: it shows our own card (#110) */
+    const myCardAsked = $derived($selectedTab === 1 && $selectedRowIds.length === 0)
+    $effect(() => {
+        // only when that turns true: the book changing under an open form leaves it alone
+        if (myCardAsked) untrack(showMyCard)
     })
     /** the tabs' labels, in the language on screen */
     const tabLabels = $derived([$_('tabs.contacts'), $_('tabs.myAddress'), $_('tabs.statistics'), $_('tabs.settings')]);

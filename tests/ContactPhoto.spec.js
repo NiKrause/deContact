@@ -40,7 +40,9 @@ test("Bob sees Alice's photo after the onboarding; a third peer sees no image by
 			const bytes = bytesOfDataUrl(photo);
 			expect(bytes.length).toBeLessThanOrEqual(MAX_PHOTO_BYTES);
 			expect(metadataOf(bytes)).toEqual({ type: 'webp', metadata: [] });
-			await expect(rowOf(alice.page, people.alice.last).getByTestId('contact-photo')).toHaveAttribute('src', photo);
+			// her own card is under My Address, not in her list (#110)
+			await openCard(alice.page, people.alice.last);
+			await expect(alice.page.getByTestId('form-photo')).toHaveAttribute('src', photo);
 		});
 
 		await test.step("Bob opens her link: the onboarding shows her photo once her card is there", async () => {
@@ -167,10 +169,9 @@ function rowOf(page, lastName) {
 	return page.getByRole('row', { name: new RegExp(lastName) }).first();
 }
 
-/** selects a card in the list, which opens it in the form under My Address */
+/** our own card: My Address opens it (#110) */
 async function openCard(page, lastName) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
-	await rowOf(page, lastName).locator('label').click();
+	await page.getByRole('tab', { name: 'My Address' }).click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 }
 

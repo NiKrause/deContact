@@ -79,10 +79,9 @@ test('Alice moves: Bob gets her new address, also when his app was closed meanwh
 	}
 });
 
-/** a person moves: their own card, selected in the list, gets a new street, postal code and city */
+/** a person moves: their own card, under My Address (#110), gets a new street, postal code and city */
 async function move(page, lastName, { street, postalCode, city }) {
-	await page.getByRole('tab', { name: 'Contacts' }).click();
-	await page.getByRole('row', { name: new RegExp(lastName) }).first().locator('label').click();
+	await page.getByRole('tab', { name: 'My Address' }).click();
 	await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(lastName);
 	await page.getByPlaceholder('Enter street...').fill(street);
 	await page.getByPlaceholder('Enter zipcode...').fill(postalCode);
