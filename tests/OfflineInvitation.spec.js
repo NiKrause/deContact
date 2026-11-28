@@ -20,7 +20,7 @@ import { fillOnboardingCard, invitationLink, names, openLink } from './helpers/o
 // Alice could use. What fails today is checked softly (expect.soft), so that the test runs
 // to its end:
 // - steps 1 and 3: a book reaches the relay only in part while its owner is alone: the
-//   relay holds the first entry, not the later ones (in a run on 2026-11-28), which reach
+//   relay held the first entry of Alice's book, not a later one (two runs on 2026-11-28), which reach
 //   it once another peer has the book open (orbitdb-relay#10, passive writer-to-relay
 //   convergence). Whatever a design leaves on the relay for the link has to get there;
 // - step 2: her card does not arrive; his app keeps resending to her device and shows
@@ -70,7 +70,8 @@ test('the inviter is offline: Bob gets her card and shares his, and back online 
 			await bob.page.getByRole('button', { name: /^Save and share/ }).click();
 			await expect(bob.page.getByRole('link', { name: 'Contacts' })).toBeVisible();
 			bobsBook = await bob.page.evaluate(() => window.mydb.address);
-			// she will write her card into it: from the relay's copy. Fails today, as in step 1
+			// she will write her card into it: from the relay's copy. May fail, as in step 1 (it
+			// did not in the run of 2026-11-28 that got this far)
 			await expect.soft.poll(() => missingOnRelay(bob.page, bobsBook), { timeout: 60000, message: "Bob's book on the relay" }).toEqual([]);
 			// time for whatever his app leaves for her; a check of the relay once the design is chosen
 			await bob.page.waitForTimeout(15000);
