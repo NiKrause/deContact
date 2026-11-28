@@ -403,9 +403,10 @@ describe('invitation link tokens', () => {
 		store.issued(token, now);
 		const redeem = (invitee, at = now) => redeemOnboardingToken(token.text, { inviter: alice.did, invitee, store, now: at });
 
-		expect(await redeem(bob.did)).toEqual({ ok: true, twoWay: true });
+		// and when it stops working: how long the inviter waits for a card back (link-outcomes.js)
+		expect(await redeem(bob.did)).toEqual({ ok: true, twoWay: true, expiresAt: token.expiresAt });
 		// Bob's app resends its request until it is answered
-		expect(await redeem(bob.did, now + 1000)).toEqual({ ok: true, twoWay: true });
+		expect(await redeem(bob.did, now + 1000)).toEqual({ ok: true, twoWay: true, expiresAt: token.expiresAt });
 		expect(await redeem(carol.did)).toEqual({ ok: false, reason: 'was already used' });
 		expect(await redeem(bob.did, token.expiresAt)).toEqual({ ok: false, reason: 'has expired' });
 	});
@@ -419,8 +420,8 @@ describe('invitation link tokens', () => {
 		expect(oneWay.text.split('.')[3]).toBe('0');
 		for (const token of [twoWay, oneWay]) store.issued(token, now);
 		const redeem = (token) => redeemOnboardingToken(token.text, { inviter: alice.did, invitee: bob.did, store, now });
-		expect(await redeem(twoWay)).toEqual({ ok: true, twoWay: true });
-		expect(await redeem(oneWay)).toEqual({ ok: true, twoWay: false });
+		expect(await redeem(twoWay)).toMatchObject({ ok: true, twoWay: true });
+		expect(await redeem(oneWay)).toMatchObject({ ok: true, twoWay: false });
 	});
 
 	it('remembers the circle chosen for a token on this device, not in the link (#100)', async () => {
@@ -433,8 +434,8 @@ describe('invitation link tokens', () => {
 		store.issued(unchosen, now);
 		expect(forBusiness.text).not.toContain('business');
 		const redeem = (token) => redeemOnboardingToken(token.text, { inviter: alice.did, invitee: bob.did, store, now });
-		expect(await redeem(forBusiness)).toEqual({ ok: true, twoWay: true, circle: 'business' });
-		expect(await redeem(wholeCard)).toEqual({ ok: true, twoWay: true, circle: '' });
+		expect(await redeem(forBusiness)).toMatchObject({ ok: true, twoWay: true, circle: 'business' });
+		expect(await redeem(wholeCard)).toMatchObject({ ok: true, twoWay: true, circle: '' });
 		expect((await redeem(unchosen)).circle).toBeUndefined();
 	});
 

@@ -212,7 +212,18 @@ export default {
 	},
 	home: {
 		waiting: "Waiting for {name}'s phone…",
-		waitingNameless: 'Waiting for the phone of the person who invited you…'
+		waitingNameless: 'Waiting for the phone of the person who invited you…',
+		// the other side: somebody opened our code with a two-way exchange (link-outcomes.js)
+		given: '{name} has your business card and can send you theirs.',
+		givenNameless: 'Your business card was received. The person can send you theirs.'
+	},
+	// what became of the code we showed (ExchangeNotices.svelte, link-outcomes.js)
+	exchangeDone: {
+		given: '{name} has your business card',
+		givenNameless: 'Your business card was received',
+		complete: "{name}'s business card is in your contacts",
+		completeNameless: 'Their business card is in your contacts',
+		open: 'Open their card'
 	},
 	// the camera that reads a contact's QR code (QrScanner.svelte, <qr-scanner> of
 	// @le-space/libp2p-webrtc-qr)

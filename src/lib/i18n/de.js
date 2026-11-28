@@ -199,7 +199,18 @@ export default {
 	},
 	home: {
 		waiting: 'Warte auf das Handy von {name} …',
-		waitingNameless: 'Warte auf das Handy der Person, die dich eingeladen hat …'
+		waitingNameless: 'Warte auf das Handy der Person, die dich eingeladen hat …',
+		// die andere Seite: jemand hat unseren Code mit Austausch in beide Richtungen geöffnet (link-outcomes.js)
+		given: '{name} hat deine Visitenkarte und kann dir die eigene schicken.',
+		givenNameless: 'Deine Visitenkarte ist angekommen. Die Person kann dir ihre schicken.'
+	},
+	// was aus dem gezeigten Code geworden ist (ExchangeNotices.svelte, link-outcomes.js)
+	exchangeDone: {
+		given: '{name} hat deine Visitenkarte',
+		givenNameless: 'Deine Visitenkarte ist angekommen',
+		complete: 'Die Visitenkarte von {name} ist in deinen Kontakten',
+		completeNameless: 'Die Visitenkarte der Person ist in deinen Kontakten',
+		open: 'Karte öffnen'
 	},
 	// die Kamera, die den QR-Code eines Kontakts liest (QrScanner.svelte, <qr-scanner>
 	// aus @le-space/libp2p-webrtc-qr)
