@@ -6,7 +6,8 @@
  * Each step is 'done', 'waiting' or 'problem':
  * - book: the address book is open (unlocked with the passkey, or the temporary identity);
  * - network: this device's libp2p runs, so its peer id is known (it goes into the code);
- * - relay: a relay is connected (a bootstrap or Aleph relay, RELAY_TAGS);
+ * - relay: a relay is connected: one the header's peer list names a relay (peer-list.js), a
+ *   bootstrap or Aleph relay (RELAY_TAGS) or another peer offering the hop protocol;
  * - reachable: the relay holds a reservation for this device: a /p2p-circuit address, through
  *   which the other phone reaches this one even when WebRTC is blocked;
  * - link: the invitation link is signed (its one-time token, #86); a contact address needs none;

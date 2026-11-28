@@ -53,6 +53,11 @@ Until [orbitdb/orbitdb#1260](https://github.com/orbitdb/orbitdb/pull/1260) is re
 - heads dials run outside the database's queue: a dial that hangs on a peer reachable only through a relay circuit no longer holds up the exchange with the relay.
 
 The patch applies to every OrbitDB in this repository, the E2E tests' local relay included. Le Space's relays on Aleph run orbitdb-relay with its own OrbitDB, which republishes the heads it syncs by itself.
+
+### The network in the header
+
+The antenna in the header is red without a peer, yellow with one (usually the relay) and green with more, with their number next to it, at every width. A click, a tap, Enter or Space opens a toggletip (a mouse resting on it opens it too; Escape, a click elsewhere or Tab out of it close it) that names each connected peer: whether it is a **relay** (a configured one or one found on Aleph, `RELAY_TAGS`, or any peer that offers the circuit relay's hop protocol) or **another browser**, its peer id shortened (`12D3Koo…AbCd`, with a button that copies the whole one), and how it is connected: the transport (WebRTC, WebSocket Secure, WebSocket, WebTransport, WebRTC Direct, QUIC, TCP) and whether it is **direct** or **relayed** (a `/p2p-circuit` address, or a connection libp2p marks as limited). WebRTC between two browsers is signalled through a relay, but its data goes directly, so a browser first reached through the relay and then upgraded shows as direct WebRTC, with the relayed circuit that may still be open in a second line. A sum line comes first: *2 peers: 1 relay, 1 browser (direct, WebRTC)*. Another browser's address never shows, since it may hold its IP; a relay's DNS name may. Settings → Network shows the same list. The rule is a pure module, [`peer-list.js`](../src/lib/network/peer-list.js); [`peer-watch.js`](../src/lib/network/peer-watch.js) rebuilds the list on libp2p's `connection:open`, `connection:close` and `peer:identify`, without polling, and the [*Getting ready*](#invitation-links) checklist of *Show my code* counts its relays.
+
 ## PWA and link previews
 
 - **Installable, in each language.** Each language's page links a manifest of its own, written at build time from the catalogues ([`web-manifest.js`](../src/lib/web-manifest.js)): `manifest.json` for English, `de/manifest.json` for German, with the description and labels in that language. Both name the same app: the same `id` (the app's own address, `/deContact/` on GitHub Pages) and scope; only the page an installed app opens differs. Icons of 192 and 512 pixels, one of them maskable. The E2E test asks Chrome whether it can install the app, and that both pages give the same app id.
@@ -79,7 +84,7 @@ The patch applies to every OrbitDB in this repository, the E2E tests' local rela
 - **Names a screen reader says.**
   - Every field has a label. Where it is hidden, a screen reader still reads it.
   - The theme switch in Settings is a group of three buttons named in the language on screen; the one chosen is pressed (`aria-pressed`).
-  - The peer icon's colour and number have a hidden text that says both. It is not a live region, because the number changes too often to read it out each time.
+  - The peer icon's colour and number are a button whose hidden text says both. It is not a live region, because the number changes too often to read it out each time. The button opens the [network toggletip](#the-network-in-the-header) (`aria-expanded`, `aria-controls`).
   - A row of the contact list is chosen with a radio button named "Open this contact". The table's other hidden texts (expand a row, the search field) are in the language on screen too (Carbon's `translateWithId`).
 - **Carbon 0.114, unpatched.** Until [#110](https://github.com/NiKrause/deContact/issues/110), deContact patched a few accessibility errors of carbon-components-svelte 0.82. Carbon 0.114 fixes them itself: a tab's list item is "presentation" again, a row's radio button has a name, an expand cell points at a header that exists, and on a phone the tabs stay tabs (a row that scrolls sideways) instead of a menu whose trigger was a "listbox" without options.
 

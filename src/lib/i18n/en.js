@@ -68,6 +68,39 @@ export default {
 			count: { one: '({count} peer)', other: '({count} peers)' }
 		}
 	},
+	// which peers, and how they are connected: the header's toggletip and Settings → Network
+	// (lib/network/peer-list.js, PeerList.svelte)
+	peers: {
+		title: 'Connected peers',
+		none: 'No peer yet: deContact keeps looking for a relay.',
+		summary: '{peers}: {parts}',
+		total: { one: '{count} peer', other: '{count} peers' },
+		relays: { one: '{count} relay', other: '{count} relays' },
+		noRelay: 'no relay',
+		browsers: { one: '{count} browser', other: '{count} browsers' },
+		browsersWays: '{browsers} ({ways})',
+		wayCount: '{count} {way}',
+		directWay: 'direct, {transport}',
+		relayed: 'relayed',
+		directOver: '{transport}, direct',
+		relayedVia: 'relayed through {relay} ({transport})',
+		relayedOver: 'relayed ({transport})',
+		also: 'also open: {ways}',
+		kind: { relay: 'Relay', browser: 'Browser' },
+		transport: {
+			webrtc: 'WebRTC',
+			webtransport: 'WebTransport',
+			wss: 'WebSocket Secure',
+			ws: 'WebSocket',
+			'webrtc-direct': 'WebRTC Direct',
+			quic: 'QUIC',
+			tcp: 'TCP',
+			other: 'another transport'
+		},
+		copy: 'Copy the full peer id of {id}',
+		copied: 'Peer id copied',
+		copyFailed: 'Could not copy'
+	},
 	// the four places (#110), at the bottom on a phone, a rail on a desktop
 	nav: {
 		label: 'Main',
@@ -502,9 +535,6 @@ export default {
 		dropFollowersText: "This device forgets its copies of your contacts' address books. Your own business card and your passkeys stay.",
 		dropAddressBookTitle: 'Drop your address book on this device?',
 		dropAddressBookText: 'This device forgets your address book: your business card and your contacts. What other devices and relays keep of it stays.'
-	},
-	statistics: {
-		connected: 'Seed Node connected / Swarm connected'
 	},
 	// the toasts: sentences, without hashes, DIDs or command names (those go to the console, #110)
 	notify: {

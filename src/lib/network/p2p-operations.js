@@ -8,6 +8,7 @@ import { LevelDatastore } from "datastore-level";
 import { get } from 'svelte/store';
 import { createLibp2pConfig, RELAY_TAGS } from "../../config.js";
 import { startPeerConnectivity } from "./peer-connectivity.js";
+import { watchPeers } from "./peer-watch.js";
 
 import {
     libp2p,
@@ -20,6 +21,7 @@ import {
     subscription,
     connectedPeers,
     networkState,
+    peerList,
     followList, dbMessages, syncedDevices,
     useWebRTC,
     exchangesWaiting
@@ -140,17 +142,24 @@ export async function startNetwork() {
         countPeers()
     });
 
-    // what "Show my code" and Exchange's status line read (#110): relays, and whether one holds
-    // a reservation for us, a /p2p-circuit address through which the other phone reaches this one
-    const updateNetworkState = async () => {
-        const relays = (await relayPeerIds()).size
+    // what "Show my code" and Exchange's status line read (#110): the relays of the peer list the
+    // header shows (peer-list.js), and whether one holds a reservation for us, a /p2p-circuit
+    // address through which the other phone reaches this one
+    let relays = 0
+    const updateNetworkState = () => {
         const reachable = _libp2p.getMultiaddrs().some((ma) => ma.toString().includes('/p2p-circuit'))
         networkState.set({ started: true, relays, reachable })
     }
-    void updateNetworkState()
-    for (const event of ['connection:open', 'connection:close', 'self:peer:update']) {
-        _libp2p.addEventListener(event, () => void updateNetworkState())
-    }
+    updateNetworkState()
+    _libp2p.addEventListener('self:peer:update', updateNetworkState)
+    watchPeers(_libp2p, {
+        relayTags: RELAY_TAGS,
+        onChange: (peers) => {
+            peerList.set(peers)
+            relays = peers.filter((peer) => peer.kind === 'relay').length
+            updateNetworkState()
+        }
+    })
 
     startPeerConnectivity(_libp2p, { webRTC: webRTCEnabled, relayTags: RELAY_TAGS })
     _libp2p.services.alephRelays?.addEventListener('peer', (event) =>
