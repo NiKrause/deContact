@@ -4,6 +4,7 @@
     import QrCodeImage from "./QrCodeImage.svelte"
     import { circles, dbMyAddressBook, libp2p, myAddressBook, networkState, orbitdb } from "../../stores.js";
     import { circleName } from "#lib/card/circles.js";
+    import { ownCardOf } from "#lib/card/own.js";
     import ReadinessList from "./ReadinessList.svelte";
     import { LATE_AFTER_MS, readinessOf } from "#lib/network/readiness.js";
     import { notify } from "../../utils/utils.js";
@@ -71,7 +72,7 @@
         bookOpen: Boolean(me && $dbMyAddressBook?.address),
         network: $networkState,
         linkSigned: shareNow ? Boolean(onBoardingToken) : undefined,
-        ownCard: me ? $myAddressBook?.find((card) => card.owner === me && card.own) : undefined,
+        ownCard: ownCardOf($myAddressBook, me),
         late
     }))
     /** "Fill in my business card": to My card, the dialog closes */

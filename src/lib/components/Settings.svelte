@@ -27,8 +27,13 @@
     async function dropFollowers() {
         const addressRecords = await $dbMyAddressBook.all();
         console.log("dropping DropFollowerDBs db!",addressRecords)
+        const me = $orbitdb?.identity?.id
+        const ourBook = String($dbMyAddressBook.address)
         for (const addressRecord of addressRecords) {
-            if(addressRecord.value.own) continue
+            // our own book stays: our card, and a contact added by hand, which has our DID and
+            // names our book (it was dropped with the copies)
+            const { own, owner, sharedAddress } = addressRecord.value
+            if (own || owner === me || String(sharedAddress) === ourBook) continue
             // placeholders and revocations (#82) name no book of somebody else
             if(!addressRecord.value.sharedAddress) continue
             console.log("dropping follower db",addressRecord.value.sharedAddress)

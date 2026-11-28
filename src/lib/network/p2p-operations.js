@@ -33,6 +33,7 @@ import AddressBookAccessController, { contactKey, createInvitation } from '@le-s
 import { sealedBook } from "../encryption/sealed-book.js";
 import { aboutContacts, isAbout, withCircle, withNote } from "#lib/card/about.js";
 import { CIRCLES_KEY, cardForCircle, circlesOf, fieldsOf } from "#lib/card/circles.js";
+import { ownCardOf, withOneOwnCard } from "#lib/card/own.js";
 import {
     REQUEST_ADDRESS,
     createOnboardingToken,
@@ -328,11 +329,14 @@ export async function ensureOwnDevice() {
     const me = _orbitdb?.identity?.id
     const peer = _libp2p?.peerId?.toString()
     if (!me || !peer || !_dbMyAddressBook) return
-    // the card ownCard() writes into other books: the one marked as ours, else the first of ours
-    const records = (await countingRecords()).filter((record) => record.value?.owner === me)
-    const own = records.find((record) => record.value.own) ?? records[0]
-    if (!own) return
-    const next = withDevice(own.value, peer)
+    // the card ownCard() writes into other books (own.js): a contact added by hand has our
+    // DID too, and never goes out in its place
+    const own = ownCardOf((await countingRecords()).map((record) => record.value), me)
+    if (!own) {
+        console.log('no card of our own yet: no device to name in it')
+        return
+    }
+    const next = withDevice(own, peer)
     if (!next) return
     await _dbMyAddressBook.put(next)
     await getAddressRecords()
@@ -561,7 +565,8 @@ async function getAddressRecords() {
         transformedRecords = transformedRecords.filter((addr)=> {
             return addr.id !==undefined && addr.subscriber===undefined && !isAbout(addr) && addr.id !== CIRCLES_KEY
         })
-        myAddressBook.set(transformedRecords);
+        // one card is our own (own.js): another marked so before #123 is a contact added by hand
+        myAddressBook.set(withOneOwnCard(transformedRecords, _orbitdb?.identity?.id));
         showWaiting()
         console.log("records in dbMyAddressBook ",addressRecords)
         return addressRecords
@@ -687,10 +692,9 @@ async function requestPhotoOf(card) {
     return requestPhoto.thumbnail
 }
 
-/** our own card as our address book shows it */
+/** our own card as our address book shows it (own.js); none before we save one */
 function ownCard() {
-    const me = _orbitdb?.identity?.id
-    return _myAddressBook?.find((it) => it.owner === me && it.own) ?? _myAddressBook?.find((it) => it.owner === me)
+    return ownCardOf(_myAddressBook, _orbitdb?.identity?.id)
 }
 
 let _onboardingTokens
@@ -1184,7 +1188,7 @@ export async function saveCircles(next) {
     await getAddressRecords()
     notify(t('notify.circlesSaved'))
     const card = ownCard()
-    if (card?.own) await writeMyCardIntoFollowedBooks(card)
+    if (card) await writeMyCardIntoFollowedBooks(card)
 }
 
 /**
@@ -1198,7 +1202,7 @@ export async function setCircle(did, circle) {
     await _dbMyAddressBook.put(withCircle(_aboutContact?.get(did), did, circle))
     await getAddressRecords()
     const card = ownCard()
-    if (card?.own) await writeMyCardIntoFollowedBooks(card, { only: did })
+    if (card) await writeMyCardIntoFollowedBooks(card, { only: did })
     notify(t('notify.circleChanged'))
 }
 
