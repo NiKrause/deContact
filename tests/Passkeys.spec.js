@@ -417,6 +417,8 @@ test('a new browser exchanges cards first and secures them with a passkey afterw
 			// his own card, under My Address (#110)
 			await editMyCard(page);
 			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(people.bob.last);
+			// his card from the onboarding form has no address yet: "Add address" opens its fields (#109)
+			await page.getByRole('button', { name: 'Add address' }).click();
 			await page.getByPlaceholder('Enter city...').fill('Beispielort');
 			await page.getByRole('button', { name: 'Update' }).click();
 			await expect
