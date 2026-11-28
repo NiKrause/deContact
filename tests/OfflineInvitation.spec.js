@@ -19,6 +19,10 @@ import { fillOnboardingCard, invitationLink, names, openLink } from './helpers/o
 // sign an invitation for Bob's DID. The relay keeps both books, but nothing in them Bob or
 // Alice could use. What fails today is checked softly (expect.soft), so that the test runs
 // to its end:
+// - steps 1 and 3: a book reaches the relay only in part while its owner is alone: the
+//   relay holds the first entry, not the later ones (in a run on 2026-11-28), which reach
+//   it once another peer has the book open (orbitdb-relay#10, passive writer-to-relay
+//   convergence). Whatever a design leaves on the relay for the link has to get there;
 // - step 2: her card does not arrive; his app keeps resending to her device and shows
 //   "The business card of the person who invited you is on its way…";
 // - step 4: Bob's card is not in her book, and her card for him is not on the relay: his
@@ -46,7 +50,8 @@ test('the inviter is offline: Bob gets her card and shares his, and back online 
 		await test.step('Alice shows her code; her book is on the relay; her app is gone', async () => {
 			link = await invitationLink(alice.page);
 			const book = await alice.page.evaluate(() => window.mydb.address);
-			await expect.poll(() => allOnRelay(alice.page, book), { timeout: 120000, message: "Alice's book on the relay" }).toBe(true);
+			// fails today: see above
+			await expect.soft.poll(() => missingOnRelay(alice.page, book), { timeout: 60000, message: "Alice's book on the relay" }).toEqual([]);
 			// a design that keeps something for the link outside her book checks that here too
 			await alice.page.goto('about:blank');
 		});
@@ -65,8 +70,8 @@ test('the inviter is offline: Bob gets her card and shares his, and back online 
 			await bob.page.getByRole('button', { name: /^Save and share/ }).click();
 			await expect(bob.page.getByRole('link', { name: 'Contacts' })).toBeVisible();
 			bobsBook = await bob.page.evaluate(() => window.mydb.address);
-			// she will write her card into it: from the relay's copy
-			await expect.poll(() => allOnRelay(bob.page, bobsBook), { timeout: 120000, message: "Bob's book on the relay" }).toBe(true);
+			// she will write her card into it: from the relay's copy. Fails today, as in step 1
+			await expect.soft.poll(() => missingOnRelay(bob.page, bobsBook), { timeout: 60000, message: "Bob's book on the relay" }).toEqual([]);
 			// time for whatever his app leaves for her; a check of the relay once the design is chosen
 			await bob.page.waitForTimeout(15000);
 			await bob.close();
@@ -96,11 +101,12 @@ test('the inviter is offline: Bob gets her card and shares his, and back online 
 	}
 });
 
-/** whether the relay holds every entry of a book, as this page has it */
-async function allOnRelay(page, address) {
+/** the entries of a book, as this page has it, that the relay does not hold */
+async function missingOnRelay(page, address) {
 	const hashes = await page.evaluate((address) => window.__decontactE2E.entries(address), address);
-	if (hashes.length === 0) return false;
-	return (await Promise.all(hashes.map((hash) => relayHasEntry(address, hash)))).every(Boolean);
+	if (hashes.length === 0) return ['(the page has no entry)'];
+	const held = await Promise.all(hashes.map((hash) => relayHasEntry(address, hash)));
+	return hashes.filter((hash, index) => !held[index]);
 }
 
 /**

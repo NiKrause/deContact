@@ -96,10 +96,11 @@ jobs:
           api_hosts: https://api2.aleph.im,https://api.aleph.im
           name: decontact-${{ github.run_id }}-${{ github.run_attempt }}
           ssh_public_key: ${{ steps.credentials.outputs.ssh_public_key }}
-          # relay-button's Playwright Runner RootFS (Playwright 1.61.1, as here), as simple-todo
-          # and Belege pin it. Aleph has rejected this one since 2026-11-17 (error 301: its STORE
-          # was forgotten): put the hash of the next publication here
-          rootfs_item_hash: 'b41c7fe9fe687a22f37f52b52d008a9a924280faec04591ecf47976038f065be'
+          # relay-button's Playwright Runner RootFS (Playwright 1.61.1, as here), published
+          # 2026-11-28 (relay-button run 46165467973): the one of 2026-08-01 that simple-todo
+          # and Belege pin, b41c7fe9…, has been rejected since 2026-11-17 (error 301, its STORE
+          # was forgotten)
+          rootfs_item_hash: '9200039272d01dd9fe86e30c8adb66b87343de51671effca75b0cb73f37e693a'
           rootfs_version: playwright-1.61.1
           rootfs_size_mib: '20480'
           # manual placement gives CRN failover: a node that never boots the VM is not the end
