@@ -175,6 +175,12 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await labelsFit(page, 'German');
 			await page.getByTestId('language-en').click();
 			await labelsFit(page, 'English');
+			// the accent colour (#110): Settings with Teal chosen, then Blue again
+			await page.getByTestId('accent-teal').click();
+			await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
+			await shoot(page, '07c-settings-accent', 'Settings, the accent colour Teal');
+			await page.getByTestId('accent-blue').click();
+			await expect(page.locator('html')).toHaveAttribute('data-accent', 'blue');
 		});
 
 		await test.step("the invitee's form: Bob opens Alice's invitation link", async () => {

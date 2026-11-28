@@ -6,6 +6,7 @@
     import { session } from "#lib/identity/session.js";
     import LanguageSwitch from "./LanguageSwitch.svelte";
     import ThemeSwitch from "./ThemeSwitch.svelte";
+    import AccentSwitch from "./AccentSwitch.svelte";
     import InstallApp from "./InstallApp.svelte";
     import Statistics from "./Statistics.svelte";
     import { _ } from "#lib/i18n/index.js";
@@ -62,7 +63,7 @@
 </script>
 
 <!--
- @component Settings: the language and the theme, the passkeys and recovery words, WebRTC; at the bottom,
+ @component Settings: the language, the theme and the accent colour, the passkeys and recovery words, WebRTC; at the bottom,
  collapsed, what only a developer needs (#110): the DID, the peer id and peers, and the two
  drop actions, each behind a confirmation.
 -->
@@ -71,6 +72,8 @@
         <LanguageSwitch />
         <!-- light or dark, else as the system is set (#110) -->
         <ThemeSwitch />
+        <!-- the colour of buttons, links and marks (#110) -->
+        <AccentSwitch />
     </section>
     <!-- until the app runs installed (#146) -->
     <InstallApp testid="settings-install" />

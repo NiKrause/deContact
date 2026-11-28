@@ -2,6 +2,8 @@
     import { onDestroy, onMount } from "svelte";
     import { get } from "svelte/store";
     import "carbon-components-svelte/css/all.css";
+    // the accent colour chosen in Settings, over Carbon's blue (lib/theme.js)
+    import "#lib/accent.css";
     import ConnectionSignalOff from "carbon-icons-svelte/lib/ConnectionSignalOff.svelte";
     import ConnectionSignal from "carbon-icons-svelte/lib/ConnectionSignal.svelte";
     import { Header, HeaderUtilities } from "carbon-components-svelte";

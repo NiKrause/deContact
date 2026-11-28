@@ -42,6 +42,14 @@ export default {
 		dark: 'Dark',
 		help: 'System: light or dark, as this device is set.'
 	},
+	// the accent colour (#110, AccentSwitch.svelte): the colour of buttons, links and marks
+	accent: {
+		label: 'Accent color',
+		blue: 'Blue',
+		teal: 'Teal',
+		purple: 'Purple',
+		help: 'The color of buttons, links and marks.'
+	},
 	common: {
 		cancel: 'Cancel',
 		continue: 'Continue',

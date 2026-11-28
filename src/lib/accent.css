@@ -1,0 +1,81 @@
+/*
+ * The accent colour (#110), chosen in Settings (lib/theme.js, `<html data-accent="…">`).
+ * Blue is Carbon's own and needs nothing here. Teal and purple take the place of Carbon's
+ * blue shade for shade, in both themes (White and Gray 90): the same step of Carbon's teal or
+ * purple palette that Carbon uses of its blue, so contrast stays as Carbon has it (WCAG AA:
+ * white on a button about 5:1, a link on the background 4.5:1 or more).
+ * Only what marks an action or the focus follows the accent; information (support-info, tags,
+ * notices) stays blue. More specific than Carbon's `:root[theme=g90]`, so it wins.
+ */
+
+/* teal: 20 #9ef0f0 · 30 #3ddbd9 · 40 #08bdba · 50 #009d9a · 60 #007d79 · 70 #005d5d · 80 #004144 */
+:root[theme='white'][data-accent='teal'] {
+	--cds-interactive: #007d79;
+	--cds-background-brand: #007d79;
+	--cds-border-interactive: #007d79;
+	--cds-focus: #007d79;
+	--cds-icon-interactive: #007d79;
+	--cds-button-primary: #007d79;
+	--cds-button-primary-hover: #006d6b;
+	--cds-button-primary-active: #004144;
+	--cds-button-tertiary: #007d79;
+	--cds-button-tertiary-hover: #006d6b;
+	--cds-button-tertiary-active: #004144;
+	--cds-link-primary: #007d79;
+	--cds-link-primary-hover: #005d5d;
+	--cds-link-secondary: #005d5d;
+	--cds-link-inverse: #08bdba;
+	--cds-link-inverse-hover: #3ddbd9;
+	--cds-highlight: #9ef0f0;
+}
+:root[theme='g90'][data-accent='teal'] {
+	--cds-interactive: #009d9a;
+	--cds-background-brand: #007d79;
+	--cds-border-interactive: #009d9a;
+	--cds-focus-inverse: #007d79;
+	--cds-button-primary: #007d79;
+	--cds-button-primary-hover: #006d6b;
+	--cds-button-primary-active: #004144;
+	--cds-link-primary: #08bdba;
+	--cds-link-primary-hover: #3ddbd9;
+	--cds-link-secondary: #3ddbd9;
+	--cds-link-inverse: #007d79;
+	--cds-link-inverse-hover: #005d5d;
+	--cds-highlight: #004144;
+}
+
+/* purple: 20 #e8daff · 30 #d4bbff · 40 #be95ff · 50 #a56eff · 60 #8a3ffc · 70 #6929c4 · 80 #491d8b */
+:root[theme='white'][data-accent='purple'] {
+	--cds-interactive: #8a3ffc;
+	--cds-background-brand: #8a3ffc;
+	--cds-border-interactive: #8a3ffc;
+	--cds-focus: #8a3ffc;
+	--cds-icon-interactive: #8a3ffc;
+	--cds-button-primary: #8a3ffc;
+	--cds-button-primary-hover: #7a34e0;
+	--cds-button-primary-active: #491d8b;
+	--cds-button-tertiary: #8a3ffc;
+	--cds-button-tertiary-hover: #7a34e0;
+	--cds-button-tertiary-active: #491d8b;
+	--cds-link-primary: #8a3ffc;
+	--cds-link-primary-hover: #6929c4;
+	--cds-link-secondary: #6929c4;
+	--cds-link-inverse: #be95ff;
+	--cds-link-inverse-hover: #d4bbff;
+	--cds-highlight: #e8daff;
+}
+:root[theme='g90'][data-accent='purple'] {
+	--cds-interactive: #a56eff;
+	--cds-background-brand: #8a3ffc;
+	--cds-border-interactive: #a56eff;
+	--cds-focus-inverse: #8a3ffc;
+	--cds-button-primary: #8a3ffc;
+	--cds-button-primary-hover: #7a34e0;
+	--cds-button-primary-active: #491d8b;
+	--cds-link-primary: #be95ff;
+	--cds-link-primary-hover: #d4bbff;
+	--cds-link-secondary: #d4bbff;
+	--cds-link-inverse: #8a3ffc;
+	--cds-link-inverse-hover: #6929c4;
+	--cds-highlight: #491d8b;
+}

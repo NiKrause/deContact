@@ -41,6 +41,13 @@ export default {
 		dark: 'Dunkel',
 		help: 'System: hell oder dunkel, wie dieses Gerät eingestellt ist.'
 	},
+	accent: {
+		label: 'Akzentfarbe',
+		blue: 'Blau',
+		teal: 'Petrol',
+		purple: 'Violett',
+		help: 'Die Farbe von Schaltflächen, Links und Markierungen.'
+	},
 	common: {
 		cancel: 'Abbrechen',
 		continue: 'Weiter',
