@@ -75,6 +75,20 @@ export default {
 			problem: 'needs attention'
 		}
 	},
+	// circles (#100): which fields of our card a group of contacts sees
+	circles: {
+		defaults: {
+			family: 'Family',
+			friends: 'Friends',
+			acquaintances: 'Acquaintances',
+			business: 'Business'
+		},
+		// a contact's page
+		circleOf: 'Circle',
+		wholeCard: 'No circle: your whole card',
+		narrower: 'What {name} already received stays with them. From now on they get only what this circle shows.',
+		narrowerNameless: 'What they already received stays with them. From now on they get only what this circle shows.'
+	},
 	// the start screen (#110)
 	// My card (MyCard.svelte, #110): the card as others see it; before the first save, why
 	card: {
@@ -455,6 +469,7 @@ export default {
 		cardAddressCopied: 'Address copied.',
 		cardTooLong: 'Not saved: a field is too long. It is marked in the form.',
 		noteSaved: 'Note saved.',
+		circleChanged: 'Saved. They get what this circle shows.',
 		requestSent: 'Request sent. Their card arrives once they answer.',
 		requestNotDelivered: 'Not reached yet. The app keeps trying while it is open.',
 		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',

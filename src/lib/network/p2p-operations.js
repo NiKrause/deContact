@@ -15,6 +15,7 @@ import {
     orbitdb,
     myAddressBook,
     aboutContact,
+    circles,
     dbMyAddressBook,
     subscription,
     connectedPeers,
@@ -30,7 +31,8 @@ import { t } from "#lib/i18n/index.js";
 import { getIdentityAndCreateOrbitDB } from "#lib/network/getIdendityAndCreateOrbitDB.js";
 import AddressBookAccessController, { contactKey, createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 import { sealedBook } from "../encryption/sealed-book.js";
-import { aboutContacts, isAbout, withNote } from "#lib/card/about.js";
+import { aboutContacts, isAbout, withCircle, withNote } from "#lib/card/about.js";
+import { CIRCLES_KEY, cardForCircle, circlesOf, fieldsOf } from "#lib/card/circles.js";
 import {
     REQUEST_ADDRESS,
     createOnboardingToken,
@@ -551,10 +553,11 @@ async function getAddressRecords() {
             ...record.value,
             id: record.value._id
         }));
-        // what we keep about a contact for ourselves is no contact (#109)
+        // what we keep about a contact for ourselves (#109), and our circles (#100), are no contacts
         aboutContact.set(aboutContacts(addressRecords))
+        circles.set(circlesOf(addressRecords.find((record) => record.key === CIRCLES_KEY)?.value))
         transformedRecords = transformedRecords.filter((addr)=> {
-            return addr.id !==undefined && addr.subscriber===undefined && !isAbout(addr)
+            return addr.id !==undefined && addr.subscriber===undefined && !isAbout(addr) && addr.id !== CIRCLES_KEY
         })
         myAddressBook.set(transformedRecords);
         showWaiting()
@@ -1028,7 +1031,7 @@ export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { w
             const placeholder = await waitForOurEntries(requesterDB)
             if (placeholder.length === 0) console.log(`no placeholder for us in ${requesterDB.address} yet - writing our card anyway`)
         }
-        const hash = await requesterDB.put(cardFor(card, invitation))
+        const hash = await requesterDB.put(cardFor(card, invitation, requesterDB.bookOwner))
         console.log(`wrote our card into ${requesterDB.address}:`, hash)
         // the name their signed request carries
         const name = to?.firstName || to?.lastName
@@ -1062,12 +1065,15 @@ export async function saveOwnCard(card) {
  * in it, so a change of ours did not reach them until the app was opened again.
  *
  * @param ownCard our card as shown in our own address book
+ * @param {{ only?: string }} options only: the DID of the one contact whose book is written
+ *   (their circle changed, #100)
  */
-export async function writeMyCardIntoFollowedBooks(ownCard) {
+export async function writeMyCardIntoFollowedBooks(ownCard, { only } = {}) {
     const me = _orbitdb?.identity?.id
     if (me) await initReplicationBackup(me)
     for (const followed of _followList ?? []) {
         if (!followed.db) continue
+        if (only !== undefined && followed.db.bookOwner !== only) continue
         try {
             // its owner removed us (#82): our card stays out, the one we have of theirs stays here
             if (await removedUs(followed.db, me)) {
@@ -1077,7 +1083,7 @@ export async function writeMyCardIntoFollowedBooks(ownCard) {
             const ours = await followed.db.get(contactKey(me))
             const invitation = ours?.value?.invitation
             if (!invitation) continue // never invited into this book
-            await followed.db.put(cardFor(ownCard, invitation))
+            await followed.db.put(cardFor(ownCard, invitation, followed.db.bookOwner))
             console.log("updated our card in", followed.db.address)
         } catch (error) {
             console.log(`could not update our card in ${followed.db.address}:`, error?.message)
@@ -1145,11 +1151,30 @@ export async function saveNote(did, text) {
     notify(t('notify.noteSaved'))
 }
 
-/** our card as we write it into somebody else's address book */
-function cardFor(ownCard, invitation) {
+/**
+ * A contact's circle (#100), in our document about them: our card is written into their book
+ * again at once, with what the circle shows. Undefined: no circle, the whole card.
+ *
+ * @param {string} did the contact
+ * @param {string | undefined} circle the id of one of our circles
+ */
+export async function setCircle(did, circle) {
+    await _dbMyAddressBook.put(withCircle(_aboutContact?.get(did), did, circle))
+    await getAddressRecords()
+    const card = ownCard()
+    if (card?.own) await writeMyCardIntoFollowedBooks(card, { only: did })
+    notify(t('notify.circleChanged'))
+}
+
+/**
+ * Our card as we write it into the book of `bookOwner`: what their circle shows (#100), the
+ * whole card without one.
+ */
+function cardFor(ownCard, invitation, bookOwner) {
     const me = _orbitdb?.identity?.id
+    const fields = fieldsOf(_circles, _aboutContact?.get(bookOwner)?.circle)
     // eslint-disable-next-line no-unused-vars
-    const { own, id, ...card } = ownCard
+    const { own, id, ...card } = cardForCircle(ownCard, fields)
     return { ...card, _id: contactKey(me), owner: me, invitation }
 }
 
@@ -1210,6 +1235,11 @@ myAddressBook.subscribe((val) => {
 let _aboutContact
 aboutContact.subscribe((val) => {
     _aboutContact = val
+});
+
+let _circles
+circles.subscribe((val) => {
+    _circles = val
 });
 
 let _followList
