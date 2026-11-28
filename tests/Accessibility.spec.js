@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
 import { addVirtualAuthenticator, newPerson, strayPasskey } from './helpers/passkeys.js';
 import { invitationLink, openLink } from './helpers/onboarding.js';
-import { DEVICES, LOOKS, size } from './helpers/devices.js';
+import { checkEveryWidth } from './helpers/axe.js';
 
 // What a screen reader, a keyboard or weak eyes meet on each screen: axe-core with the rules
 // of WCAG 2.1 A and AA, in English and German, at the width of each device of #110, light and
@@ -11,9 +10,6 @@ import { DEVICES, LOOKS, size } from './helpers/devices.js';
 // Not covered: the camera (<qr-scanner>), which needs a camera, and the passkey step dialog
 // (<passkey-step-dialog>), which shows only during a passkey prompt.
 
-const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-/** the width the test clicks at: a desktop's, with the places in a rail */
-const CLICK_AT = DEVICES.at(-1);
 const tabs = {
 	en: ['Exchange', 'Contacts', 'My business card', 'Settings'],
 	de: ['Austausch', 'Kontakte', 'Meine Visitenkarte', 'Einstellungen']
@@ -111,27 +107,3 @@ test("the app's screens, the QR code and the invitation form", async ({ browser 
 		await Promise.all([alice.close(), bob?.close()]);
 	}
 });
-
-/**
- * The screen as shown now, at each width, light and dark (the system's setting, which the
- * app follows at once): what axe finds, as "rule (impact): where". Back at the width the test
- * clicks at, light, afterwards.
- */
-async function checkEveryWidth(page, screen) {
-	for (const look of LOOKS) {
-		await page.emulateMedia({ colorScheme: look });
-		await expect(page.locator('html')).toHaveAttribute('theme', look === 'dark' ? 'g90' : 'white');
-		for (const device of DEVICES) {
-			await page.setViewportSize(size(device));
-			// some parts lay out again after a resize (the navigation moves to the bottom on a phone)
-			await page.waitForTimeout(300);
-			const { violations } = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-			const found = violations.map(
-				(violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(' | ')}`
-			);
-			expect.soft(found, `${screen}, ${device.width} px, ${look}`).toEqual([]);
-		}
-	}
-	await page.emulateMedia({ colorScheme: 'light' });
-	await page.setViewportSize(size(CLICK_AT));
-}

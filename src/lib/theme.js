@@ -4,8 +4,14 @@
 // browser's own bar takes the header's colour: src/app.html has a `theme-color` for each
 // system setting, and a choice in Settings gives both its colour.
 //
-// src/app.html sets the theme once more before the first paint, from the same key, so a
-// dark device does not flash white while the app loads. The two must agree (theme.spec.js).
+// The accent colour (#110, #103) is a choice too: Carbon's blue (the default), teal or
+// purple, as `<html data-accent="…">`; src/lib/accent.css gives the other two their shades in
+// both themes. The installed app's icon and manifest keep the default: they cannot follow a
+// choice made in one browser.
+//
+// src/app.html sets the theme and the accent once more before the first paint, from the same
+// keys, so a dark device does not flash white while the app loads. The two must agree
+// (theme.spec.js).
 import { writable } from 'svelte/store';
 
 /** what Settings offers: follow the system, or always light, or always dark */
@@ -21,8 +27,16 @@ export const BAR = /** @type {const} */ ({ light: '#ffffff', dark: '#262626' });
 /** the system's setting, as a media query */
 export const DARK_QUERY = '(prefers-color-scheme: dark)';
 
+/** the accent colours Settings offers; the first is Carbon's own, today's */
+export const ACCENTS = /** @type {const} */ (['blue', 'teal', 'purple']);
+/** @typedef {(typeof ACCENTS)[number]} Accent */
+/** where this browser keeps the accent; it is not secret */
+export const ACCENT_KEY = 'decontact.accent';
+
 /** @param {unknown} value @returns {value is ThemeChoice} */
 const isTheme = (value) => THEMES.includes(/** @type {any} */ (value));
+/** @param {unknown} value @returns {value is Accent} */
+const isAccent = (value) => ACCENTS.includes(/** @type {any} */ (value));
 
 /**
  * The choice to start with: the one made in Settings earlier, else the system's.
@@ -46,11 +60,30 @@ export function lookOf(choice, systemDark) {
 	return systemDark ? 'dark' : 'light';
 }
 
-function readStored() {
+/**
+ * The accent to start with: the one chosen in Settings earlier, else Carbon's blue.
+ *
+ * @param {string | null} [stored]
+ * @returns {Accent}
+ */
+export function initialAccent(stored = readStored(ACCENT_KEY)) {
+	return isAccent(stored) ? stored : 'blue';
+}
+
+function readStored(key = THEME_KEY) {
 	try {
-		return typeof localStorage === 'undefined' ? null : localStorage.getItem(THEME_KEY);
+		return typeof localStorage === 'undefined' ? null : localStorage.getItem(key);
 	} catch {
 		return null;
+	}
+}
+
+/** @param {string} key @param {string} value */
+function keep(key, value) {
+	try {
+		localStorage.setItem(key, value);
+	} catch {
+		// storage blocked: this visit only
 	}
 }
 
@@ -59,8 +92,15 @@ const choice = writable(initialTheme());
 /** The choice in Settings, as a store: `$theme` in a component. */
 export const theme = { subscribe: choice.subscribe };
 
+const accentChoice = writable(initialAccent());
+
+/** The accent chosen in Settings, as a store: `$accent` in a component. */
+export const accent = { subscribe: accentChoice.subscribe };
+
 /** @type {ThemeChoice} */
 let current = initialTheme();
+/** @type {Accent} */
+let currentAccent = initialAccent();
 /** @type {MediaQueryList | undefined} */
 let media;
 
@@ -72,6 +112,7 @@ function show() {
 	if (typeof document === 'undefined') return;
 	const look = lookOf(current, media?.matches ?? false);
 	document.documentElement.setAttribute('theme', CARBON[look]);
+	document.documentElement.setAttribute('data-accent', currentAccent);
 	document.documentElement.style.colorScheme = look;
 	for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
 		const own = /dark/.test(meta.getAttribute('media') ?? '') ? 'dark' : 'light';
@@ -89,16 +130,25 @@ export function setTheme(next) {
 	current = next;
 	choice.set(next);
 	show();
-	try {
-		localStorage.setItem(THEME_KEY, next);
-	} catch {
-		// storage blocked: this visit only
-	}
+	keep(THEME_KEY, next);
 }
 
 /**
- * At start: the look of the choice kept here, and from then on the system's, whenever it
- * changes (a phone turning dark at night), as long as the choice is "system".
+ * Choose the accent colour: at once on screen, and kept in this browser.
+ *
+ * @param {string} next
+ */
+export function setAccent(next) {
+	if (!isAccent(next)) return;
+	currentAccent = next;
+	accentChoice.set(next);
+	show();
+	keep(ACCENT_KEY, next);
+}
+
+/**
+ * At start: the look and the accent kept here, and from then on the system's look, whenever
+ * it changes (a phone turning dark at night), as long as the choice is "system".
  *
  * @returns {() => void} stops following the system
  */

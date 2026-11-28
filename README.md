@@ -43,7 +43,7 @@ deContact gives every person a self-owned address book. It lives in the browser 
 - 🧾 **Recovery words.** Optionally 24 words on paper open the vault when no passkey is at hand.
 - 🔍 **Contact list with search.** A Progressive Web App built with SvelteKit and Carbon.
 - 🗣️ **English and German.** The app follows your browser's language and can be switched under **Settings** (or on the first screen); both work offline.
-- 🌗 **Light and dark.** The app follows your system's setting; **Settings → Theme** picks *Light* or *Dark* instead.
+- 🌗 **Light and dark, and your colour.** The app follows your system's setting; **Settings → Theme** picks *Light* or *Dark* instead, and **Settings → Accent color** *Blue*, *Teal* or *Purple*.
 
 ## Screens
 <table>
