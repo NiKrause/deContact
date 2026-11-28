@@ -1,5 +1,5 @@
 <script>
-    import { untrack } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import { Modal, Checkbox, RadioButtonGroup, RadioButton, Select, SelectItem } from 'carbon-components-svelte';
     import QrCodeImage from "./QrCodeImage.svelte"
     import { circles, dbMyAddressBook, libp2p, myAddressBook, networkState, orbitdb } from "../../stores.js";
@@ -8,7 +8,7 @@
     import ReadinessList from "./ReadinessList.svelte";
     import { LATE_AFTER_MS, readinessOf } from "#lib/network/readiness.js";
     import { notify } from "../../utils/utils.js";
-    import { issueOnboardingToken } from "#lib/network/p2p-operations.js";
+    import { issueOnboardingToken, onLinkOutcome } from "#lib/network/p2p-operations.js";
     import { _, language } from "#lib/i18n/index.js";
     import { appUrlIn } from "#lib/app-url.js";
     import { contactAddress } from "#lib/network/contact-address.js";
@@ -58,6 +58,23 @@
             .then((token) => { if (issue === issuing) onBoardingToken = token })
             .catch((error) => console.log("could not create an invitation link:", error?.message))
     }
+    /**
+     * The code did its job (link-outcomes.js): whoever scanned this very code has our card
+     * ('given'); with "Let them ask first", a request is in the request dialog, which takes
+     * over ('asked'). The dialog closes, and the focus goes back to "Show my code", where the
+     * request dialog returns it too. Any other token leaves it open: one shown before a new one
+     * was issued, or a link somebody else used already (that request is asked for).
+     */
+    onMount(() => onLinkOutcome((event) => {
+        if (!qrCodeOpen) return
+        const ours = event.kind === 'given' ? shareNow && event.token === onBoardingToken
+            : event.kind === 'asked' ? !shareNow && event.token === undefined
+            : false
+        if (!ours) return
+        onclose()
+        document.getElementById('show-my-code')?.focus()
+    }))
+
     // the relay may take a while; after LATE_AFTER_MS the dialog says the code works anyway
     let late = $state(false)
     $effect(() => {

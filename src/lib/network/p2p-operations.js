@@ -24,7 +24,8 @@ import {
     peerList,
     followList, dbMessages, syncedDevices,
     useWebRTC,
-    exchangesWaiting
+    exchangesWaiting,
+    exchangesGiven
 } from "../../stores.js";
 
 import { confirm } from "../components/addressModal.js"
@@ -47,6 +48,7 @@ import {
     verifyOnboardingToken
 } from "./contact-messages.js";
 import { EXCHANGE_RETRY_MS, createExchangeStore, exchangeNeeds } from "./exchanges.js";
+import { createLinkOutcomes, nameOf } from "./link-outcomes.js";
 import { liftRevocation, removedUs, revoke, withoutRevoked } from "./revocations.js";
 import { answeredBefore } from "./answered.js";
 import { answerContactRequests, deliverContactRequest } from "./contact-protocol.js";
@@ -71,6 +73,18 @@ const answeredRequests = new Map();
 /** the timestamp of our own latest request to each recipient: what our resends name (answered.js) */
 const requestedAt = new Map();
 const replayGuard = createReplayGuard();
+/** what became of the codes we showed, as the inviter (link-outcomes.js) */
+const linkOutcomes = createLinkOutcomes();
+
+/**
+ * What became of the codes we showed (link-outcomes.js): whoever scanned one has our card
+ * ('given'), their card arrived back ('complete'), or a request went into the request dialog
+ * ('asked'). The QR dialog and the notices listen.
+ *
+ * @param {(event: import('./link-outcomes.js').LinkEvent) => void} listener
+ * @returns {() => void} stops listening
+ */
+export const onLinkOutcome = (listener) => linkOutcomes.subscribe(listener);
 
 /**
  * The inviter whose link is open in the onboarding view (#86): their requests wait for our
@@ -420,11 +434,23 @@ async function answerRequest(request) {
         const redeemed = await redeemOnboardingToken(request.onBoardingToken, { inviter: me, invitee: sender, store: onboardingTokens() })
         if (redeemed.ok) {
             console.log(`accepted the invitation link of ${sender}`)
+            const twoWay = Boolean(request.twoWay && redeemed.twoWay)
+            // before the invitation goes out: their card may come back before ours is written
+            linkOutcomes.accepted(request.onBoardingToken, sender, {
+                name: nameOf(request.from),
+                twoWay,
+                card: cardOf(sender),
+                expiresAt: redeemed.expiresAt
+            })
             // the circle chosen for the code (#100), before our card goes to them
             await circleForNewContact(sender, redeemed.circle)
             // two-way exchange (#86): the invitation they asked for, in case they share their card
-            if (request.twoWay && redeemed.twoWay) await sendInvitation(sender, request.onBoardingToken)
-            await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { to: request.from });
+            if (twoWay) await sendInvitation(sender, request.onBoardingToken)
+            // the notice is "<name> has your business card" (ExchangeNotices.svelte), once per link
+            if (await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { to: request.from, notice: false })) {
+                if (linkOutcomes.given(request.onBoardingToken)) console.log(`${sender} has our card: the code did its job`)
+                showGiven()
+            }
             // their book, so that later changes of our card reach it
             await rememberTheirBook(sender, data.sharedAddress)
             initReplicationBackup(me) //init replication of all subscriber ids
@@ -454,6 +480,8 @@ async function askToConfirm(request, requesterDB) {
     // no dialog while the onboarding view is open (#86)
     await dialogsAllowed
     console.log(`asking to confirm the request of ${sender}`)
+    // with "Let them ask first", the request dialog takes over from the code (QRCodeModal.svelte)
+    linkOutcomes.asked(sender, request.onBoardingToken)
     const result = await confirm({ data: request });
     answeredRequests.set(sender, Math.max(request.timestamp, answeredRequests.get(sender) ?? 0))
 
@@ -577,6 +605,7 @@ async function getAddressRecords() {
         // one card is our own (own.js): another marked so before #123 is a contact added by hand
         myAddressBook.set(withOneOwnCard(transformedRecords, _orbitdb?.identity?.id));
         showWaiting()
+        showGiven()
         console.log("records in dbMyAddressBook ",addressRecords)
         return addressRecords
     } catch (e) {
@@ -819,6 +848,19 @@ export function leaveInvitationLink(inviter) {
 /** a placeholder card is ours, under the key the contact's card will have */
 const isPlaceholder = (card, did) => card?.firstName === 'invited' && card?.lastName === did
 
+/** the card of `did` our book shows, not our placeholder for it */
+const cardOf = (did) => _myAddressBook?.find((it) => it.owner === did && !isPlaceholder(it, did))
+
+/**
+ * The codes we showed (link-outcomes.js): a two-way exchange whose card arrived is complete,
+ * and Exchange lists those whose card may still come.
+ */
+function showGiven() {
+    const completed = linkOutcomes.bookChanged(_myAddressBook ?? [])
+    for (const { did } of completed) console.log(`the card of ${did} arrived: the exchange is complete`)
+    exchangesGiven.set(linkOutcomes.waiting())
+}
+
 /** what we have of each link we opened, and what we still need (exchanges.js) */
 function exchangeStates() {
     return exchanges().all().map((exchange) => {
@@ -1026,13 +1068,13 @@ async function waitForOurEntries(requesterDB, timeoutMs = SYNC_WAIT_MS) {
 }
 
 /**
- * @param {{ waitForPlaceholder?: boolean, to?: { firstName?: string, lastName?: string } }} options
+ * @param {{ waitForPlaceholder?: boolean, to?: { firstName?: string, lastName?: string }, notice?: boolean }} options
  *   waitForPlaceholder false: the requester wrote no placeholder for us (the answer to our
  *   invitation link, #86); to: the name their request carries, for the notice
- *   ("Your business card is on its way to Carol.")
+ *   ("Your business card is on its way to Carol."); notice false: none, the caller tells
  * @returns {Promise<string | undefined>} the entry's hash, if we wrote one
  */
-export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { waitForPlaceholder = true, to } = {}) {
+export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { waitForPlaceholder = true, to, notice = true } = {}) {
     try {
         const card = ownCard()
         if (!card) {
@@ -1052,7 +1094,7 @@ export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { w
         console.log(`wrote our card into ${requesterDB.address}:`, hash)
         // the name their signed request carries
         const name = to?.firstName || to?.lastName
-        notify(name ? t('notify.cardWritten', { name }) : t('notify.cardWrittenNameless'));
+        if (notice) notify(name ? t('notify.cardWritten', { name }) : t('notify.cardWrittenNameless'));
         return hash
     } catch (error) {
         console.error('Error in writeMyAddressIntoRequesterDB:', error);

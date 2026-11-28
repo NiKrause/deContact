@@ -11,6 +11,7 @@
     import ContactPage from "#lib/components/ContactPage.svelte";
     import Settings from "#lib/components/Settings.svelte";
     import Exchange from "#lib/components/Exchange.svelte";
+    import ExchangeNotices from "#lib/components/ExchangeNotices.svelte";
     import MainNav from "#lib/components/MainNav.svelte";
     import MyCard from "#lib/components/MyCard.svelte";
     import AppInfo from "#lib/components/AppInfo.svelte";
@@ -93,6 +94,8 @@
                                subtitle={$notificationMessage}
                                closeButtonDescription={$_('toast.close')} />
         {/if}
+        <!-- whoever scanned our code has our card, theirs arrived: on every place, at the top -->
+        <ExchangeNotices />
         <!-- which build runs, under every place, flush with its column -->
         <AppInfo />
     </main>

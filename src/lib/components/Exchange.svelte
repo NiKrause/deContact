@@ -10,7 +10,7 @@
     import QrCode from "carbon-icons-svelte/lib/QrCode.svelte";
     import Scan from "carbon-icons-svelte/lib/Scan.svelte";
     import QrScanner from "./QrScanner.svelte";
-    import { dbMyAddressBook, exchangesWaiting, myAddressBook, networkState, orbitdb, qrCodeData, qrCodeOpen } from "../../stores.js";
+    import { dbMyAddressBook, exchangesGiven, exchangesWaiting, myAddressBook, networkState, orbitdb, qrCodeData, qrCodeOpen } from "../../stores.js";
     import { LATE_AFTER_MS, readinessOf } from "#lib/network/readiness.js";
     import { requestAddress } from "#lib/network/p2p-operations.js";
     import { parseContactAddress } from "#lib/network/contact-address.js";
@@ -115,6 +115,11 @@
     {#each $exchangesWaiting as waiting (waiting.inviter)}
         <p class="waiting" role="status" data-testid="waiting-for-phone">{waiting.name ? $_("home.waiting", { name: waiting.name }) : $_("home.waitingNameless")}</p>
     {/each}
+    <!-- the other side: somebody opened our code with a two-way exchange; their card may come
+         back (link-outcomes.js), and the line goes once it has -->
+    {#each $exchangesGiven as given (given.token)}
+        <p class="waiting" role="status" data-testid="card-given">{given.name ? $_("home.given", { name: given.name }) : $_("home.givenNameless")}</p>
+    {/each}
 
     <div class="spacer"></div>
 
@@ -126,7 +131,8 @@
     {/if}
 
     <div class="actions">
-        <Button class="big" kind="primary" on:click={showCode}>
+        <!-- the QR dialog gives the focus back here when it closes by itself (QRCodeModal.svelte) -->
+        <Button id="show-my-code" class="big" kind="primary" on:click={showCode}>
             <span class="big-label"><QrCode size={32} aria-hidden="true" />{$_("exchange.showCode")}</span>
         </Button>
         <Button class="big" kind="secondary" on:click={() => scanner.open()}>

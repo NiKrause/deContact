@@ -204,6 +204,14 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 				.poll(() => names(page), { timeout: 90000, message: "Bob's card in Alice's book" })
 				.toContain(fullName(people.bob));
 			await shoot(bob.page, '10-invitee-after-saving', 'The invitee after saving');
+			// Alice's side: the second notice, which stays until it is closed; the first goes by itself
+			const complete = page.getByTestId('exchange-notice-complete');
+			await expect(complete).toContainText(`${fullName(people.bob)}'s business card is in your contacts`, { timeout: 60000 });
+			await expect(page.getByTestId('exchange-notice-given')).toHaveCount(0, { timeout: 20000 });
+			await openTab(page, 'Exchange');
+			await shoot(page, '10b-exchange-complete', "The inviter's Exchange: the invitee's card arrived");
+			await complete.getByRole('button', { name: 'Close notification' }).click();
+			await expect(complete).toHaveCount(0);
 		});
 
 		await test.step('the request dialog: Carol asks Alice by her contact address', async () => {

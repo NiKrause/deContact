@@ -78,6 +78,13 @@ export const followList = writable([] )
  * @type {Writable<Array<{ inviter: string, name?: string }>>}
  */
 export const exchangesWaiting = writable([])
+/**
+ * The other side (link-outcomes.js): whoever opened a code of ours with a two-way exchange
+ * has our card, and theirs may still come: `{ token, did, name?: from their request }`,
+ * newest first
+ * @type {Writable<Array<{ token: string, did: string, name?: string }>>}
+ */
+export const exchangesGiven = writable([])
 export const qrCodeOpen = writable(false)
 export const qrCodeData = writable()
 

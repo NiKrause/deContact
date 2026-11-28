@@ -351,12 +351,13 @@ export function createOnboardingTokenStore(storage, key = 'onboardingTokens') {
  * Accepts an invitation link token from `invitee`: signed by us, not expired, issued on
  * this device and not used by anybody else.
  *
- * @returns {Promise<{ ok: true, twoWay: boolean, circle?: string } | { ok: false, reason: string }>}
- *   twoWay: whether the token allows a two-way exchange; circle: the one chosen for it (#100)
+ * @returns {Promise<{ ok: true, twoWay: boolean, circle?: string, expiresAt: number } | { ok: false, reason: string }>}
+ *   twoWay: whether the token allows a two-way exchange; circle: the one chosen for it (#100);
+ *   expiresAt: when it stops working
  */
 export async function redeemOnboardingToken(text, { inviter, invitee, store, now = Date.now() }) {
     const verified = await verifyOnboardingToken(text, { inviter, now })
     if (!verified.ok) return verified
     const redeemed = store.redeem(verified.token, invitee, now)
-    return redeemed.ok ? { ok: true, twoWay: verified.token.twoWay, circle: redeemed.circle } : redeemed
+    return redeemed.ok ? { ok: true, twoWay: verified.token.twoWay, circle: redeemed.circle, expiresAt: verified.token.expiresAt } : redeemed
 }
