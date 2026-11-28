@@ -49,7 +49,7 @@ test('a browser in German starts in German: the text of the start screen and the
 		await expect(page.getByTestId('gate-useful')).toContainText('du verlässt ein soziales Netzwerk');
 		// what happens with the contact details, right on the first screen
 		await expect(page.getByTestId('gate-lead')).toContainText(
-			'Kein Server und keine Cloud kann deine Kontaktdaten lesen: Sie gehen verschlüsselt Peer-to-Peer von Handy zu Handy, und nur du und deine Kontakte können sie öffnen.'
+			'Keine Cloud und kein Server kann deine Kontaktdaten lesen oder abgreifen: Sie sind Ende-zu-Ende verschlüsselt und gehen Peer-to-Peer von Handy zu Handy. Relays vermitteln nur die Verbindung und bewahren verschlüsselte Kopien auf, die nur du und deine Kontakte öffnen können.'
 		);
 		await expect(page.getByRole('button', { name: 'Neues Adressbuch anlegen' })).toBeVisible();
 		expect(await htmlLang(page)).toBe('de');

@@ -427,7 +427,7 @@ export default {
 		lead: 'An address book that keeps itself up to date: you exchange business cards by QR code, straight from phone to phone, and your contacts get every change of yours by themselves.',
 		useful: 'So they can still reach you after you move or change jobs.',
 		private:
-			'No server and no cloud can read your contact details: they travel encrypted, peer to peer, from phone to phone, and only you and your contacts can open them.',
+			'No cloud and no server can read or grab your contact details: they are end-to-end encrypted and travel peer to peer from phone to phone. Relays only connect phones and keep encrypted copies that only you and your contacts can open.',
 		why: 'A passkey opens your address book on this device: no account, no password.',
 		usefulTitle: 'Why is this useful?',
 		usefulText:
