@@ -472,6 +472,8 @@ export default {
 		add: 'Add a passkey',
 		writeDown:
 			'Write these 24 words down, in this order, and keep them safe. They are shown only now and are not stored anywhere.',
+		oldWordsStay:
+			'Your old words still open older copies of your vault data, and with them your identity. Destroy them once you have written these down.',
 		wroteDown: 'I have written the words down',
 		keepWords: 'Keep these recovery words',
 		replaceWords: 'Replace the recovery words',

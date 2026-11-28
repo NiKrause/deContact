@@ -450,6 +450,8 @@ export default {
 		add: 'Passkey hinzufügen',
 		writeDown:
 			'Schreib diese 24 Wörter in dieser Reihenfolge auf und bewahre sie sicher auf. Sie werden nur jetzt angezeigt und nirgends gespeichert.',
+		oldWordsStay:
+			'Deine bisherigen Wörter öffnen ältere Kopien deiner Tresordaten weiterhin, und damit deine Identität. Vernichte sie, sobald du diese aufgeschrieben hast.',
 		wroteDown: 'Ich habe die Wörter aufgeschrieben',
 		keepWords: 'Diese Wiederherstellungswörter übernehmen',
 		replaceWords: 'Wiederherstellungswörter ersetzen',

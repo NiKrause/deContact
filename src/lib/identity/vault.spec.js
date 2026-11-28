@@ -190,6 +190,20 @@ describe('the recovery words', () => {
         // opened with the words, the words cannot replace themselves
         await expect(setRecoveryWords(keeper, byWords, await seedFromWords(newRecoveryWords()))).rejects.toMatchObject({ code: 'VAULT_SLOT_IN_USE' })
     })
+
+    it('revoke nothing when replaced: a copy of an older record still opens with the old words', async () => {
+        const { keeper, opened, signer } = await createdVault()
+        const oldWords = newRecoveryWords()
+        const once = await setRecoveryWords(keeper, opened, await seedFromWords(oldWords))
+        // the record as it was published while the old words were the vault's
+        const older = parseVaultRecord(serializeVaultRecord(once.record))
+        const twice = await setRecoveryWords(keeper, once, await seedFromWords(newRecoveryWords()))
+        const newer = parseVaultRecord(serializeVaultRecord(twice.record))
+        // the vault key and the root stay, so the old slot in the older record still opens them
+        const empty = createKeeper(memoryStorage())
+        const restored = await openWithWords(empty, { seed: await seedFromWords(oldWords), find: findIn(async () => [newer, older]) })
+        expect((await signerOf(restored)).did).toBe(signer.did)
+    })
 })
 
 describe('what the browser keeps', () => {

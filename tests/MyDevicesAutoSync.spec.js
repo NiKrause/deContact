@@ -28,10 +28,17 @@ test('a second device with a passkey of its own writes as the same DID', async (
 			await a.page.getByRole('button', { name: 'Set up recovery words' }).click();
 			words = await a.page.getByTestId('recovery-words').locator('ol li').allTextContents();
 			expect(words).toHaveLength(24);
+			// the first words replace nothing
+			await expect(a.page.getByTestId('old-words-stay')).toHaveCount(0);
 			await a.page.getByLabel('I have written the words down').check();
 			await a.page.getByRole('button', { name: 'Keep these recovery words' }).click();
 			await expect(a.page.getByTestId('vault-slot')).toHaveCount(2);
 			await expect(a.page.getByTestId('vault-slot').last()).toContainText('Recovery words');
+			// new words in their place: the old ones still open older copies of the record, and Settings says so
+			await a.page.getByRole('button', { name: 'Replace the recovery words' }).click();
+			await expect(a.page.getByTestId('old-words-stay')).toContainText('Destroy them');
+			await a.page.getByRole('button', { name: 'Cancel', exact: true }).click();
+			await expect(a.page.getByTestId('recovery-words')).toHaveCount(0);
 			// the words are not kept anywhere
 			const stored = await a.page.evaluate(() => JSON.stringify({ ...localStorage }));
 			expect(stored).not.toContain(words.slice(0, 3).join(' '));

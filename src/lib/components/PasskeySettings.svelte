@@ -109,7 +109,7 @@
     </div>
 
     {#if draft}
-        <RecoveryWordsDraft words={draft} {busy} onkeep={keepWords} oncancel={() => (draft = undefined)} />
+        <RecoveryWordsDraft words={draft} {busy} replacing={hasWords} onkeep={keepWords} oncancel={() => (draft = undefined)} />
     {:else}
         <button class="bx--btn bx--btn--tertiary bx--btn--sm" disabled={busy} onclick={startWords}>
             {hasWords ? $_('passkeys.replaceWords') : $_('passkeys.setUpWords')}

@@ -6,13 +6,15 @@
      */
     import { _ } from '#lib/i18n/index.js'
 
-    /** words: from `draftRecoveryWords` */
-    let { words, busy = false, onkeep, oncancel } = $props()
+    /** words: from `draftRecoveryWords`; replacing: the vault has words already, which these replace */
+    let { words, busy = false, replacing = false, onkeep, oncancel } = $props()
     let wroteDown = $state(false)
 </script>
 
 <div class="words" data-testid="recovery-words">
     <p>{$_('passkeys.writeDown')}</p>
+    <!-- replaced words revoke nothing: an older copy of the record still opens with them -->
+    {#if replacing}<p data-testid="old-words-stay">{$_('passkeys.oldWordsStay')}</p>{/if}
     <ol>
         {#each words as word, i (i)}<li>{word}</li>{/each}
     </ol>

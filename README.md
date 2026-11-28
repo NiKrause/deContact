@@ -96,6 +96,7 @@ The app finds Le Space's relays on Aleph by itself. To try it with two people:
   - A revocation is visible in the clear: whoever opens your book sees the document `revoked:<DID>` and so knows that you removed that DID ([#85](https://github.com/NiKrause/deContact/issues/85)). Relays still store a card written under a revoked invitation; your app ignores it ([#93](https://github.com/NiKrause/deContact/issues/93)).
   - Documents written in the clear before the encryption are sealed again on the first start, but the log keeps the old plaintext entries.
   - The first passkey's PRF output is the vault's root, so that passkey alone restores the identity. Removing a passkey revokes nothing it already opened.
+  - Replacing the recovery words revokes nothing either: an older copy of the vault record still opens with the old words. Destroy them.
   - An identity that began without a passkey after an invitation link has a random root, which the first passkey seals into the vault: restoring it needs the vault record, from OrbitDB and the relays or from the vault file. Until it is secured, it lives in the tab only: closing the tab loses that side of the exchange, and the app warns before it closes.
   - The vault record is public. It is published over OrbitDB (and the relays) under a name only a slot's holder can work out; it names each passkey's credential id and label.
   - Browsers that used the seed phrase lose it on the first start; their old DID and address book are not carried over.
