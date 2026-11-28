@@ -74,7 +74,7 @@
         ownCard: me ? $myAddressBook?.find((card) => card.owner === me && card.own) : undefined,
         late
     }))
-    /** "Fill in my card": to My card, the dialog closes */
+    /** "Fill in my business card": to My card, the dialog closes */
     function fillCard() {
         onclose()
         window.location.hash = '#/card'

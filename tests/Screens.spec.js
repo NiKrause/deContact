@@ -102,7 +102,7 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 				await stranger.close();
 			}
 			// a new address book opens on My card, with why (#110)
-			await expect(page.getByRole('link', { name: 'My card' })).toHaveAttribute('aria-current', 'page');
+			await expect(page.getByRole('link', { name: 'My business card' })).toHaveAttribute('aria-current', 'page');
 			await expect(page.getByTestId('card-why')).toBeVisible();
 			// Later: Exchange, which asks for the card
 			await page.getByTestId('card-later').click();
@@ -117,9 +117,9 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await expect(page.getByTestId('readiness-card')).toHaveAttribute('data-state', 'problem');
 			await expect(page.locator('img.qrcode')).toHaveCount(0);
 			await shoot(page, '04b-show-code-without-card', 'Show my code, before the first card', { dialog: true });
-			await page.getByRole('button', { name: 'Fill in my card' }).click();
-			await expect(page.getByRole('link', { name: 'My card' })).toHaveAttribute('aria-current', 'page');
-			await openTab(page, 'My card');
+			await page.getByRole('button', { name: 'Fill in my business card' }).click();
+			await expect(page.getByRole('link', { name: 'My business card' })).toHaveAttribute('aria-current', 'page');
+			await openTab(page, 'My business card');
 			await shoot(page, '04-my-card', 'My card, before the first card');
 			await addCard(page, people.alice);
 			await choosePortrait(page, portraits.alice);

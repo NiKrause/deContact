@@ -6,9 +6,9 @@ export default {
 	meta: {
 		title: 'deContact – Selbstaktualisierend · Lokal · Peer-to-Peer',
 		description:
-			'Das selbstaktualisierende, lokale Peer-to-Peer-Adressbuch. QR-Code scannen, Karten tauschen: Deine Kontakte bleiben von selbst aktuell, ohne einen Server, dem sie gehören.',
-		previewDescription: 'QR-Code scannen, Karten tauschen. Deine Kontakte bleiben von selbst aktuell, ohne einen Server, dem sie gehören.',
-		imageAlt: 'deContact: zwei Kontaktkarten, die getauscht werden, und die Worte: Selbstaktualisierend, Lokal, Peer-to-Peer.',
+			'Das selbstaktualisierende, lokale Peer-to-Peer-Adressbuch. QR-Code scannen, Visitenkarten tauschen: Deine Kontakte bleiben von selbst aktuell, ohne einen Server, dem sie gehören.',
+		previewDescription: 'QR-Code scannen, Visitenkarten tauschen. Deine Kontakte bleiben von selbst aktuell, ohne einen Server, dem sie gehören.',
+		imageAlt: 'deContact: zwei Visitenkarten, die getauscht werden, und die Worte: Selbstaktualisierend, Lokal, Peer-to-Peer.',
 		imageLead: 'Selbstaktualisierend ·<br />Lokal · Peer-to-Peer',
 		noscript: 'Das selbstaktualisierende, lokale Peer-to-Peer-Adressbuch. deContact läuft in deinem Browser und braucht JavaScript.',
 		source: 'Quellcode und Dokumentation auf GitHub'
@@ -48,7 +48,7 @@ export default {
 		label: 'Hauptnavigation',
 		exchange: 'Austausch',
 		contacts: 'Kontakte',
-		card: 'Meine Karte',
+		card: 'Meine Visitenkarte',
 		settings: 'Einstellungen'
 	},
 	readiness: {
@@ -58,8 +58,8 @@ export default {
 		relay: 'Relay gefunden und verbunden',
 		reachable: 'Für das andere Handy erreichbar',
 		link: 'Einladungslink signiert',
-		card: 'Deine Karte hat einen Namen',
-		fillCard: 'Meine Karte ausfüllen',
+		card: 'Deine Visitenkarte hat einen Namen',
+		fillCard: 'Meine Visitenkarte ausfüllen',
 		ready: 'Bereit · über das Relay erreichbar',
 		gettingReady: 'Dein Code wird vorbereitet …',
 		notReachable:
@@ -72,7 +72,7 @@ export default {
 	},
 	circles: {
 		title: 'Kreise',
-		hint: 'Jeder Kontakt kann in einem Kreis sein und bekommt nur die Felder deiner Karte, die sein Kreis zeigt. Dein Name steht immer darauf.',
+		hint: 'Jeder Kontakt kann in einem Kreis sein und bekommt nur die Felder deiner Visitenkarte, die sein Kreis zeigt. Dein Name steht immer darauf.',
 		newCircle: 'Kreis {n}',
 		nameOf: 'Name von Kreis {n}',
 		remove: 'Kreis {name} entfernen',
@@ -95,16 +95,16 @@ export default {
 			business: 'Geschäftlich'
 		},
 		circleOf: 'Kreis',
-		wholeCard: 'Kein Kreis: deine ganze Karte',
+		wholeCard: 'Kein Kreis: deine ganze Visitenkarte',
 		narrower: 'Was {name} schon bekommen hat, bleibt dort. Ab jetzt kommt nur noch an, was dieser Kreis zeigt.',
 		narrowerNameless: 'Was schon angekommen ist, bleibt dort. Ab jetzt kommt nur noch an, was dieser Kreis zeigt.'
 	},
 	card: {
-		whyWhat: 'Das ist deine Karte: Sie bekommen Menschen, wenn ihr Codes tauscht.',
+		whyWhat: 'Das ist deine Visitenkarte: Sie bekommen Menschen, wenn ihr Codes tauscht.',
 		whyWho: 'Lesen können sie nur die Menschen, mit denen du tauschst. Sie ist für jeden von ihnen versiegelt.',
 		whyUpdates: 'Ändert sich etwas, bekommen sie die neue Fassung von selbst.',
 		later: 'Später',
-		asOthersSeeIt: 'So sehen deine Kontakte deine Karte.',
+		asOthersSeeIt: 'So sehen deine Kontakte deine Visitenkarte.',
 		edit: 'Bearbeiten',
 		entryLabel: '{kind} · {label}',
 		kinds: {
@@ -136,7 +136,7 @@ export default {
 		ready: 'Bereit zum Austausch',
 		connecting: 'Verbinde …',
 		notReachable: 'Noch nicht über ein Relay erreichbar',
-		fillCard: 'Füll deine Karte aus: Damit bekommen andere deinen Namen',
+		fillCard: 'Füll deine Visitenkarte aus: Damit bekommen andere deinen Namen',
 		fillCardNow: 'Jetzt ausfüllen',
 		showCode: 'Meinen Code zeigen',
 		scan: 'Code scannen',
@@ -178,11 +178,11 @@ export default {
 		back: 'Alle Kontakte',
 		remove: 'Kontakt entfernen',
 		empty: 'Noch keine Kontakte. Zeig unter Austausch deinen Code oder scanne ihren.',
-		nameless: 'Jemand ohne Namen auf der Karte',
+		nameless: 'Jemand ohne Namen auf der Visitenkarte',
 		notes: {
 			label: 'Meine Notizen',
-			hint: 'Nur du siehst sie. Sie gehören nicht zur Karte von {name}.',
-			hintNameless: 'Nur du siehst sie. Sie gehören nicht zur Karte.',
+			hint: 'Nur du siehst sie. Sie gehören nicht zur Visitenkarte von {name}.',
+			hintNameless: 'Nur du siehst sie. Sie gehören nicht zur Visitenkarte.',
 			save: 'Notiz speichern'
 		},
 		details: {
@@ -264,11 +264,11 @@ export default {
 		save: 'Speichern',
 		removeTitle: '{name} entfernen?',
 		removeTitleNameless: 'Diesen Kontakt entfernen?',
-		removeText: 'Die Person bekommt keine Änderungen mehr von dir, und deine Karte verschwindet aus ihrem Adressbuch.',
+		removeText: 'Die Person bekommt keine Änderungen mehr von dir, und deine Visitenkarte verschwindet aus ihrem Adressbuch.',
 		remove: 'Entfernen',
 		deleteTitle: '{name} löschen?',
-		deleteTitleNameless: 'Diese Karte löschen?',
-		deleteText: 'Die Karte verschwindet aus deinem Adressbuch.'
+		deleteTitleNameless: 'Diese Visitenkarte löschen?',
+		deleteText: 'Die Visitenkarte verschwindet aus deinem Adressbuch.'
 	},
 	qr: {
 		heading: 'Kontakt teilen',
@@ -288,11 +288,11 @@ export default {
 	request: {
 		label: 'Kontaktanfrage',
 		wants: '{who} möchte deine Kontaktdaten.',
-		wantsBack: '{who} hat dir die eigene Karte geschickt und möchte deine.',
-		what: 'Wenn du teilst, bekommt die Person deine Karte und später jede Änderung daran von selbst.',
-		whatBack: 'Ihre Karte ist in deinem Adressbuch. Wenn du deine teilst, bekommt die Person sie und später jede Änderung daran von selbst.',
+		wantsBack: '{who} hat dir die eigene Visitenkarte geschickt und möchte deine.',
+		what: 'Wenn du teilst, bekommt die Person deine Visitenkarte und später jede Änderung daran von selbst.',
+		whatBack: 'Ihre Visitenkarte ist in deinem Adressbuch. Wenn du deine teilst, bekommt die Person sie und später jede Änderung daran von selbst.',
 		nameAndCity: '{name} ({city})',
-		nameless: 'Jemand ohne Namen auf der Karte',
+		nameless: 'Jemand ohne Namen auf der Visitenkarte',
 		shareAndAsk: 'Teilen und um ihre bitten',
 		onlyShare: 'Nur meine teilen',
 		shareMine: 'Meine teilen',
@@ -325,18 +325,18 @@ export default {
 		phonePlaceholder: 'Telefonnummer',
 		saveAndShare: 'Speichern und mit {name} teilen',
 		saveAndShareNameless: 'Speichern und teilen',
-		onTheWay: 'Die Karte der Person, die dich eingeladen hat, ist unterwegs …',
+		onTheWay: 'Die Visitenkarte der Person, die dich eingeladen hat, ist unterwegs …',
 		inviter: 'Die Person, die dich eingeladen hat',
-		saving: 'Deine Karte wird gespeichert …',
-		savingAndSharing: 'Deine Karte wird gespeichert und verschickt …',
+		saving: 'Deine Visitenkarte wird gespeichert …',
+		savingAndSharing: 'Deine Visitenkarte wird gespeichert und verschickt …',
 		saveOnly: 'Nur speichern',
 		save: 'Speichern',
-		problem: 'Deine Karte konnte nicht gespeichert werden. Bitte versuch es noch einmal.'
+		problem: 'Deine Visitenkarte konnte nicht gespeichert werden. Bitte versuch es noch einmal.'
 	},
 	gate: {
 		title: 'Dein deContact-Adressbuch',
 		tagline: 'selbstaktualisierend · lokal · Peer-to-Peer',
-		lead: 'Ein Adressbuch, das sich selbst aktuell hält: Du tauschst Karten per QR-Code direkt von Handy zu Handy, und deine Kontakte bekommen jede Änderung von dir von selbst.',
+		lead: 'Ein Adressbuch, das sich selbst aktuell hält: Du tauschst Visitenkarten per QR-Code direkt von Handy zu Handy, und deine Kontakte bekommen jede Änderung von dir von selbst.',
 		why: 'Ein Passkey öffnet es auf diesem Gerät: kein Konto, kein Passwort und kein Server, der deine Kontakte aufbewahrt.',
 		otherWays: 'Andere Wege, es zu öffnen',
 		legacySeedRemoved:
@@ -450,16 +450,16 @@ export default {
 		developer: 'Entwicklung',
 		drop: 'Löschen',
 		dropFollowersTitle: 'Die Kopien fremder Adressbücher löschen?',
-		dropFollowersText: 'Dieses Gerät vergisst seine Kopien der Adressbücher deiner Kontakte. Deine eigene Karte und deine Passkeys bleiben.',
+		dropFollowersText: 'Dieses Gerät vergisst seine Kopien der Adressbücher deiner Kontakte. Deine eigene Visitenkarte und deine Passkeys bleiben.',
 		dropAddressBookTitle: 'Dein Adressbuch auf diesem Gerät löschen?',
-		dropAddressBookText: 'Dieses Gerät vergisst dein Adressbuch: deine Karte und deine Kontakte. Was andere Geräte und Relays davon haben, bleibt.'
+		dropAddressBookText: 'Dieses Gerät vergisst dein Adressbuch: deine Visitenkarte und deine Kontakte. Was andere Geräte und Relays davon haben, bleibt.'
 	},
 	statistics: {
 		connected: 'Seed-Node verbunden / Schwarm verbunden'
 	},
 	notify: {
 		contactAdded: 'Im Adressbuch gespeichert.',
-		cardUpdated: 'Deine Karte ist aktualisiert. Deine Kontakte bekommen die neue Fassung von selbst.',
+		cardUpdated: 'Deine Visitenkarte ist aktualisiert. Deine Kontakte bekommen die neue Fassung von selbst.',
 		contactUpdated: 'Gespeichert.',
 		contactRemoved: '{name} entfernt: Die Person bekommt keine Änderungen mehr von dir.',
 		contactRemovedNameless: 'Entfernt: Die Person bekommt keine Änderungen mehr von dir.',
@@ -472,13 +472,13 @@ export default {
 		noteSaved: 'Notiz gespeichert.',
 		circleChanged: 'Gespeichert. Ab jetzt kommt an, was dieser Kreis zeigt.',
 		circlesSaved: 'Kreise gespeichert. Deine Kontakte bekommen, was ihr Kreis zeigt.',
-		requestSent: 'Anfrage gesendet. Die Karte kommt, sobald die Person antwortet.',
+		requestSent: 'Anfrage gesendet. Die Visitenkarte kommt, sobald die Person antwortet.',
 		requestNotDelivered: 'Noch nicht erreicht. Die App versucht es weiter, solange sie offen ist.',
 		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',
 		noContactAddress: 'Das ist keine Kontaktadresse. Scanne den QR-Code der Person, die du fragen willst.',
-		cardWritten: 'Deine Karte ist unterwegs zu {name}.',
-		cardWrittenNameless: 'Deine Karte ist unterwegs.',
-		requestDeclined: 'Abgelehnt. Die Person bekommt deine Karte nicht.',
+		cardWritten: 'Deine Visitenkarte ist unterwegs zu {name}.',
+		cardWrittenNameless: 'Deine Visitenkarte ist unterwegs.',
+		requestDeclined: 'Abgelehnt. Die Person bekommt deine Visitenkarte nicht.',
 		openedWithWords: 'Mit deinen Wiederherstellungswörtern geöffnet. Leg in den Einstellungen einen Passkey für dieses Gerät an.',
 		passkeyAdded: 'Passkey hinzugefügt. Er öffnet dasselbe Adressbuch.',
 		slotRemoved: 'Entfernt: Das öffnet dein Adressbuch nicht mehr.',

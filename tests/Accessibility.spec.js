@@ -13,8 +13,8 @@ import { invitationLink, openLink } from './helpers/onboarding.js';
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const widths = { desktop: { width: 1280, height: 720 }, phone: { width: 390, height: 844 } };
 const tabs = {
-	en: ['Exchange', 'Contacts', 'My card', 'Settings'],
-	de: ['Austausch', 'Kontakte', 'Meine Karte', 'Einstellungen']
+	en: ['Exchange', 'Contacts', 'My business card', 'Settings'],
+	de: ['Austausch', 'Kontakte', 'Meine Visitenkarte', 'Einstellungen']
 };
 
 test('the first screen: the passkey screen, with the experimental note', async ({ browser }) => {

@@ -142,7 +142,7 @@ async function initializeNewPage(browser, user) {
 		// the DID appears once OrbitDB has started
 		await expect(page.getByLabel('DID', { exact: true })).not.toHaveValue('', { timeout: 30000 });
 		user.did = await page.getByLabel('DID', { exact: true }).inputValue();
-		await page.getByRole('link', { name: 'My card' }).click();
+		await page.getByRole('link', { name: 'My business card' }).click();
 		await fillForm(page, user);
 		await page.getByRole('button', { name: 'Save', exact: true }).click({ timeout: 50000 });
 		return page;

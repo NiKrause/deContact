@@ -75,7 +75,7 @@ test('German after switching in Settings: kept after a reload, and in the reques
 			await nav.getByRole('link', { name: 'Kontakte' }).click();
 			await expect(nav.getByRole('link', { name: 'Kontakte' })).toHaveAttribute('aria-current', 'page');
 			await expect(nav.getByRole('link', { name: 'Austausch' })).toBeVisible();
-			await expect(nav.getByRole('link', { name: 'Meine Karte' })).toBeVisible();
+			await expect(nav.getByRole('link', { name: 'Meine Visitenkarte' })).toBeVisible();
 			await page.setViewportSize(desktop);
 		});
 
@@ -146,7 +146,7 @@ test('the onboarding in German, switched on the first screen', async ({ browser 
 			await carol.page.goto(link);
 			await expect(carol.page.getByRole('button', { name: 'Already have a deContact passkey? Sign in' })).toBeVisible();
 			await carol.page.getByTestId('onboarding-language-de').click();
-			await expect(carol.page.getByTestId('waiting-for-phone')).toHaveText('Die Karte der Person, die dich eingeladen hat, ist unterwegs …');
+			await expect(carol.page.getByTestId('waiting-for-phone')).toHaveText('Die Visitenkarte der Person, die dich eingeladen hat, ist unterwegs …');
 			await expect(carol.page.getByRole('button', { name: 'Du hast schon einen deContact-Passkey? Anmelden' })).toBeVisible();
 			expect(await htmlLang(carol.page)).toBe('de');
 			expect(await takeCeremonies(carol.page)).toEqual([]);

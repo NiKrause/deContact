@@ -35,7 +35,7 @@ test('Save and share while the inviter\'s phone is not answering', async ({ brow
 
 		await test.step('Bob opens the link: email first, the address collapsed', async () => {
 			bob = await openLink(browser, link);
-			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText('The card of the person who invited you is on its way…');
+			await expect(bob.page.getByTestId('waiting-for-phone')).toHaveText('The business card of the person who invited you is on its way…');
 			const fields = await bob.page.getByTestId('onboarding').locator('input').evaluateAll((inputs) => inputs.map((input) => input.id));
 			expect(fields).toEqual(['onboarding-email', 'onboarding-first', 'onboarding-last']);
 			await expect(bob.page.getByRole('button', { name: 'Add address' })).toBeVisible();

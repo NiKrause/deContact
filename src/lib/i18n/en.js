@@ -6,9 +6,9 @@ export default {
 	meta: {
 		title: 'deContact – self-updating · local · peer-to-peer',
 		description:
-			'The self-updating, local, peer-to-peer address book. Scan a QR code, exchange cards, and your contacts keep themselves up to date, without a server that owns them.',
-		previewDescription: 'Scan a QR code, exchange cards. Your contacts keep themselves up to date, without a server that owns them.',
-		imageAlt: 'deContact: two contact cards being exchanged, and the words: self-updating, local, peer-to-peer.',
+			'The self-updating, local, peer-to-peer address book. Scan a QR code, exchange business cards, and your contacts keep themselves up to date, without a server that owns them.',
+		previewDescription: 'Scan a QR code, exchange business cards. Your contacts keep themselves up to date, without a server that owns them.',
+		imageAlt: 'deContact: two business cards being exchanged, and the words: self-updating, local, peer-to-peer.',
 		imageLead: 'self-updating · local ·<br />peer-to-peer',
 		noscript: 'The self-updating, local, peer-to-peer address book. deContact runs in your browser and needs JavaScript.',
 		source: 'Source code and documentation on GitHub'
@@ -49,7 +49,7 @@ export default {
 		label: 'Main',
 		exchange: 'Exchange',
 		contacts: 'Contacts',
-		card: 'My card',
+		card: 'My business card',
 		settings: 'Settings'
 	},
 	// the checklist of Show my code (#110, readiness.js)
@@ -60,8 +60,8 @@ export default {
 		relay: 'Relay found and connected',
 		reachable: 'Reachable for the other phone',
 		link: 'Invitation link signed',
-		card: 'Your card has a name',
-		fillCard: 'Fill in my card',
+		card: 'Your business card has a name',
+		fillCard: 'Fill in my business card',
 		ready: 'Ready · reachable through the relay',
 		gettingReady: 'Getting your code ready…',
 		notReachable:
@@ -75,7 +75,7 @@ export default {
 	// circles (#100): which fields of our card a group of contacts sees
 	circles: {
 		title: 'Circles',
-		hint: 'Each contact can be in a circle, and gets only the fields of your card that their circle shows. Your name is always on it.',
+		hint: 'Each contact can be in a circle, and gets only the fields of your business card that their circle shows. Your name is always on it.',
 		newCircle: 'Circle {n}',
 		nameOf: 'Name of circle {n}',
 		remove: 'Remove the circle {name}',
@@ -100,18 +100,18 @@ export default {
 		},
 		// a contact's page
 		circleOf: 'Circle',
-		wholeCard: 'No circle: your whole card',
+		wholeCard: 'No circle: your whole business card',
 		narrower: 'What {name} already received stays with them. From now on they get only what this circle shows.',
 		narrowerNameless: 'What they already received stays with them. From now on they get only what this circle shows.'
 	},
 	// the start screen (#110)
 	// My card (MyCard.svelte, #110): the card as others see it; before the first save, why
 	card: {
-		whyWhat: 'This is your card: what people get when you exchange codes.',
+		whyWhat: 'This is your business card: what people get when you exchange codes.',
 		whyWho: 'Only the people you exchange with can read it. It is sealed to each of them.',
 		whyUpdates: 'When something changes, they get the new version by themselves.',
 		later: 'Later',
-		asOthersSeeIt: 'This is how your contacts see your card.',
+		asOthersSeeIt: 'This is how your contacts see your business card.',
 		edit: 'Edit',
 		// the entries of a card (#109, CardEntries.svelte): "Phone · Mobile"
 		entryLabel: '{kind} · {label}',
@@ -144,7 +144,7 @@ export default {
 		ready: 'Ready to exchange',
 		connecting: 'Connecting…',
 		notReachable: 'Not reachable through a relay yet',
-		fillCard: 'Fill in your card: people get your name with it',
+		fillCard: 'Fill in your business card: people get your name with it',
 		// not "my card": the navigation's link has that name
 		fillCardNow: 'Fill it in now',
 		showCode: 'Show my code',
@@ -187,13 +187,13 @@ export default {
 		back: 'All contacts',
 		remove: 'Remove contact',
 		empty: 'No contacts yet. Show your code or scan theirs on Exchange.',
-		nameless: 'Somebody without a name on their card',
+		nameless: 'Somebody without a name on their business card',
 		// a contact's page: the card in words, the technical parts collapsed (#110)
 		// my notes on a contact (#109): ours alone
 		notes: {
 			label: 'My notes',
-			hint: "Only you see them. They are not part of {name}'s card.",
-			hintNameless: 'Only you see them. They are not part of the card.',
+			hint: "Only you see them. They are not part of {name}'s business card.",
+			hintNameless: 'Only you see them. They are not part of the business card.',
 			save: 'Save note'
 		},
 		details: {
@@ -278,11 +278,11 @@ export default {
 		// asked before Delete (#110): a contact of somebody else is removed, one of ours deleted
 		removeTitle: 'Remove {name}?',
 		removeTitleNameless: 'Remove this contact?',
-		removeText: 'They no longer get your updates, and your card leaves their address book.',
+		removeText: 'They no longer get your updates, and your business card leaves their address book.',
 		remove: 'Remove',
 		deleteTitle: 'Delete {name}?',
-		deleteTitleNameless: 'Delete this card?',
-		deleteText: 'The card leaves your address book.'
+		deleteTitleNameless: 'Delete this business card?',
+		deleteText: 'The business card leaves your address book.'
 	},
 	qr: {
 		heading: 'Share your contact',
@@ -303,11 +303,11 @@ export default {
 	request: {
 		label: 'Contact request',
 		wants: '{who} wants your contact details.',
-		wantsBack: '{who} shared their card with you and asks for yours.',
-		what: 'If you share, they get your card, and every later change of it by themselves.',
-		whatBack: 'Their card is in your address book. If you share yours, they get it, and every later change of it by themselves.',
+		wantsBack: '{who} shared their business card with you and asks for yours.',
+		what: 'If you share, they get your business card, and every later change of it by themselves.',
+		whatBack: 'Their business card is in your address book. If you share yours, they get it, and every later change of it by themselves.',
 		nameAndCity: '{name} ({city})',
-		nameless: 'Somebody without a name on their card',
+		nameless: 'Somebody without a name on their business card',
 		shareAndAsk: 'Share and ask for theirs',
 		onlyShare: 'Only share mine',
 		shareMine: 'Share mine',
@@ -341,19 +341,19 @@ export default {
 		saveAndShare: 'Save and share with {name}',
 		saveAndShareNameless: 'Save and share',
 		// until the inviter's card is here: their name is not known yet, and the DID is no name (#110)
-		onTheWay: 'The card of the person who invited you is on its way…',
+		onTheWay: 'The business card of the person who invited you is on its way…',
 		inviter: 'The person who invited you',
-		saving: 'Saving your card…',
-		savingAndSharing: 'Saving your card and sending it…',
+		saving: 'Saving your business card…',
+		savingAndSharing: 'Saving your business card and sending it…',
 		saveOnly: 'Save only',
 		save: 'Save',
-		problem: 'Your card could not be saved. Please try again.'
+		problem: 'Your business card could not be saved. Please try again.'
 	},
 	gate: {
 		title: 'Your deContact address book',
 		// the start screen says what deContact is and why it asks for a passkey (#110)
 		tagline: 'self-updating · local · peer-to-peer',
-		lead: 'An address book that keeps itself up to date: you exchange cards by QR code, straight from phone to phone, and your contacts get every change of yours by themselves.',
+		lead: 'An address book that keeps itself up to date: you exchange business cards by QR code, straight from phone to phone, and your contacts get every change of yours by themselves.',
 		why: 'A passkey opens it on this device: no account, no password, and no server that keeps your contacts.',
 		otherWays: 'Other ways to open it',
 		legacySeedRemoved:
@@ -467,9 +467,9 @@ export default {
 		developer: 'Developer',
 		drop: 'Drop',
 		dropFollowersTitle: 'Drop the copies of other address books?',
-		dropFollowersText: "This device forgets its copies of your contacts' address books. Your own card and your passkeys stay.",
+		dropFollowersText: "This device forgets its copies of your contacts' address books. Your own business card and your passkeys stay.",
 		dropAddressBookTitle: 'Drop your address book on this device?',
-		dropAddressBookText: 'This device forgets your address book: your card and your contacts. What other devices and relays keep of it stays.'
+		dropAddressBookText: 'This device forgets your address book: your business card and your contacts. What other devices and relays keep of it stays.'
 	},
 	statistics: {
 		connected: 'Seed Node connected / Swarm connected'
@@ -477,7 +477,7 @@ export default {
 	// the toasts: sentences, without hashes, DIDs or command names (those go to the console, #110)
 	notify: {
 		contactAdded: 'Saved in your address book.',
-		cardUpdated: 'Your card is updated. Your contacts get the new version by themselves.',
+		cardUpdated: 'Your business card is updated. Your contacts get the new version by themselves.',
 		contactUpdated: 'Saved.',
 		contactRemoved: 'Removed {name}: they no longer get your updates.',
 		contactRemovedNameless: 'Removed: they no longer get your updates.',
@@ -490,13 +490,13 @@ export default {
 		noteSaved: 'Note saved.',
 		circleChanged: 'Saved. They get what this circle shows.',
 		circlesSaved: 'Circles saved. Your contacts get what their circle shows.',
-		requestSent: 'Request sent. Their card arrives once they answer.',
+		requestSent: 'Request sent. Their business card arrives once they answer.',
 		requestNotDelivered: 'Not reached yet. The app keeps trying while it is open.',
 		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',
 		noContactAddress: 'This is no contact address. Scan the QR code of the person you want to ask.',
-		cardWritten: 'Your card is on its way to {name}.',
-		cardWrittenNameless: 'Your card is on its way.',
-		requestDeclined: 'Declined. They do not get your card.',
+		cardWritten: 'Your business card is on its way to {name}.',
+		cardWrittenNameless: 'Your business card is on its way.',
+		requestDeclined: 'Declined. They do not get your business card.',
 		openedWithWords: 'Opened with your recovery words. Add a passkey for this device in Settings.',
 		passkeyAdded: 'Passkey added. It opens the same address book.',
 		slotRemoved: 'Removed: it no longer opens your address book.',
