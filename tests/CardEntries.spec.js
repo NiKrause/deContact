@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { editMyCard, listedContacts, newPerson, openContact } from './helpers/passkeys.js';
+import { allContacts, editMyCard, listedContacts, newPerson, openContact } from './helpers/passkeys.js';
 import { fillOnboardingCard, invitationLink, openLink, times } from './helpers/onboarding.js';
 
 // The card's entries (#109).
@@ -120,7 +120,7 @@ test("a card's entries: filled in, sent, shown with their labels and links", asy
 
 		await test.step('a contact Alice adds by hand and changes stays in her book', async () => {
 			const { page } = alice;
-			await page.getByRole('button', { name: 'All contacts' }).click();
+			await allContacts(page);
 			await page.getByRole('button', { name: 'Add contact' }).click();
 			await page.getByPlaceholder('Enter firstname...').fill('Carol');
 			await page.getByPlaceholder('Enter lastname...').fill('Beispiel');

@@ -157,11 +157,20 @@ export async function askByAddress(page, address) {
 	await page.getByRole('button', { name: 'Ask', exact: true }).click();
 }
 
+/**
+ * Back to the list under Contacts (#110): "All contacts" on a phone; on a desktop the list is
+ * beside the contact's page already.
+ */
+export async function allContacts(page) {
+	const back = page.getByRole('button', { name: 'All contacts' });
+	if (await back.isVisible()) await back.click();
+	await expect(page.getByTestId('contacts-list-pane')).toBeVisible();
+}
+
 /** the list under Contacts, as it shows (#110): one text per contact */
 export async function listedContacts(page) {
 	await page.getByRole('link', { name: 'Contacts' }).click();
-	const back = page.getByRole('button', { name: 'All contacts' });
-	if (await back.isVisible()) await back.click();
+	await allContacts(page);
 	return page.getByTestId('contact-row').allTextContents();
 }
 

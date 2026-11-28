@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
-import { contactAddressOf, everythingStoredAsText, newPerson, askByAddress, editMyCard } from './helpers/passkeys.js';
+import { allContacts, contactAddressOf, everythingStoredAsText, newPerson, askByAddress, editMyCard } from './helpers/passkeys.js';
 import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboarding.js';
 import { bytesOfDataUrl, metadataOf, withExif } from './helpers/exif.js';
 import { madeUpPortrait } from './helpers/portrait.js';
@@ -117,7 +117,7 @@ test("Bob sees Alice's photo after the onboarding; a third peer sees no image by
 			await expect(alice.page.getByTestId('form-photo')).toHaveCount(0);
 			await alice.page.getByRole('button', { name: 'Update' }).click();
 			await expect.poll(() => ownPhoto(alice.page), { timeout: 30000 }).toBeUndefined();
-			await bob.page.getByRole('button', { name: 'All contacts' }).click();
+			await allContacts(bob.page);
 			await expect(rowOf(bob.page, people.alice.last).getByTestId('contact-photo')).toHaveCount(0, { timeout: 120000 });
 			await expect(rowOf(bob.page, people.alice.last)).toBeVisible();
 		});

@@ -13,6 +13,7 @@
     import Exchange from "#lib/components/Exchange.svelte";
     import MainNav from "#lib/components/MainNav.svelte";
     import MyCard from "#lib/components/MyCard.svelte";
+    import AppInfo from "#lib/components/AppInfo.svelte";
     import { hash } from "./router.js";
     import {
         addingContact,
@@ -32,9 +33,10 @@
     const PLACES = { "/contacts": "contacts", "/card": "card", "/settings": "settings" };
     const place = $derived(PLACES[$hash] ?? "exchange");
 
-    // a row picked in the list: its contact goes into the form
+    // a row picked in the list: its contact goes into the form. Again when Contacts comes
+    // back: My card puts our own card into the same form meanwhile, and the contact stays open
     $effect(() => {
-        if ($selectedRowIds.length > 0) loadContact($selectedRowIds[0])
+        if (place === "contacts" && $selectedRowIds.length > 0) loadContact($selectedRowIds[0])
     })
     // My card shows our own card, or before its first save the empty form for it; only when
     // the place turns to it, so the book changing under an open form leaves it alone
@@ -45,26 +47,38 @@
     })
     /** a contact picked from the list, or one being added by hand: the form instead of the list */
     const contactOpen = $derived($selectedRowIds.length > 0 || $addingContact);
+    /** how many contacts the list shows: with none, the pane beside it has nothing to offer */
+    let contactCount = $state(0);
     /** a contact we keep by hand is ours to edit; anybody else's card is theirs, read-only */
     const editable = $derived($addingContact || ($selectedAddr?.owner && $selectedAddr.owner === $orbitdb?.identity?.id));
 </script>
 
 <div class="shell">
     <MainNav {place} />
-    <main class="content place" data-testid="place-{place}">
+    <main class="content place" class:wide={place === "contacts"} data-testid="place-{place}">
         {#if place === "exchange"}
             <Exchange />
         {:else if place === "contacts"}
-            {#if contactOpen}
-                <Button kind="ghost" size="sm" icon={ArrowLeft} on:click={closeContact}>{$_("contacts.back")}</Button>
-                {#if editable}<ContactForm />{:else}<ContactPage />{/if}
-            {:else}
-                <div class="place-head">
-                    <h2>{$_("nav.contacts")}</h2>
-                    <Button kind="tertiary" size="sm" icon={UserFollow} on:click={newContact}>{$_("contacts.add")}</Button>
+            <!-- a phone and the open Fold: the list, or a contact's page instead of it; a
+                 desktop: the list on the left and the contact's page beside it (#110) -->
+            <div class="contacts" class:open={contactOpen} data-testid="contacts">
+                <div class="list-pane" data-testid="contacts-list-pane">
+                    <div class="place-head">
+                        <h2>{$_("nav.contacts")}</h2>
+                        <Button kind="tertiary" size="sm" icon={UserFollow} on:click={newContact}>{$_("contacts.add")}</Button>
+                    </div>
+                    <ContactList bind:count={contactCount} />
                 </div>
-                <ContactList />
-            {/if}
+                <div class="contact-pane" data-testid="contacts-contact-pane">
+                    {#if contactOpen}
+                        <!-- back to the list, where it is not beside the page -->
+                        <div class="back"><Button kind="ghost" size="sm" icon={ArrowLeft} on:click={closeContact}>{$_("contacts.back")}</Button></div>
+                        {#if editable}<ContactForm />{:else}<ContactPage />{/if}
+                    {:else if contactCount > 0}
+                        <p class="choose" data-testid="contacts-choose">{$_("contacts.choose")}</p>
+                    {/if}
+                </div>
+            </div>
         {:else if place === "card"}
             <div class="place-head"><h2>{$_("nav.card")}</h2></div>
             <MyCard />
@@ -79,6 +93,8 @@
                                subtitle={$notificationMessage}
                                closeButtonDescription={$_('toast.close')} />
         {/if}
+        <!-- which build runs, under every place, flush with its column -->
+        <AppInfo />
     </main>
 </div>
 
@@ -89,11 +105,59 @@
         align-items: flex-start;
         padding-top: 3rem;
     }
+    /* a desktop: the place a column of 40rem (Contacts: its two panes) in the middle of the
+       room beside the rail, at least 3rem from the rail and from the screen's edge */
+    .shell {
+        column-gap: 3rem;
+        padding-right: 3rem;
+    }
     .place {
         flex: 1 1 auto;
         min-width: 0;
-        max-width: 60rem;
-        margin: 1.5rem 3rem;
+        max-width: 40rem;
+        margin: 1.5rem auto;
+    }
+    .place.wide {
+        max-width: 62rem;
+    }
+    .place :global(.app-info) {
+        margin: 2rem 0 1rem;
+    }
+    /* a phone and the open Fold: one pane at a time */
+    @media (max-width: 65.98rem) {
+        .contacts.open .list-pane,
+        .contacts:not(.open) .contact-pane {
+            display: none;
+        }
+    }
+    .choose {
+        color: var(--cds-text-secondary, #c6c6c6);
+    }
+    /* a desktop: the list on the left, kept in view while the page beside it scrolls; the
+       contact's page beside it, as wide as it is elsewhere */
+    @media (min-width: 66rem) {
+        .contacts {
+            display: flex;
+            align-items: flex-start;
+            gap: 2rem;
+        }
+        .list-pane {
+            flex: 0 0 20rem;
+            position: sticky;
+            top: 4.5rem;
+            max-height: calc(100dvh - 6rem);
+            overflow-y: auto;
+        }
+        .contact-pane {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: 40rem;
+            /* level with the list's heading */
+            padding-top: 0.25rem;
+        }
+        .back {
+            display: none;
+        }
     }
     .place-head {
         display: flex;
@@ -116,8 +180,10 @@
     @media (max-width: 65.98rem) {
         .shell {
             display: block;
+            padding-right: 0;
         }
-        .place {
+        .place,
+        .place.wide {
             margin: 1rem;
             max-width: none;
         }
