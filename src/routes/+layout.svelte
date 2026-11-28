@@ -174,7 +174,8 @@
     <!-- one branch for both: the form stays as it is while its temporary identity starts (OnBoarding.svelte, #97) -->
     {#if $session && $hash!=='/onboarding'}<SecureOffer />{/if}
     <View />
-    <AppInfo />
+    <!-- the four places put it into their own column, flush with it (+page.svelte) -->
+    {#if View !== Home}<AppInfo />{/if}
 {:else}
     <!-- the start screen (#110): one column below the header, the version line flush with it -->
     <div class="start-screen">

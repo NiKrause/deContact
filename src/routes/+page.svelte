@@ -13,6 +13,7 @@
     import Exchange from "#lib/components/Exchange.svelte";
     import MainNav from "#lib/components/MainNav.svelte";
     import MyCard from "#lib/components/MyCard.svelte";
+    import AppInfo from "#lib/components/AppInfo.svelte";
     import { hash } from "./router.js";
     import {
         addingContact,
@@ -54,7 +55,7 @@
 
 <div class="shell">
     <MainNav {place} />
-    <main class="content place" data-testid="place-{place}">
+    <main class="content place" class:wide={place === "contacts"} data-testid="place-{place}">
         {#if place === "exchange"}
             <Exchange />
         {:else if place === "contacts"}
@@ -92,6 +93,8 @@
                                subtitle={$notificationMessage}
                                closeButtonDescription={$_('toast.close')} />
         {/if}
+        <!-- which build runs, under every place, flush with its column -->
+        <AppInfo />
     </main>
 </div>
 
@@ -102,11 +105,23 @@
         align-items: flex-start;
         padding-top: 3rem;
     }
+    /* a desktop: the place a column of 40rem (Contacts: its two panes) in the middle of the
+       room beside the rail, at least 3rem from the rail and from the screen's edge */
+    .shell {
+        column-gap: 3rem;
+        padding-right: 3rem;
+    }
     .place {
         flex: 1 1 auto;
         min-width: 0;
+        max-width: 40rem;
+        margin: 1.5rem auto;
+    }
+    .place.wide {
         max-width: 62rem;
-        margin: 1.5rem 3rem;
+    }
+    .place :global(.app-info) {
+        margin: 2rem 0 1rem;
     }
     /* a phone and the open Fold: one pane at a time */
     @media (max-width: 65.98rem) {
@@ -165,8 +180,10 @@
     @media (max-width: 65.98rem) {
         .shell {
             display: block;
+            padding-right: 0;
         }
-        .place {
+        .place,
+        .place.wide {
             margin: 1rem;
             max-width: none;
         }

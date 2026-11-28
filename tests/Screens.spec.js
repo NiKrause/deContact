@@ -144,6 +144,7 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await choosePortrait(page, portraits.alice);
 			await expect(page.getByTestId('my-card')).toBeVisible();
 			await shoot(page, '04c-my-card-saved', 'My card, as others see it');
+			await columnBesideRail(page, 'My card');
 			// Edit opens the form; Cancel drops the change
 			await page.getByRole('button', { name: 'Edit', exact: true }).click();
 			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue(people.alice.last);
@@ -169,8 +170,17 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await expect(page.locator('img.qrcode')).toHaveCount(0);
 			await openTab(page, 'Exchange');
 			await shoot(page, '06-exchange', 'Exchange, the start screen');
+			await columnBesideRail(page, 'Exchange');
 			await openTab(page, 'Settings');
 			await shoot(page, '07-settings', 'Settings');
+			await columnBesideRail(page, 'Settings');
+			// the longer German labels (Meine Visitenkarte) fit the rail and the navigation below
+			await page.getByTestId('language-de').click();
+			await expect(page.getByRole('link', { name: 'Einstellungen' })).toHaveAttribute('aria-current', 'page');
+			await shoot(page, '07b-settings-de', 'Settings, in German');
+			await labelsFit(page, 'German');
+			await page.getByTestId('language-en').click();
+			await labelsFit(page, 'English');
 		});
 
 		await test.step("the invitee's form: Bob opens Alice's invitation link", async () => {
@@ -227,6 +237,7 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await row.click();
 			await expect(page.getByTestId('contact-page')).toBeVisible();
 			await shoot(page, '13-contact-page', "A contact's page");
+			await columnBesideRail(page, 'Contacts with a contact open');
 			await allContacts(page);
 			await page.getByRole('button', { name: 'Add contact' }).click();
 			// empty, a new card: Save, not Update (our own card once leaked in here)
@@ -275,6 +286,43 @@ async function clearOfHeader(page, locator, what) {
 		const header = await page.locator('header').first().boundingBox();
 		const box = await locator.boundingBox();
 		expect.soft(box?.y, `${what} at ${device.width} px under the header`).toBeGreaterThanOrEqual(header.y + header.height);
+	}
+	await page.setViewportSize(size(CLICK_AT));
+}
+
+/**
+ * A place on a desktop (#110), as the start screen of #139: its column in the middle of the
+ * room beside the rail, at least 3rem from it, and the version line flush with the column.
+ */
+async function columnBesideRail(page, what) {
+	await page.setViewportSize(size(CLICK_AT));
+	const rail = await page.getByTestId('main-nav').boundingBox();
+	const place = await page.locator('main.place').boundingBox();
+	const right = await page.evaluate(() => document.documentElement.clientWidth);
+	const left = rail.x + rail.width;
+	expect(
+		Math.abs(place.x + place.width / 2 - (left + right) / 2),
+		`${what}: the column in the middle beside the rail`
+	).toBeLessThanOrEqual(2);
+	expect(place.x - left, `${what}: room between the rail and the column`).toBeGreaterThanOrEqual(48);
+	expect(
+		Math.round((await page.getByTestId('app-info').boundingBox()).x),
+		`${what}: the version line flush with the column`
+	).toBe(Math.round(place.x));
+}
+
+/** every label of the navigation fits its place at every width: no text cut off or spilling */
+async function labelsFit(page, language) {
+	for (const device of DEVICES) {
+		await page.setViewportSize(size(device));
+		await page.waitForTimeout(300);
+		const spilling = await page
+			.getByTestId('main-nav')
+			.locator('a')
+			.evaluateAll((links) =>
+				links.filter((link) => link.scrollWidth > link.clientWidth || link.scrollHeight > link.clientHeight).map((link) => link.textContent.trim())
+			);
+		expect.soft(spilling, `${language} labels at ${device.width} px`).toEqual([]);
 	}
 	await page.setViewportSize(size(CLICK_AT));
 }

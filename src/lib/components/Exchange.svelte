@@ -122,8 +122,13 @@
             min-height: calc(100dvh - 14rem);
         }
     }
-    /* a desktop: the buttons right under the status line */
+    /* a desktop: the buttons right under the status line, and the whole block in the middle of
+       the room between the header and the version line, so the screen is not top-heavy */
     @media (min-width: 66rem) {
+        .exchange {
+            min-height: calc(100dvh - 11rem);
+            justify-content: center;
+        }
         .spacer {
             display: none;
         }

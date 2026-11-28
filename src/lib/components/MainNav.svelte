@@ -55,6 +55,12 @@
         padding: 0.25rem;
         color: var(--cds-text-secondary, #c6c6c6);
         font-size: 0.75rem;
+        line-height: 1.2;
+        text-align: center;
+        /* a long label (Meine Visitenkarte) takes two lines on a narrow phone, hyphenated
+           where a word alone is wider than its place */
+        hyphens: auto;
+        overflow-wrap: break-word;
         text-decoration: none;
         border-top: 3px solid transparent;
     }
@@ -100,6 +106,7 @@
             min-height: 3rem;
             padding: 0 1rem;
             font-size: 0.875rem;
+            text-align: left;
             border-top: 0;
             border-left: 3px solid transparent;
         }
