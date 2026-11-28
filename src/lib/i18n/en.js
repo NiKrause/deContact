@@ -83,7 +83,33 @@ export default {
 		whyUpdates: 'When something changes, they get the new version by themselves.',
 		later: 'Later',
 		asOthersSeeIt: 'This is how your contacts see your card.',
-		edit: 'Edit'
+		edit: 'Edit',
+		// the entries of a card (#109, CardEntries.svelte): "Phone · Mobile"
+		entryLabel: '{kind} · {label}',
+		kinds: {
+			phone: 'Phone',
+			email: 'Email',
+			address: 'Address',
+			social: 'Profile'
+		},
+		labels: {
+			mobile: 'Mobile',
+			home: 'Home',
+			work: 'Work',
+			private: 'Private',
+			other: 'Other'
+		},
+		networks: {
+			mastodon: 'Mastodon',
+			bluesky: 'Bluesky',
+			linkedin: 'LinkedIn',
+			github: 'GitHub',
+			instagram: 'Instagram',
+			x: 'X',
+			website: 'Website',
+			other: 'Other'
+		},
+		copyAddress: 'Copy address'
 	},
 	exchange: {
 		ready: 'Ready to exchange',
@@ -135,9 +161,6 @@ export default {
 		nameless: 'Somebody without a name on their card',
 		// a contact's page: the card in words, the technical parts collapsed (#110)
 		details: {
-			email: 'Email',
-			address: 'Address',
-			category: 'Category',
 			technical: 'Technical details',
 			did: 'DID',
 			book: 'Address book'
@@ -387,6 +410,7 @@ export default {
 		contactDeletedNameless: 'Deleted.',
 		invitationCopied: 'Invitation link copied.',
 		addressCopied: 'Contact address copied.',
+		cardAddressCopied: 'Address copied.',
 		requestSent: 'Request sent. Their card arrives once they answer.',
 		requestNotDelivered: 'Not reached yet. The app keeps trying while it is open.',
 		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',

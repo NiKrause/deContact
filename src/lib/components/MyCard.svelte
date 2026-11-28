@@ -7,8 +7,10 @@
      */
     import { Button } from "carbon-components-svelte";
     import Edit from "carbon-icons-svelte/lib/Edit.svelte";
+    import CardEntries from "./CardEntries.svelte";
     import ContactForm from "./ContactForm.svelte";
     import ContactPhoto from "./ContactPhoto.svelte";
+    import { entriesOf } from "#lib/card/entries.js";
     import { isPhoto } from "#lib/photo/photo.js";
     import { editingCard, myAddressBook, orbitdb } from "../../stores.js";
     import { cancelCardEdit, editMyCard } from "../../operations.js";
@@ -20,7 +22,9 @@
     const text = (value) => (typeof value === "string" ? value.trim() : "");
     const name = $derived([text(card?.firstName), text(card?.lastName)].filter(Boolean).join(" "));
     const initials = $derived([text(card?.firstName)[0] ?? "", text(card?.lastName)[0] ?? ""].join("").toUpperCase() || "?");
-    const address = $derived(card ? [text(card.street), [text(card.postalCode), text(card.city)].filter(Boolean).join(" "), text(card.countryRegion)].filter(Boolean) : []);
+    const entries = $derived(entriesOf(card));
+    /** under the name: the organisation and the city of the first address */
+    const sub = $derived([entries.organization, entries.addresses[0]?.city].filter(Boolean).join(" · "));
 </script>
 
 {#if !card}
@@ -45,20 +49,11 @@
                 <span class="initials" aria-hidden="true">{initials}</span>
             {/if}
             <div>
-                <h3 class="name" data-testid="my-card-name">{name || text(card.email)}</h3>
-                {#if text(card.city)}<p class="sub">{text(card.city)}</p>{/if}
+                <h3 class="name" data-testid="my-card-name">{name || entries.emails[0]?.value || ""}</h3>
+                {#if sub}<p class="sub">{sub}</p>{/if}
             </div>
         </header>
-        <dl data-testid="my-card-details">
-            {#if text(card.email)}
-                <dt>{$_("contacts.details.email")}</dt>
-                <dd>{text(card.email)}</dd>
-            {/if}
-            {#if address.length}
-                <dt>{$_("contacts.details.address")}</dt>
-                <dd>{#each address as line, i (i)}<span class="line">{line}</span>{/each}</dd>
-            {/if}
-        </dl>
+        <CardEntries {card} testid="my-card-details" />
         <div class="actions">
             <Button kind="primary" icon={Edit} on:click={editMyCard}>{$_("card.edit")}</Button>
         </div>
@@ -87,8 +82,7 @@
         max-width: 40rem;
     }
     .hint,
-    .sub,
-    dt {
+    .sub {
         color: var(--cds-text-secondary, #525252);
     }
     .who {
@@ -112,20 +106,6 @@
     .name {
         font-size: 1.75rem;
         overflow-wrap: anywhere;
-    }
-    dl {
-        display: grid;
-        grid-template-columns: max-content 1fr;
-        gap: 0.75rem 1.5rem;
-        margin: 0;
-    }
-    dd {
-        margin: 0;
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
-    .line {
-        display: block;
     }
     .actions :global(.bx--btn) {
         margin: 0;
