@@ -98,7 +98,7 @@ async function register(browser, person) {
 	const didField = page.getByLabel('DID', { exact: true });
 	await expect(didField).not.toHaveValue('');
 	user.did = await didField.inputValue();
-	await page.getByRole('link', { name: 'My card' }).click();
+	await page.getByRole('link', { name: 'My business card' }).click();
 	await page.getByPlaceholder('Enter firstname...').fill(person.first);
 	await page.getByPlaceholder('Enter lastname...').fill(person.last);
 	// a new card has no address yet: "Add address" opens its fields (#109)

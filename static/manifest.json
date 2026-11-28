@@ -1,7 +1,7 @@
 {
 	"name": "deContact",
 	"short_name": "deContact",
-	"description": "The self-updating, local, peer-to-peer address book. Scan a QR code, exchange cards, and your contacts keep themselves up to date, without a server that owns them.",
+	"description": "The self-updating, local, peer-to-peer address book. Scan a QR code, exchange business cards, and your contacts keep themselves up to date, without a server that owns them.",
 	"lang": "en",
 	"start_url": "./",
 	"scope": "./",

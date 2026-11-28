@@ -128,13 +128,13 @@ export async function newPerson(browser, person, { webRTC = true } = {}) {
 
 /** our own card in the form: My card shows it as others see it, Edit opens the form (#110) */
 export async function editMyCard(page) {
-	await page.getByRole('link', { name: 'My card' }).click();
+	await page.getByRole('link', { name: 'My business card' }).click();
 	await page.getByRole('button', { name: 'Edit', exact: true }).click();
 }
 
 /** our own contact card */
 export async function addCard(page, { first, last, city = 'Example City' }) {
-	await page.getByRole('link', { name: 'My card' }).click();
+	await page.getByRole('link', { name: 'My business card' }).click();
 	await page.getByPlaceholder('Enter firstname...').fill(first);
 	await page.getByPlaceholder('Enter lastname...').fill(last);
 	// a new card has no address yet: "Add address" opens its fields (#109)

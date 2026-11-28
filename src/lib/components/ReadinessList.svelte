@@ -11,7 +11,7 @@
     import { _ } from "#lib/i18n/index.js";
 
     /**
-     * readiness: readinessOf (readiness.js); onfillcard: "Fill in my card" was chosen
+     * readiness: readinessOf (readiness.js); onfillcard: "Fill in my business card" was chosen
      * @type {{ readiness: ReturnType<typeof import('#lib/network/readiness.js').readinessOf>, onfillcard: () => void }}
      */
     let { readiness, onfillcard } = $props();

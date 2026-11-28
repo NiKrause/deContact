@@ -1016,7 +1016,7 @@ async function waitForOurEntries(requesterDB, timeoutMs = SYNC_WAIT_MS) {
  * @param {{ waitForPlaceholder?: boolean, to?: { firstName?: string, lastName?: string } }} options
  *   waitForPlaceholder false: the requester wrote no placeholder for us (the answer to our
  *   invitation link, #86); to: the name their request carries, for the notice
- *   ("Your card is on its way to Carol.")
+ *   ("Your business card is on its way to Carol.")
  * @returns {Promise<string | undefined>} the entry's hash, if we wrote one
  */
 export async function writeMyAddressIntoRequesterDB(requesterDB, invitation, { waitForPlaceholder = true, to } = {}) {
