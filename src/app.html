@@ -3,7 +3,22 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#161616" />
+		<!-- the header's colour, light or dark: set below, and by src/lib/theme.js -->
+		<meta name="theme-color" content="#ffffff" />
+		<meta name="color-scheme" content="light dark" />
+		<script>
+			// light or dark before the first paint, as src/lib/theme.js decides it once the app runs
+			var choice = null;
+			try {
+				choice = localStorage.getItem('decontact.theme');
+			} catch (e) {
+				// storage blocked: the system's setting
+			}
+			var dark = choice === 'dark' || (choice !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+			document.documentElement.setAttribute('theme', dark ? 'g90' : 'white');
+			document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+			document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#262626' : '#ffffff');
+		</script>
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" sizes="48x48" type="image/png" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/apple-touch-icon.png" />

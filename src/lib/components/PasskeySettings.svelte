@@ -152,6 +152,6 @@
         max-width: 40rem;
     }
     .problem {
-        color: #fa4d56;
+        color: var(--cds-text-error, #ff8389);
     }
 </style>

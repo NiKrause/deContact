@@ -34,6 +34,13 @@ export default {
 		en: 'English',
 		de: 'Deutsch'
 	},
+	theme: {
+		label: 'Farbschema',
+		system: 'System',
+		light: 'Hell',
+		dark: 'Dunkel',
+		help: 'System: hell oder dunkel, wie dieses Gerät eingestellt ist.'
+	},
 	common: {
 		cancel: 'Abbrechen',
 		continue: 'Weiter',
@@ -45,7 +52,6 @@ export default {
 		closeMenu: 'Menü schließen'
 	},
 	header: {
-		theme: 'Farbschema wechseln',
 		peers: {
 			none: 'Kein Netzwerk oder Verbindung wird aufgebaut …',
 			seed: 'Seed-Node verbunden',

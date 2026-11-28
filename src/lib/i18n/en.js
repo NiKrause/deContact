@@ -34,6 +34,14 @@ export default {
 		en: 'English',
 		de: 'Deutsch'
 	},
+	// light or dark (#110, ThemeSwitch.svelte): as the system is set, or a choice
+	theme: {
+		label: 'Theme',
+		system: 'System',
+		light: 'Light',
+		dark: 'Dark',
+		help: 'System: light or dark, as this device is set.'
+	},
 	common: {
 		cancel: 'Cancel',
 		continue: 'Continue',
@@ -45,7 +53,6 @@ export default {
 		closeMenu: 'Close menu'
 	},
 	header: {
-		theme: 'Switch the theme',
 		peers: {
 			none: 'No network or connecting...',
 			seed: 'Seed Node connected',

@@ -86,17 +86,22 @@
         color: var(--cds-text-secondary, #c6c6c6);
     }
     :global(svg.done) {
-        fill: var(--cds-support-02, #42be65);
+        fill: var(--cds-support-success, #42be65);
     }
     :global(svg.problem) {
-        fill: var(--cds-support-03, #f1c21b);
+        fill: var(--cds-support-warning, #f1c21b);
+    }
+    /* the mark inside the yellow triangle, dark on it in either theme, as in Carbon's notices */
+    :global(svg.problem [data-icon-path="inner-path"]) {
+        fill: #000;
+        opacity: 1;
     }
     .fill {
         margin: 0 0 0 2.25rem;
     }
     .late {
         padding: 0.75rem 1rem;
-        border-left: 3px solid var(--cds-support-03, #f1c21b);
-        background: var(--cds-ui-01, #393939);
+        border-left: 3px solid var(--cds-support-warning, #f1c21b);
+        background: var(--cds-layer-01, #393939);
     }
 </style>
