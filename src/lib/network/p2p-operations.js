@@ -14,6 +14,7 @@ import {
     helia,
     orbitdb,
     myAddressBook,
+    aboutContact,
     dbMyAddressBook,
     subscription,
     connectedPeers,
@@ -29,6 +30,7 @@ import { t } from "#lib/i18n/index.js";
 import { getIdentityAndCreateOrbitDB } from "#lib/network/getIdendityAndCreateOrbitDB.js";
 import AddressBookAccessController, { contactKey, createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 import { sealedBook } from "../encryption/sealed-book.js";
+import { aboutContacts, isAbout, withNote } from "#lib/card/about.js";
 import {
     REQUEST_ADDRESS,
     createOnboardingToken,
@@ -549,8 +551,10 @@ async function getAddressRecords() {
             ...record.value,
             id: record.value._id
         }));
+        // what we keep about a contact for ourselves is no contact (#109)
+        aboutContact.set(aboutContacts(addressRecords))
         transformedRecords = transformedRecords.filter((addr)=> {
-            return addr.id !==undefined && addr.subscriber===undefined
+            return addr.id !==undefined && addr.subscriber===undefined && !isAbout(addr)
         })
         myAddressBook.set(transformedRecords);
         showWaiting()
@@ -1098,7 +1102,8 @@ export async function removeContact(did) {
     console.log(`revoked the invitation of ${did}`)
     // a link of theirs we opened is resent no more: each resend would invite them again
     exchanges().forget(did)
-    const records = (await _dbMyAddressBook.all()).filter((record) => record.value?.owner === did)
+    // their card, our placeholder, the record of their book, and our notes about them (#109)
+    const records = (await _dbMyAddressBook.all()).filter((record) => record.value?.owner === did || (isAbout(record.value) && record.value.about === did))
     const addresses = new Set(records.map((record) => record.value.sharedAddress).filter((address) => typeof address === 'string'))
     for (const address of addresses) {
         try {
@@ -1117,6 +1122,27 @@ export async function removeContact(did) {
     console.log(`removed ${did} from our address book`)
     await initReplicationBackup(me)
     await getAddressRecords()
+}
+
+/**
+ * Our note about a contact (#109): into our own book, sealed to us, never into theirs. An
+ * empty note takes the document away.
+ *
+ * @param {string} did the contact
+ * @param {string} text
+ */
+export async function saveNote(did, text) {
+    const about = _aboutContact?.get(did)
+    const next = withNote(about, did, text)
+    // the document holds nothing but the note: without one it goes
+    const onlyTheNote = Object.keys(next).every((field) => ['_id', 'about', 'note', 'changedAt'].includes(field))
+    if (next.note === '' && onlyTheNote) {
+        if (about) await _dbMyAddressBook.del(about._id)
+    } else {
+        await _dbMyAddressBook.put(next)
+    }
+    await getAddressRecords()
+    notify(t('notify.noteSaved'))
 }
 
 /** our card as we write it into somebody else's address book */
@@ -1179,6 +1205,11 @@ connectedPeers.subscribe((val) => {
 let _myAddressBook
 myAddressBook.subscribe((val) => {
     _myAddressBook = val
+});
+
+let _aboutContact
+aboutContact.subscribe((val) => {
+    _aboutContact = val
 });
 
 let _followList

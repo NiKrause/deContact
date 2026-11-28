@@ -153,6 +153,12 @@ export default {
 		remove: 'Kontakt entfernen',
 		empty: 'Noch keine Kontakte. Zeig unter Austausch deinen Code oder scanne ihren.',
 		nameless: 'Jemand ohne Namen auf der Karte',
+		notes: {
+			label: 'Meine Notizen',
+			hint: 'Nur du siehst sie. Sie gehören nicht zur Karte von {name}.',
+			hintNameless: 'Nur du siehst sie. Sie gehören nicht zur Karte.',
+			save: 'Notiz speichern'
+		},
 		details: {
 			technical: 'Technische Details',
 			did: 'DID',
@@ -434,6 +440,7 @@ export default {
 		addressCopied: 'Kontaktadresse kopiert.',
 		cardAddressCopied: 'Adresse kopiert.',
 		cardTooLong: 'Nicht gespeichert: Ein Feld ist zu lang. Es ist im Formular markiert.',
+		noteSaved: 'Notiz gespeichert.',
 		requestSent: 'Anfrage gesendet. Die Karte kommt, sobald die Person antwortet.',
 		requestNotDelivered: 'Noch nicht erreicht. Die App versucht es weiter, solange sie offen ist.',
 		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',

@@ -28,6 +28,8 @@ export const networkState = writable({ started: false, relays: 0, reachable: fal
 
 /** this is the orbitdb which holds the contact data */
 export const myAddressBook = writable()
+/** what we keep about our contacts for ourselves (#109, lib/card/about.js): their DID → our document */
+export const aboutContact = writable(new Map())
 /** an orbitdb which will replace the myAddressBook store based on localstorage //TODO */
 export const dbMyAddressBook = writable([])
 
