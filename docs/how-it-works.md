@@ -66,7 +66,7 @@ The patch applies to every OrbitDB in this repository, the E2E tests' local rela
 ## Accessibility
 
 - **Checked on every screen.** `tests/Accessibility.spec.js` runs axe-core with the rules of WCAG 2.1 A and AA on each screen:
-  - the passkey screen;
+  - the passkey screen: a first start, a kept vault to unlock, and a passkey that opens nothing;
   - the four tabs;
   - the QR code;
   - the invitation form.
@@ -197,6 +197,8 @@ Only the owner of an address book reads it ([#59](https://github.com/NiKrause/de
 - **A new contact's circle.** *Show my code* has *This code is for*: the default for a new code from Settings, another circle, or *No circle: your whole card*. The choice stays on the device that issued the code, with its one-time token, not in the link ([`contact-messages.js`](../src/lib/network/contact-messages.js)): whoever opens the link joins that circle before one's card goes to them. Somebody whose request one accepts in the dialog gets the whole card, as before; their page chooses a circle. One's card going back to the person whose link one opened (*Save and share*) carries no circle: it is what one typed for them. A contact who already has a circle keeps it.
 - **Writing.** Every time one's card goes into a contact's book, after an update, after their request, or when their circle changes, it holds what their circle shows: the entries filtered, the first email and address for older app versions taken from what is left, the photo and the organisation only where shown. What the app needs to work (the book's address, one's devices, the invitation) stays.
 - **Moving someone to a narrower circle takes nothing back.** What they received stays with them, and the log of their book keeps the older versions of the card, as with removing a contact. The page says so when the new circle shows less.
+
+**The start screen** ([#110](https://github.com/NiKrause/deContact/issues/110), Phase 4). While the vault is shut, the app shows one column: on a wide screen a tile in the middle, with room below the header; on a phone the screen's width, 16 px in from its edges. It starts with the name, the icon and the line *self-updating · local · peer-to-peer*, then one sentence on what deContact is and why it asks for a passkey (no account, no password, no server that keeps the contacts), and the note that it is experimental. Then one primary button across the column: *Unlock with passkey* where the browser keeps a vault, else the passkey's name and *Create a new address book*. Below it, quieter and starting where the text starts, the other ways: another passkey (or *Sign in with an existing passkey*), the recovery words, a vault file from another device. The language switch and the version line are flush with the column. The header names the app only; the line on what it is moved here ([`PasskeyGate.svelte`](../src/lib/components/PasskeyGate.svelte)).
 
 **The app's places** ([#110](https://github.com/NiKrause/deContact/issues/110)). Four, each at its own address, in a navigation at the bottom of the screen on a phone and the open Fold and in a rail on the left on a desktop: **Exchange** (`#/`, the start screen: a status line, the exchanges still waiting, and two big buttons under the thumb, *Show my code* and *Scan a code*; *Paste a contact address instead* below them), **Contacts** (`#/contacts`), **My card** (`#/card`) and **Settings** (`#/settings`, with the network, which had a *Statistics* tab of its own). The browser's back button and a reload keep the place.
 

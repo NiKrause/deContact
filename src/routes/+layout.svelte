@@ -130,10 +130,10 @@
 </script>
 <svelte:window onbeforeinstallprompt={ () => { console.log("beforeinstallprompt") }} onbeforeunload={ warnBeforeLeaving } />
 
+    <!-- the name only (#110): the start screen says what deContact is -->
     <Header
         class="header-title"
         companyName="deContact"
-        platformName={$_('app.tagline')}
         href="./#/">
 
         <HeaderUtilities>
@@ -174,12 +174,33 @@
     <!-- one branch for both: the form stays as it is while its temporary identity starts (OnBoarding.svelte, #97) -->
     {#if $session && $hash!=='/onboarding'}<SecureOffer />{/if}
     <View />
+    <AppInfo />
 {:else}
-    <PasskeyGate onboarding={ $hash==='/onboarding' } { handedOver } />
+    <!-- the start screen (#110): one column below the header, the version line flush with it -->
+    <div class="start-screen">
+        <PasskeyGate onboarding={ $hash==='/onboarding' } { handedOver } />
+        <AppInfo />
+    </div>
 {/if}
-<AppInfo />
 <passkey-step-dialog bind:this={ stepDialog } lang={ $language }></passkey-step-dialog>
 <style>
+    .start-screen {
+        padding: clamp(4.5rem, 12vh, 8rem) 1rem 0;
+    }
+    .start-screen :global(.app-info) {
+        max-width: 30rem;
+        margin: 1.5rem auto 1rem;
+    }
+    /* a phone: the column is the screen's width, 16 px in from its edges */
+    @media (max-width: 41.98rem) {
+        .start-screen {
+            padding-top: 4.5rem;
+        }
+        .start-screen :global(.app-info) {
+            max-width: none;
+            margin: 2rem 0 1rem;
+        }
+    }
     :global(.bx--toast-notification) {
         z-index: 1;
         margin: 5rem;

@@ -1,9 +1,6 @@
 // English (#89), the base language: de.js has the same keys, and a key it lacks shows in
 // English. Placeholders like {name} are filled in by t().
 export default {
-	app: {
-		tagline: '– self-updating · local · peer-to-peer'
-	},
 	// what search engines and link previews read (seo.js), and the picture of the preview
 	// (scripts/brand/og-image.html): the page of each language has its own
 	meta: {
@@ -354,6 +351,11 @@ export default {
 	},
 	gate: {
 		title: 'Your deContact address book',
+		// the start screen says what deContact is and why it asks for a passkey (#110)
+		tagline: 'self-updating · local · peer-to-peer',
+		lead: 'An address book that keeps itself up to date: you exchange cards by QR code, straight from phone to phone, and your contacts get every change of yours by themselves.',
+		why: 'A passkey opens it on this device: no account, no password, and no server that keeps your contacts.',
+		otherWays: 'Other ways to open it',
 		legacySeedRemoved:
 			'deContact now opens your identity with a passkey. The seed phrase stored in this browser was removed; its DID and address book are not carried over.',
 		unsupported: 'This browser cannot use passkeys.',
@@ -373,8 +375,7 @@ export default {
 		restoreWords: 'Restore with recovery words',
 		wordsLabel: 'Your 24 recovery words',
 		openWithWords: 'Open with recovery words',
-		importFile: 'Or import a vault file from another device',
-		chooseFile: 'Choose a vault file',
+		chooseFile: 'Open a vault file from another device',
 		experimental: 'deContact is experimental software: do not rely on it yet for contact details that matter.',
 		opening: 'Opening the vault…',
 		noneCreated:

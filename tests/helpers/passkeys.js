@@ -283,3 +283,22 @@ export function spellings(hex) {
 export function contactAddressOf(page) {
 	return page.evaluate(() => `${window.orbitdb.identity.id}?peer=${window.helia.libp2p.peerId.toString()}`);
 }
+
+/**
+ * A passkey of this site that never made an address book (registered, nothing kept):
+ * "Sign in with an existing passkey" with it asks before making one (the ask-new state).
+ */
+export async function strayPasskey(page) {
+	await page.evaluate(async () => {
+		await navigator.credentials.create({
+			publicKey: {
+				challenge: crypto.getRandomValues(new Uint8Array(32)),
+				rp: { name: 'deContact', id: location.hostname },
+				user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'stranger', displayName: 'stranger' },
+				pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+				authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
+				extensions: { prf: {} }
+			}
+		});
+	});
+}

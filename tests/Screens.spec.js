@@ -9,7 +9,8 @@ import {
 	createAddressBook,
 	editMyCard,
 	newPerson,
-	names
+	names,
+	strayPasskey
 } from './helpers/passkeys.js';
 import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboarding.js';
 import { madeUpPortrait } from './helpers/portrait.js';
@@ -66,9 +67,40 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await page.goto(process.env.PAGE_URL);
 			await expect(page.getByTestId('passkey-gate')).toBeVisible();
 			await shoot(page, '02-passkey', 'First start: the passkey screen');
+			// the start screen is one column: on a wide screen in the middle, with room above (#110)
+			await page.setViewportSize({ width: 1280, height: 800 });
+			const column = await page.getByTestId('passkey-gate').boundingBox();
+			expect(Math.abs(column.x + column.width / 2 - 640), 'the column is in the middle').toBeLessThanOrEqual(2);
+			expect(column.y, 'room between the header and the column').toBeGreaterThanOrEqual(64);
+			// the version line starts where the column does
+			expect(Math.round((await page.getByTestId('app-info').boundingBox()).x)).toBe(Math.round(column.x));
+			await page.setViewportSize(size(CLICK_AT));
+			await page.getByTestId('gate-language-de').click();
+			await expect(page.getByRole('button', { name: 'Neues Adressbuch anlegen' })).toBeVisible();
+			await shoot(page, '02-passkey-de', 'First start: the passkey screen, in German');
+			await page.getByTestId('gate-language-en').click();
 
 			const did = await createAddressBook(page, people.alice.first);
 			alice = { page, did, close: () => context.close() };
+			// a reload: the vault is kept here, the screen offers to unlock it
+			await page.reload();
+			await expect(page.getByRole('button', { name: 'Unlock with passkey' })).toBeVisible();
+			await shoot(page, '02b-passkey-unlock', 'The passkey screen with a kept vault');
+			await page.getByRole('button', { name: 'Unlock with passkey' }).click();
+
+			// a passkey that opens nothing: the screen asks before it makes an address book
+			const stranger = await browser.newContext({ viewport: size(CLICK_AT) });
+			try {
+				const other = await stranger.newPage();
+				await addVirtualAuthenticator(other);
+				await other.goto(process.env.PAGE_URL);
+				await strayPasskey(other);
+				await other.getByRole('button', { name: 'Sign in with an existing passkey' }).click();
+				await expect(other.getByTestId('ask-new')).toBeVisible({ timeout: 60000 });
+				await shoot(other, '02c-passkey-ask-new', 'The passkey screen: this passkey opens nothing');
+			} finally {
+				await stranger.close();
+			}
 			// a new address book opens on My card, with why (#110)
 			await expect(page.getByRole('link', { name: 'My card' })).toHaveAttribute('aria-current', 'page');
 			await expect(page.getByTestId('card-why')).toBeVisible();
