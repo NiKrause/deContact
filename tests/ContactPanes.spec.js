@@ -3,20 +3,21 @@ import AxeBuilder from '@axe-core/playwright';
 import { newPerson } from './helpers/passkeys.js';
 import { DEVICES, size } from './helpers/devices.js';
 
-// Contacts on a desktop (#110): the list on the left, the contact's page beside it. On a
-// phone and the open Fold one of them at a time, as before: the list, or the page with
+// Contacts on the open Fold and a desktop (#110): the list on the left, the contact's page
+// beside it. On a phone one of them at a time, as before: the list, or the page with
 // "All contacts" above it.
 // 1. Alice adds Bob and Carol by hand. On a desktop the pane beside the list says to choose
 //    one; a tap opens Bob beside the list, marked in it, then Carol instead.
 // 2. My card and back: Carol is still open, not Alice's own card (My card puts it into the
 //    same form meanwhile).
-// 3. On a phone and the open Fold: only Carol's page, "All contacts" goes back to the list.
+// 3. On the open Fold the two panes too; on a phone only Carol's page, "All contacts" goes
+//    back to the list.
 // 4. axe at every width, in English and German, with a contact open and without.
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const DESKTOP = DEVICES.at(-1);
-/** where the rail is beside the place, and the list beside the page: 66rem */
-const twoPanes = (device) => device.width >= 1056;
+/** where the list is beside the page: from the open Fold on, 52.5rem */
+const twoPanes = (device) => device.width >= 840;
 
 /** a contact added by hand: Contacts → Add contact → Save */
 async function addByHand(page, first, last) {
@@ -42,7 +43,7 @@ async function checkEveryWidth(page, screen) {
 	await page.setViewportSize(size(DESKTOP));
 }
 
-test('Contacts: the list and a contact side by side on a desktop, one at a time on a phone', async ({
+test('Contacts: the list and a contact side by side on the open Fold and a desktop, one at a time on a phone', async ({
 	browser
 }) => {
 	test.setTimeout(300000);
@@ -98,7 +99,13 @@ test('Contacts: the list and a contact side by side on a desktop, one at a time 
 			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue('Beispiel');
 		});
 
-		await test.step('a phone and the open Fold: one at a time', async () => {
+		await test.step('the open Fold: side by side too; a phone: one at a time', async () => {
+			for (const device of DEVICES.filter((it) => twoPanes(it))) {
+				await page.setViewportSize(size(device));
+				await expect(list, `${device.width} px: the list`).toBeVisible();
+				await expect(pane, `${device.width} px: the page beside it`).toBeVisible();
+				await expect(back).toBeHidden();
+			}
 			for (const device of DEVICES.filter((it) => !twoPanes(it))) {
 				await page.setViewportSize(size(device));
 				await expect(pane, `${device.width} px: the page`).toBeVisible();
