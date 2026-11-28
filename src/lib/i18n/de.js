@@ -404,7 +404,7 @@ export default {
 		lead: 'Ein Adressbuch, das sich selbst aktuell hält: Du tauschst Visitenkarten per QR-Code direkt von Handy zu Handy, und deine Kontakte bekommen jede Änderung von dir von selbst.',
 		useful: 'So erreichen sie dich auch nach einem Umzug oder Jobwechsel.',
 		private:
-			'Kein Server und keine Cloud kann deine Kontaktdaten lesen: Sie gehen verschlüsselt Peer-to-Peer von Handy zu Handy, und nur du und deine Kontakte können sie öffnen.',
+			'Keine Cloud und kein Server kann deine Kontaktdaten lesen oder abgreifen: Sie sind Ende-zu-Ende verschlüsselt und gehen Peer-to-Peer von Handy zu Handy. Relays vermitteln nur die Verbindung und bewahren verschlüsselte Kopien auf, die nur du und deine Kontakte öffnen können.',
 		why: 'Ein Passkey öffnet dein Adressbuch auf diesem Gerät: kein Konto, kein Passwort.',
 		usefulTitle: 'Wozu ist das gut?',
 		usefulText:
