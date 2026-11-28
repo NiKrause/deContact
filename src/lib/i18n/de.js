@@ -354,7 +354,9 @@ export default {
 		tagline: 'Selbstaktualisierend · Lokal · Peer-to-Peer',
 		lead: 'Ein Adressbuch, das sich selbst aktuell hält: Du tauschst Visitenkarten per QR-Code direkt von Handy zu Handy, und deine Kontakte bekommen jede Änderung von dir von selbst.',
 		useful: 'So erreichen sie dich auch nach einem Umzug oder Jobwechsel.',
-		why: 'Ein Passkey öffnet dein Adressbuch auf diesem Gerät: kein Konto, kein Passwort und kein Server, der deine Kontakte aufbewahrt.',
+		private:
+			'Kein Server und keine Cloud kann deine Kontaktdaten lesen: Sie gehen verschlüsselt Peer-to-Peer von Handy zu Handy, und nur du und deine Kontakte können sie öffnen.',
+		why: 'Ein Passkey öffnet dein Adressbuch auf diesem Gerät: kein Konto, kein Passwort.',
 		usefulTitle: 'Wozu ist das gut?',
 		usefulText:
 			'Mit Menschen, die du auf einer Konferenz, in der Ausbildung, im Studium oder im Beruf kennenlernst, reißt der Kontakt leicht ab: Du ziehst danach um, wechselst die Stelle, die Telefonnummer oder die E-Mail-Adresse, oder du verlässt ein soziales Netzwerk. Mit deContact bekommen sie deine neuen Daten von selbst, und du bekommst ihre.',
@@ -380,7 +382,6 @@ export default {
 		wordsLabel: 'Deine 24 Wiederherstellungswörter',
 		openWithWords: 'Öffnen',
 		chooseFile: 'Tresordatei von einem anderen Gerät öffnen',
-		experimental: 'deContact ist experimentelle Software: Verlass dich bei wichtigen Kontaktdaten noch nicht darauf.',
 		opening: 'Tresor wird geöffnet …',
 		noneCreated:
 			'Es wurde kein Adressbuch angelegt. Öffne einen Geräte-Link, importiere eine Tresordatei oder nutze deine Wiederherstellungswörter.',

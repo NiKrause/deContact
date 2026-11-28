@@ -85,7 +85,6 @@ The app finds Le Space's relays on Aleph by itself. To try it with two people:
 | [Access controller package](packages/orbitdb-access-controller-decontact) | `@le-space/orbitdb-access-controller-decontact` on npm |
 
 ## Known limitations
-- **Experimental.** Data formats and protocols may still change; the address book format changed in 0.5.0.
 - **Metadata is visible.** Cards and requests are encrypted, but who exchanged cards with whom, and when, is not: a book's address follows from its owner's DID, and whoever opens it sees which DIDs wrote into it. A request travels peer to peer: a relay carrying the circuit sees which two peers talk, and when.
 - **A device to ask.** Requests go to a device: the one in the QR code, or for a contact the devices their card names. A stranger's DID alone reaches nobody.
 - **Passkeys with PRF.** The browser and the passkey must support the WebAuthn PRF extension (recent Chrome, Safari, Edge; iCloud Keychain, Google Password Manager, 1Password, YubiKey 5). Without it the vault does not open.

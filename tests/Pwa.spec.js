@@ -187,8 +187,8 @@ test('the German page runs the app', async ({ browser }) => {
 	const page = await context.newPage();
 	try {
 		await page.goto(new URL('de/', process.env.PAGE_URL).href);
-		// straight to the passkey screen, its experimental note in German (#110)
-		await expect(page.getByTestId('experimental-note')).toContainText('experimentelle Software');
+		// straight to the passkey screen, its text in German (#110)
+		await expect(page.getByTestId('gate-lead')).toContainText('Kein Server und keine Cloud kann deine Kontaktdaten lesen');
 		await expect(page.getByRole('button', { name: 'Neues Adressbuch anlegen' })).toBeVisible();
 		expect(await page.evaluate(() => document.documentElement.lang)).toBe('de');
 	} finally {
