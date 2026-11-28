@@ -13,6 +13,7 @@ import { dcutr } from '@libp2p/dcutr'
 import { FaultTolerance } from '@libp2p/interface'
 import { alephBootstrapDiscovery } from '@le-space/aleph-bootstrap'
 import { isInsecureWebSocketDial } from './lib/network/dial-policy.js'
+import { withoutOrbitdbHeadsAnnouncements } from './lib/network/identify-announcements.js'
 
 const list = (value) => (value ?? '').split(',').map((entry) => entry.trim()).filter(Boolean)
 const development = import.meta.env.MODE === 'development'
@@ -49,10 +50,11 @@ const configuredTopics = list(development ? import.meta.env.VITE_P2P_PUPSUB_DEV 
 export const pubSubPeerDiscoveryTopics = configuredTopics.length > 0 ? configuredTopics : [ORBITDB_RELAY_DISCOVERY_TOPIC]
 
 /**
- * The relay announces one /orbitdb/heads/<address> protocol per address book it holds.
- * Past libp2p's 8 KiB default the whole identify message is dropped, and with it the
- * relay's hop protocol: no reservation, no /p2p-circuit address, unreachable while still
- * visible over gossipsub. identifyPush reads later updates against the same limit.
+ * A relay before orbitdb-relay 0.11 announces one /orbitdb/heads/<address> protocol per
+ * address book it holds. Past libp2p's 8 KiB default the whole identify message is dropped,
+ * and with it the relay's hop protocol: no reservation, no /p2p-circuit address, unreachable
+ * while still visible over gossipsub. identifyPush reads later updates against the same limit.
+ * Our own identify leaves those protocols out (lib/network/identify-announcements.js).
  */
 export const IDENTIFY_MAX_MESSAGE_SIZE = 65_536
 
@@ -97,8 +99,9 @@ export function createLibp2pConfig({ webRTC: webRTCEnabled = true, relays = seed
             })
         ],
         services: {
-            identify: identify({ maxMessageSize: IDENTIFY_MAX_MESSAGE_SIZE }),
-            identifyPush: identifyPush({ maxMessageSize: IDENTIFY_MAX_MESSAGE_SIZE }),
+            // answer every open book's /orbitdb/heads/<address>, but don't list them
+            identify: withoutOrbitdbHeadsAnnouncements(identify({ maxMessageSize: IDENTIFY_MAX_MESSAGE_SIZE })),
+            identifyPush: withoutOrbitdbHeadsAnnouncements(identifyPush({ maxMessageSize: IDENTIFY_MAX_MESSAGE_SIZE })),
             ping: ping({ timeout: 10_000 }),
             autoNAT: autoNAT(),
             ...(webRTCEnabled ? { dcutr: dcutr() } : {}),
