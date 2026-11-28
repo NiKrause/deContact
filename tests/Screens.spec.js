@@ -178,9 +178,12 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await shoot(page, '13-contact-page', "A contact's page");
 			await page.getByRole('button', { name: 'All contacts' }).click();
 			await page.getByRole('button', { name: 'Add contact' }).click();
-			// empty, a new card: Add, not Update (our own card once leaked in here)
+			// empty, a new card: Save, not Update (our own card once leaked in here)
 			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue('');
-			await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+			// only what is filled in: no field of an entry yet, a button for each kind (#109)
+			await expect(page.getByPlaceholder('Enter city...')).toHaveCount(0);
+			await expect(page.getByRole('button', { name: 'Add phone' })).toBeVisible();
 			await shoot(page, '14-add-contact', 'Adding a contact by hand');
 		});
 

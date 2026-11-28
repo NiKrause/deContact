@@ -137,8 +137,10 @@ export async function addCard(page, { first, last, city = 'Example City' }) {
 	await page.getByRole('link', { name: 'My card' }).click();
 	await page.getByPlaceholder('Enter firstname...').fill(first);
 	await page.getByPlaceholder('Enter lastname...').fill(last);
+	// a new card has no address yet: "Add address" opens its fields (#109)
+	await page.getByRole('button', { name: 'Add address' }).click();
 	await page.getByPlaceholder('Enter city...').fill(city);
-	await page.getByRole('button', { name: 'Add' }).click();
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
 	await expect.poll(() => names(page), { timeout: 30000 }).toContain(`${first} ${last}`);
 	await expect(page.getByTestId('my-card-name')).toHaveText(`${first} ${last}`);
 }

@@ -199,3 +199,102 @@ export function emailLink(value) {
     const address = value.trim()
     return /^[^\s@?&#/\\]+@[^\s@?&#/\\]+\.[^\s@?&#/\\]+$/.test(address) ? `mailto:${address}` : undefined
 }
+
+/**
+ * The label a new entry gets: the first phone Mobile, a second Work, the first address Home
+ * (#109); the first email Work, as the cards of the onboarding form were before (category
+ * business): it is the one people exchange at a stand.
+ */
+const DEFAULT_LABELS = Object.freeze({ phones: ['mobile', 'work'], emails: ['work', 'private'], addresses: ['home', 'work'] })
+
+/**
+ * A new, empty entry of `kind`, the `index`th of its kind, with its default label.
+ *
+ * @param {'phones' | 'emails' | 'addresses' | 'social'} kind
+ * @param {number} index
+ */
+export function newEntry(kind, index) {
+    if (kind === 'social') return { network: NETWORKS[0], handle: '' }
+    const label = DEFAULT_LABELS[kind]?.[index] ?? 'other'
+    if (kind === 'addresses') return { label, ...Object.fromEntries(ADDRESS_FIELDS.map((field) => [field, ''])) }
+    return { label, value: '' }
+}
+
+/**
+ * A card for the form: a copy with the entries of #109 in arrays of their own. The form
+ * edits the copy, never the card the book holds, so Cancel drops what was typed.
+ */
+export const editable = (card) => ({ ...card, ...entriesOf(card) })
+
+const trimmed = (value) => (typeof value === 'string' ? value.trim() : '')
+const records = (value) => (Array.isArray(value) ? value.filter(isRecord) : [])
+
+/**
+ * A card as it is saved (#109): its entries trimmed, the empty ones out, unknown labels
+ * Other; the first email and the first address also in the flat fields, for older app
+ * versions; the `category` of before #109 gone, the labels say it now. Nothing is cut:
+ * problemsOf says what is too long.
+ *
+ * @param {any} card the form's card
+ */
+export function withEntries(card) {
+    const phones = records(card.phones)
+        .map((it) => ({ label: oneOf(it.label, PHONE_LABELS), value: trimmed(it.value) }))
+        .filter((it) => it.value !== '')
+    const emails = records(card.emails)
+        .map((it) => ({ label: oneOf(it.label, EMAIL_LABELS), value: trimmed(it.value) }))
+        .filter((it) => it.value !== '')
+    const addresses = records(card.addresses)
+        .map((it) => ({ label: oneOf(it.label, ADDRESS_LABELS), ...Object.fromEntries(ADDRESS_FIELDS.map((field) => [field, trimmed(it[field])])) }))
+        .filter(hasAddress)
+    const social = records(card.social)
+        .map((it) => ({ network: oneOf(it.network, NETWORKS), handle: trimmed(it.handle) }))
+        .filter((it) => it.handle !== '')
+    // eslint-disable-next-line no-unused-vars
+    const { category, ...rest } = card
+    return {
+        ...rest,
+        firstName: trimmed(card.firstName),
+        lastName: trimmed(card.lastName),
+        organization: trimmed(card.organization),
+        phones,
+        emails,
+        addresses,
+        social,
+        // for older app versions: they read and write these
+        email: emails[0]?.value ?? '',
+        ...Object.fromEntries(ADDRESS_FIELDS.map((field) => [field, addresses[0]?.[field] ?? '']))
+    }
+}
+
+/** the field of MAX_LENGTH each field of an entry is measured by */
+const LENGTH_OF = Object.freeze({
+    phones: { value: 'phone' },
+    emails: { value: 'email' },
+    addresses: Object.fromEntries(ADDRESS_FIELDS.map((field) => [field, field])),
+    social: { handle: 'handle' }
+})
+
+/**
+ * What keeps a card from being saved (#109): a kind with more than MAX_ENTRIES entries, a
+ * field longer than MAX_LENGTH. Paths such as `phones.1.value`; none: an empty list.
+ *
+ * @param {any} card as withEntries returns it
+ * @returns {string[]}
+ */
+export function problemsOf(card) {
+    const problems = []
+    for (const field of ['firstName', 'lastName', 'organization']) {
+        if (trimmed(card[field]).length > MAX_LENGTH[field]) problems.push(field)
+    }
+    for (const [kind, fields] of Object.entries(LENGTH_OF)) {
+        const entries = records(card[kind])
+        if (entries.length > MAX_ENTRIES) problems.push(kind)
+        entries.forEach((entry, i) => {
+            for (const [field, length] of Object.entries(fields)) {
+                if (trimmed(entry[field]).length > MAX_LENGTH[length]) problems.push(`${kind}.${i}.${field}`)
+            }
+        })
+    }
+    return problems
+}

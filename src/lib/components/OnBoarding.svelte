@@ -1,8 +1,8 @@
 <script>
     /**
      * @component Somebody opened an invitation link (#86). The inviter's card arrives by
-     * itself (the view then shows their name and photo, #87), while the person types their own: email, first and last name, the address
-     * behind "Add address". Then they choose whether the inviter gets it: "Save and share
+     * itself (the view then shows their name and photo, #87), while the person types their own: email, first and last name, a phone
+     * number behind "Add phone" and the address behind "Add address" (#109). Then they choose whether the inviter gets it: "Save and share
      * with Alice" or "Save only"; a link without a two-way exchange offers only "Save". A
      * request of the inviter waits for that choice, and no request dialog appears here
      * (p2p-operations.js openInvitationLink, exchanges.js).
@@ -23,6 +23,7 @@
         sendInvitationLinkRequest
     } from '#lib/network/p2p-operations.js'
     import { sha256 } from '../../utils/utils.js'
+    import { entriesOf, newEntry, withEntries } from '#lib/card/entries.js'
     import { session, startTemporary, temporaryAhead } from '#lib/identity/session.js'
     import { withSignIn } from '#lib/identity/temporary.js'
     import { InlineLoading } from 'carbon-components-svelte'
@@ -39,8 +40,9 @@
     const NAME_FIELDS = ['email', 'firstName', 'lastName']
     const ADDRESS_FIELDS = ['street', 'postalCode', 'city', 'countryRegion']
 
-    let card = $state(Object.fromEntries([...NAME_FIELDS, ...ADDRESS_FIELDS].map((field) => [field, ''])))
+    let card = $state(Object.fromEntries([...NAME_FIELDS, 'phone', ...ADDRESS_FIELDS].map((field) => [field, ''])))
     let showAddress = $state(false)
+    let showPhone = $state(false)
     /** whether the link lets us share back, once it is checked (locally, against the DID) */
     let twoWay = $state(false)
     let linkChecked = $state(false)
@@ -94,11 +96,42 @@
     $effect(() => {
         if (prefilled || !ownCard) return
         prefilled = true
-        for (const field of Object.keys(card)) card[field] = typeof ownCard[field] === 'string' ? ownCard[field] : ''
+        // the first entry of each kind (#109): the form shows those
+        const entries = entriesOf(ownCard)
+        card.firstName = entries.firstName
+        card.lastName = entries.lastName
+        card.email = entries.emails[0]?.value ?? ''
+        card.phone = entries.phones[0]?.value ?? ''
+        for (const field of ADDRESS_FIELDS) card[field] = entries.addresses[0]?.[field] ?? ''
         // a card of an older version had our DID as its last name: never show or send that
         if (card.lastName === me) card.lastName = ''
         showAddress = ADDRESS_FIELDS.some((field) => card[field] !== '')
+        showPhone = card.phone !== ''
     })
+
+    /**
+     * Our card with what the form shows: the name, and the first phone, email and address
+     * (#109). A field emptied takes its entry off; the other entries of a card we already
+     * have stay as they are.
+     */
+    function cardWith(ours, fields) {
+        const entries = entriesOf(ours ?? {})
+        /** the first entry of `kind` as typed, the rest as they were */
+        const first = (kind, typed) => {
+            const [old, ...rest] = entries[kind]
+            return typed ? [{ ...newEntry(kind, 0), ...old, ...typed }, ...rest] : rest
+        }
+        const address = Object.fromEntries(ADDRESS_FIELDS.map((field) => [field, fields[field]]))
+        return {
+            ...ours,
+            ...entries,
+            firstName: fields.firstName,
+            lastName: fields.lastName,
+            phones: first('phones', fields.phone ? { value: fields.phone } : undefined),
+            emails: first('emails', fields.email ? { value: fields.email } : undefined),
+            addresses: first('addresses', ADDRESS_FIELDS.some((field) => address[field]) ? address : undefined)
+        }
+    }
 
     /** @param {'share' | 'only' | 'save'} choice */
     async function save(choice) {
@@ -107,7 +140,7 @@
         problem = undefined
         try {
             const fields = Object.fromEntries(Object.entries(card).map(([field, value]) => [field, value.trim()]))
-            const next = { category: 'business', ...ownCard, ...fields, owner: me, own: true, sharedAddress: $dbMyAddressBook.address }
+            const next = withEntries({ ...cardWith(ownCard, fields), owner: me, own: true, sharedAddress: $dbMyAddressBook.address })
             delete next.id
             next._id = ownCard?._id ?? (await sha256(JSON.stringify(next)))
             await saveOwnCard(next)
@@ -154,6 +187,10 @@
             </div>
         </div>
 
+        {#if showPhone}
+            <label class="bx--label" for="onboarding-phone">{$_('onboarding.phone')}</label>
+            <input id="onboarding-phone" class="bx--text-input" type="tel" inputmode="tel" autocomplete="tel" placeholder={$_('onboarding.phonePlaceholder')} bind:value={card.phone} />
+        {/if}
         {#if showAddress}
             <div class="names">
                 <div>
@@ -175,8 +212,17 @@
                     <input id="onboarding-country" class="bx--text-input" autocomplete="country-name" placeholder={$_('onboarding.countryPlaceholder')} bind:value={card.countryRegion} />
                 </div>
             </div>
-        {:else}
-            <button type="button" class="bx--btn bx--btn--ghost bx--btn--sm add-address" onclick={() => (showAddress = true)}>{$_('onboarding.addAddress')}</button>
+        {/if}
+        {#if !showPhone || !showAddress}
+            <!-- what the stand does not need: behind a button each (#109) -->
+            <div class="more">
+                {#if !showPhone}
+                    <button type="button" class="bx--btn bx--btn--ghost bx--btn--sm" onclick={() => (showPhone = true)}>{$_('onboarding.addPhone')}</button>
+                {/if}
+                {#if !showAddress}
+                    <button type="button" class="bx--btn bx--btn--ghost bx--btn--sm" onclick={() => (showAddress = true)}>{$_('onboarding.addAddress')}</button>
+                {/if}
+            </div>
         {/if}
 
         {#if linkChecked}
@@ -251,9 +297,13 @@
         grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
         gap: 0.5rem 1rem;
     }
-    .add-address,
     .sign-in {
         align-self: flex-start;
+    }
+    .more {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
     .buttons {
         display: flex;

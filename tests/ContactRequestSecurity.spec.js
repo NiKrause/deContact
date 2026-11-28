@@ -101,8 +101,10 @@ async function register(browser, person) {
 	await page.getByRole('link', { name: 'My card' }).click();
 	await page.getByPlaceholder('Enter firstname...').fill(person.first);
 	await page.getByPlaceholder('Enter lastname...').fill(person.last);
+	// a new card has no address yet: "Add address" opens its fields (#109)
+	await page.getByRole('button', { name: 'Add address' }).click();
 	await page.getByPlaceholder('Enter city...').fill(person.city);
-	await page.getByRole('button', { name: 'Add' }).click();
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
 	return user;
 }
 

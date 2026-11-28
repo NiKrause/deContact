@@ -1,6 +1,7 @@
 import {notify, sha256} from "./utils/utils.js";
 import { ensureOwnDevice, removeContact, writeMyCardIntoFollowedBooks } from "./lib/network/p2p-operations.js";
 import { t } from "#lib/i18n/index.js";
+import { editable, entriesOf, problemsOf, withEntries } from "#lib/card/entries.js";
 import {
     myAddressBook,
     selectedAddr,
@@ -23,9 +24,9 @@ import {
 export async function loadContact(id) {
     if (!myAddressBook || !_myAddressBook) return;
     const address = _myAddressBook.find(obj => obj.id === id)
-    _selectedAddr = address
     if(!address) return //do not set undefined here
-    selectedAddr.set(_selectedAddr)
+    // a copy: the form never edits the card the book holds
+    selectedAddr.set(editable(address))
 }
 
 /**
@@ -39,7 +40,7 @@ export function showMyCard() {
     const shown = _selectedAddr ?? {}
     if (mine && shown._id === mine._id) return
     if (!shown._id && (shown.own ? !mine : shown.own === false && typedIn(shown))) return
-    selectedAddr.set(mine ? { ...mine } : blankCard(true))
+    selectedAddr.set(mine ? editable(mine) : blankCard(true))
 }
 
 /** Edit on My card: the form, with our card as saved (#110) */
@@ -67,8 +68,24 @@ export function closeContact() {
     closeForm()
 }
 
-/** whether somebody typed something into this card */
-const typedIn = (card) => ['firstName', 'lastName', 'email', 'street', 'postalCode', 'city', 'countryRegion'].some((field) => String(card[field] ?? '').trim() !== '')
+/** whether somebody typed something into this card: a name, an organisation or an entry (#109) */
+function typedIn(card) {
+    const { firstName, lastName, organization, phones, emails, addresses, social } = entriesOf(card)
+    return Boolean(firstName || lastName || organization) || [phones, emails, addresses, social].some((entries) => entries.length > 0)
+}
+
+/**
+ * The form's card as it is saved (entries.js withEntries), or undefined: a field is too long
+ * or a kind has too many entries. The form marks the field; a notice says why (#109).
+ */
+function cardToSave() {
+    const card = withEntries(_selectedAddr)
+    const problems = problemsOf(card)
+    if (problems.length === 0) return card
+    console.log('not saved, over the limits:', problems.join(', '))
+    notify(t('notify.cardTooLong'), 'error')
+    return undefined
+}
 
 /**
  * Adds a new contact to the orbitdb dbMyAddressBook.
@@ -77,14 +94,16 @@ const typedIn = (card) => ['firstName', 'lastName', 'email', 'street', 'postalCo
  * @returns {Promise<void>}
  */
 export async function addContact() {
-    _selectedAddr.owner = _orbitdb?.identity?.id
-    _selectedAddr.sharedAddress = _dbMyAddressBook?.address
-    _selectedAddr._id = await sha256(JSON.stringify(_selectedAddr))
-    const hash = await _dbMyAddressBook.put(_selectedAddr)
+    const card = cardToSave()
+    if (!card) return
+    card.owner = _orbitdb?.identity?.id
+    card.sharedAddress = _dbMyAddressBook?.address
+    card._id = await sha256(JSON.stringify(card))
+    const hash = await _dbMyAddressBook.put(card)
     console.log('saved a card:', hash)
     notify(t('notify.contactAdded'));
     // our first card stays on My card, saved; a contact added by hand goes into the list
-    if (_selectedAddr.own) selectedAddr.set({ ..._selectedAddr })
+    if (card.own) selectedAddr.set(editable(card))
     else closeForm()
     // our first card: it names this device, so that contacts reach it (devices.js)
     await ensureOwnDevice()
@@ -96,15 +115,19 @@ export async function addContact() {
  * @returns {Promise<void>}
  */
 export async function updateContact() {
-    const newAddrBook = _myAddressBook.filter( el => el._id !== _selectedAddr._id )
-    _selectedAddr.owner = _orbitdb?.identity?.id
-    await _dbMyAddressBook.put(_selectedAddr)
-    newAddrBook.push(_selectedAddr)
+    const card = cardToSave()
+    if (!card) return
+    const newAddrBook = _myAddressBook.filter( el => el._id !== card._id )
+    card.owner = _orbitdb?.identity?.id
+    await _dbMyAddressBook.put(card)
+    newAddrBook.push(card)
     myAddressBook.set(newAddrBook)
     // our own card goes to everybody who has it; one we keep by hand stays here
-    notify(t(_selectedAddr.own ? 'notify.cardUpdated' : 'notify.contactUpdated'))
-    if(_selectedAddr.owner === _orbitdb?.identity?.id){ //only send update requests if my own address was changed
-        await writeMyCardIntoFollowedBooks(_selectedAddr)
+    notify(t(card.own ? 'notify.cardUpdated' : 'notify.contactUpdated'))
+    // only our own card goes out. A contact added by hand has our DID as its owner too: it
+    // once went out as our card, into every book we write into
+    if (card.own && card.owner === _orbitdb?.identity?.id) {
+        await writeMyCardIntoFollowedBooks(card)
     }
     closeForm()
 }

@@ -182,31 +182,63 @@ export default {
 		choosePhoto: 'Choose photo',
 		removePhoto: 'Remove photo',
 		photoProblem: 'This image could not be used.',
-		firstName: 'firstname',
+		firstName: 'First name',
 		firstNamePlaceholder: 'Enter firstname...',
-		lastName: 'lastname',
+		lastName: 'Last name',
 		lastNamePlaceholder: 'Enter lastname...',
-		street: 'street',
-		streetPlaceholder: 'Enter street...',
-		zipCode: 'zipcode',
-		zipCodePlaceholder: 'Enter zipcode...',
-		city: 'city',
-		cityPlaceholder: 'Enter city...',
-		country: 'country',
-		countryPlaceholder: 'Enter country...',
-		email: 'Email',
-		emailPlaceholder: 'Email',
-		category: 'Category',
-		categories: {
-			private: 'Private',
-			business: 'Business',
-			other: 'Other'
+		organization: 'Organization (optional)',
+		// the entries of #109: each kind with its entries, "Add …" for more
+		kinds: {
+			phones: 'Phone',
+			emails: 'Email',
+			addresses: 'Address',
+			social: 'Social media'
 		},
-		own: 'our own address',
+		labelOf: {
+			phone: 'Label of phone {n}',
+			email: 'Label of email {n}',
+			address: 'Label of address {n}'
+		},
+		networkOf: 'Network of profile {n}',
+		entryOf: {
+			phone: 'Phone {n}',
+			email: 'Email {n}',
+			profile: 'Profile {n}'
+		},
+		removeEntry: {
+			phone: 'Remove phone {n}',
+			email: 'Remove email {n}',
+			address: 'Remove address {n}',
+			profile: 'Remove profile {n}'
+		},
+		more: {
+			phone: 'Add phone',
+			email: 'Add email',
+			address: 'Add address',
+			profile: 'Add profile'
+		},
+		phonePlaceholder: 'Phone number',
+		emailPlaceholder: 'name@example.com',
+		// what a handle looks like, as the field's placeholder
+		handles: {
+			mastodon: '@name@server.example',
+			bluesky: 'name.bsky.social',
+			website: 'https://…',
+			other: 'Your name there'
+		},
+		notALink: 'Shown as text: this is not a {network} profile name.',
+		tooLong: 'At most {max} characters.',
+		street: 'Street',
+		streetPlaceholder: 'Enter street...',
+		zipCode: 'Postal code',
+		zipCodePlaceholder: 'Enter zipcode...',
+		city: 'City',
+		cityPlaceholder: 'Enter city...',
+		country: 'Country',
+		countryPlaceholder: 'Enter country...',
 		update: 'Update',
-		new: 'New',
 		delete: 'Delete',
-		add: 'Add',
+		save: 'Save',
 		// asked before Delete (#110): a contact of somebody else is removed, one of ours deleted
 		removeTitle: 'Remove {name}?',
 		removeTitleNameless: 'Remove this contact?',
@@ -267,6 +299,9 @@ export default {
 		country: 'Country',
 		countryPlaceholder: 'Enter country...',
 		addAddress: 'Add address',
+		addPhone: 'Add phone',
+		phone: 'Phone',
+		phonePlaceholder: 'Phone number',
 		saveAndShare: 'Save and share with {name}',
 		saveAndShareNameless: 'Save and share',
 		// until the inviter's card is here: their name is not known yet, and the DID is no name (#110)
@@ -411,6 +446,7 @@ export default {
 		invitationCopied: 'Invitation link copied.',
 		addressCopied: 'Contact address copied.',
 		cardAddressCopied: 'Address copied.',
+		cardTooLong: 'Not saved: a field is too long. It is marked in the form.',
 		requestSent: 'Request sent. Their card arrives once they answer.',
 		requestNotDelivered: 'Not reached yet. The app keeps trying while it is open.',
 		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',

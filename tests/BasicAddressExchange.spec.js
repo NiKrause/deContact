@@ -116,13 +116,13 @@ async function fillInput(page, placeholder, value) {
 async function fillForm(page, user) {
 	await fillInput(page, 'Enter firstname...', user.firstname);
 	await fillInput(page, 'Enter lastname...', user.lastname);
+	// a new card has no address yet: "Add address" opens its fields, with its label (#109)
+	await page.getByRole('button', { name: 'Add address' }).click();
+	await page.getByLabel('Label of address 1').selectOption('home');
 	await fillInput(page, 'Enter street...', user.street);
 	await fillInput(page, 'Enter zipcode...', user.zipcode);
 	await fillInput(page, 'Enter city...', user.city);
 	await fillInput(page, 'Enter country...', user.country);
-	await page.getByLabel('Category').click();
-	await page.getByText('Private').click();
-	// await page.locator('label').filter({ hasText: 'our own address' }).click();
 }
 
 async function initializeNewPage(browser, user) {
@@ -144,7 +144,7 @@ async function initializeNewPage(browser, user) {
 		user.did = await page.getByLabel('DID', { exact: true }).inputValue();
 		await page.getByRole('link', { name: 'My card' }).click();
 		await fillForm(page, user);
-		await page.getByRole('button', { name: 'Add' }).click({ timeout: 50000 });
+		await page.getByRole('button', { name: 'Save', exact: true }).click({ timeout: 50000 });
 		return page;
 	
 }
