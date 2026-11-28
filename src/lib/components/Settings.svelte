@@ -1,6 +1,7 @@
 <script>
     import { Accordion, AccordionItem, Button, ConfirmModal, TextInput, Toggle } from "carbon-components-svelte";
     import PasskeySettings from "./PasskeySettings.svelte";
+    import CircleSettings from "./CircleSettings.svelte";
     import SecureOffer from "./SecureOffer.svelte";
     import { session } from "#lib/identity/session.js";
     import LanguageSwitch from "./LanguageSwitch.svelte";
@@ -63,6 +64,9 @@
 
     <!-- a temporary identity (#97) has no vault yet: securing it comes first -->
     <section>{#if $session?.temporary}<SecureOffer inSettings />{:else}<PasskeySettings />{/if}</section>
+
+    <!-- which fields of our card each circle sees (#100) -->
+    <CircleSettings />
 
     <section>
         <h3 class="section-title">{$_('settings.network')}</h3>

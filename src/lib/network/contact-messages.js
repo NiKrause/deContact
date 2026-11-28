@@ -322,10 +322,13 @@ export function createOnboardingTokenStore(storage, key = 'onboardingTokens') {
         storage.setItem(key, JSON.stringify(tokens))
     }
     return {
-        /** remember a token from createOnboardingToken */
-        issued({ nonce, expiresAt }, now = Date.now()) {
+        /**
+         * remember a token from createOnboardingToken, and the circle chosen for it (#100):
+         * on this device only, not in the link; '' is the whole card
+         */
+        issued({ nonce, expiresAt, circle }, now = Date.now()) {
             const tokens = load()
-            tokens[nonce] = { expiresAt }
+            tokens[nonce] = typeof circle === 'string' ? { expiresAt, circle } : { expiresAt }
             save(tokens, now)
         },
         /**
@@ -339,7 +342,7 @@ export function createOnboardingTokenStore(storage, key = 'onboardingTokens') {
             if (entry.redeemedBy !== undefined && entry.redeemedBy !== invitee) return { ok: false, reason: 'was already used' }
             entry.redeemedBy = invitee
             save(tokens, now)
-            return { ok: true }
+            return { ok: true, circle: typeof entry.circle === 'string' ? entry.circle : undefined }
         }
     }
 }
@@ -348,12 +351,12 @@ export function createOnboardingTokenStore(storage, key = 'onboardingTokens') {
  * Accepts an invitation link token from `invitee`: signed by us, not expired, issued on
  * this device and not used by anybody else.
  *
- * @returns {Promise<{ ok: true, twoWay: boolean } | { ok: false, reason: string }>}
- *   twoWay: whether the token allows a two-way exchange
+ * @returns {Promise<{ ok: true, twoWay: boolean, circle?: string } | { ok: false, reason: string }>}
+ *   twoWay: whether the token allows a two-way exchange; circle: the one chosen for it (#100)
  */
 export async function redeemOnboardingToken(text, { inviter, invitee, store, now = Date.now() }) {
     const verified = await verifyOnboardingToken(text, { inviter, now })
     if (!verified.ok) return verified
     const redeemed = store.redeem(verified.token, invitee, now)
-    return redeemed.ok ? { ok: true, twoWay: verified.token.twoWay } : redeemed
+    return redeemed.ok ? { ok: true, twoWay: verified.token.twoWay, circle: redeemed.circle } : redeemed
 }
