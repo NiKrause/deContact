@@ -185,6 +185,8 @@ export default {
 		searchLabel: 'Search contacts',
 		add: 'Add contact',
 		back: 'All contacts',
+		// beside the list on a desktop, before a contact is open (#110)
+		choose: 'Choose a contact on the left to see their business card.',
 		remove: 'Remove contact',
 		empty: 'No contacts yet. Show your code or scan theirs on Exchange.',
 		nameless: 'Somebody without a name on their business card',

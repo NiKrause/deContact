@@ -176,6 +176,7 @@ export default {
 		searchLabel: 'Kontakte durchsuchen',
 		add: 'Kontakt hinzufügen',
 		back: 'Alle Kontakte',
+		choose: 'Wähle links einen Kontakt, um die Visitenkarte zu sehen.',
 		remove: 'Kontakt entfernen',
 		empty: 'Noch keine Kontakte. Zeig unter Austausch deinen Code oder scanne ihren.',
 		nameless: 'Jemand ohne Namen auf der Visitenkarte',

@@ -2,8 +2,9 @@
     /**
      * @component The contacts (#110): a list with a photo or initials, the name, and the
      * organisation or the city of the first address (#109).
-     * A tap opens the contact page. Search appears from SEARCH_FROM contacts on; no paging, no
-     * radio buttons. Our own card is under My card, not here (#123); the records that only
+     * A tap opens the contact page; the contact open is marked (`aria-current`), for the desktop,
+     * where the page shows beside the list. Search appears from SEARCH_FROM contacts on; no
+     * paging, no radio buttons. Our own card is under My card, not here (#123); the records that only
      * remember somebody's book (`subscriber`) are no contacts.
      */
     import { Search } from "carbon-components-svelte";
@@ -12,6 +13,9 @@
     import { isPhoto } from "#lib/photo/photo.js";
     import { myAddressBook, orbitdb, selectedRowIds } from "../../stores.js";
     import { _ } from "#lib/i18n/index.js";
+
+    /** @type {{ count?: number }} how many contacts there are, for the page around the list */
+    let { count = $bindable(0) } = $props();
 
     /** from how many contacts on the list can be searched */
     const SEARCH_FROM = 10;
@@ -48,6 +52,10 @@
         );
     });
 
+    $effect(() => {
+        count = contacts.length;
+    });
+
     /** the contact page of `row` */
     const open = (row) => selectedRowIds.set([row.id]);
 </script>
@@ -61,7 +69,13 @@
 <ul class="contact-list" data-testid="contact-list">
     {#each shown as row (row.id)}
         <li>
-            <button type="button" class="contact" data-testid="contact-row" onclick={() => open(row)}>
+            <button
+                type="button"
+                class="contact"
+                class:current={row.id === $selectedRowIds[0]}
+                aria-current={row.id === $selectedRowIds[0] ? "true" : undefined}
+                data-testid="contact-row"
+                onclick={() => open(row)}>
                 <span class="avatar" aria-hidden="true">
                     {#if isPhoto(row.photo)}
                         <ContactPhoto photo={row.photo} size={48} />
@@ -134,6 +148,11 @@
     .sub {
         color: var(--cds-text-secondary, #c6c6c6);
         font-size: 0.875rem;
+    }
+    /* the contact open beside the list (a desktop): a layer, so the initials' circle still shows */
+    .contact.current {
+        background: var(--cds-layer-01, #393939);
+        box-shadow: inset 3px 0 0 var(--cds-border-interactive, #4589ff);
     }
     .empty {
         color: var(--cds-text-secondary, #c6c6c6);

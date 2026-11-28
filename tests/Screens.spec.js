@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
 	addVirtualAuthenticator,
+	allContacts,
 	askByAddress,
 	addCard,
 	contactAddressOf,
@@ -226,7 +227,7 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await row.click();
 			await expect(page.getByTestId('contact-page')).toBeVisible();
 			await shoot(page, '13-contact-page', "A contact's page");
-			await page.getByRole('button', { name: 'All contacts' }).click();
+			await allContacts(page);
 			await page.getByRole('button', { name: 'Add contact' }).click();
 			// empty, a new card: Save, not Update (our own card once leaked in here)
 			await expect(page.getByPlaceholder('Enter lastname...')).toHaveValue('');
