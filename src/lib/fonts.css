@@ -1,0 +1,53 @@
+/*
+ * IBM Plex, from the app's own files (static/fonts), not from IBM's CDN: the
+ * Content-Security-Policy loads fonts from the app's origin only (src/lib/csp.js,
+ * `font-src 'self'`), and no visit tells IBM about itself. Carbon's own @font-face rules,
+ * which name 1.www.s81c.com, are taken out of its stylesheet while it is bundled
+ * (scripts/carbon-fonts.js).
+ *
+ * The weights the app shows: Light (300, Carbon's large headings), Regular (400) and
+ * SemiBold (600) of IBM Plex Sans, and Regular of IBM Plex Mono (ids and codes). IBM Plex
+ * 1.1.0 (@ibm/plex-sans, @ibm/plex-mono), the complete files; licensed under the SIL Open
+ * Font License 1.1, static/fonts/LICENSE.txt. A font installed on the device comes first,
+ * as in Carbon's rules.
+ */
+@font-face {
+	font-family: 'IBM Plex Sans';
+	font-style: normal;
+	font-weight: 300;
+	font-display: auto;
+	src:
+		local('IBM Plex Sans Light'),
+		local('IBMPlexSans-Light'),
+		url('/fonts/IBMPlexSans-Light.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'IBM Plex Sans';
+	font-style: normal;
+	font-weight: 400;
+	font-display: auto;
+	src:
+		local('IBM Plex Sans'),
+		local('IBMPlexSans'),
+		url('/fonts/IBMPlexSans-Regular.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'IBM Plex Sans';
+	font-style: normal;
+	font-weight: 600;
+	font-display: auto;
+	src:
+		local('IBM Plex Sans SmBld'),
+		local('IBMPlexSans-SmBld'),
+		url('/fonts/IBMPlexSans-SemiBold.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'IBM Plex Mono';
+	font-style: normal;
+	font-weight: 400;
+	font-display: auto;
+	src:
+		local('IBM Plex Mono'),
+		local('IBMPlexMono'),
+		url('/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+}

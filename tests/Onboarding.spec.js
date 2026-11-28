@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { contactKey } from '@le-space/orbitdb-access-controller-decontact';
 import { newPerson } from './helpers/passkeys.js';
 import { QR_SUMMARY, answerRequests, everPutUnder, fillOnboardingCard, invitationLink, names, openLink, times } from './helpers/onboarding.js';

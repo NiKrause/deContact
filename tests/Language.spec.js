@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { addVirtualAuthenticator, contactAddressOf, didOf, newPerson, names, recordCeremonies, takeCeremonies, askByAddress } from './helpers/passkeys.js';
 
 // The app in English and German (#89). The suite runs its browsers in en-US

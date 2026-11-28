@@ -1,4 +1,4 @@
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect, chromium } from './helpers/policy.js';
 import { writeFileSync } from 'node:fs';
 import { newPerson } from './helpers/passkeys.js';
 import { invitationLink } from './helpers/onboarding.js';

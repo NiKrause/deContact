@@ -1,4 +1,4 @@
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect, chromium } from './helpers/policy.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {

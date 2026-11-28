@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { addVirtualAuthenticator, contactAddressOf, createAddressBook, askByAddress, editMyCard } from './helpers/passkeys.js';
 /** the console of both pages */
 const lines = [];

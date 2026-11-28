@@ -109,7 +109,8 @@
 			"ws@>=8.0.0 <8.21.0": "^8.21.0"
 		},
 		"patchedDependencies": {
-			"@orbitdb/core@4.0.0": "patches/@orbitdb__core@4.0.0.patch"
+			"@orbitdb/core@4.0.0": "patches/@orbitdb__core@4.0.0.patch",
+			"@le-space/orbitdb-identity-provider-webauthn-did@0.14.0": "patches/@le-space__orbitdb-identity-provider-webauthn-did@0.14.0.patch"
 		}
 	}
 }

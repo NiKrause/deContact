@@ -5,6 +5,8 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { deployVersion } from './scripts/app-version.js';
+import { cspDirectives } from './src/lib/csp.js';
+import { carbonWithoutFonts } from './scripts/carbon-fonts.js';
 // the address search engines and link previews are given (src/hooks.server.js, lib/seo.js):
 // GitHub Pages, unless a build names another
 process.env.VITE_SITE_URL ||= 'https://nikrause.github.io/deContact/';
@@ -35,8 +37,10 @@ function gitCommit() {
 	}
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
 	plugins: [
+		// IBM Plex from the app's own files, not from IBM's CDN (src/lib/fonts.css)
+		carbonWithoutFonts(),
 		// SvelteKit 3 takes its configuration here; svelte.config.js is no longer read
 		sveltekit({
 			adapter: adapter({
@@ -54,6 +58,15 @@ export default defineConfig({
 			// GitHub Pages serves the app below /deContact (BASE_PATH=/deContact in CI)
 			paths: {
 				base: process.env.BASE_PATH ?? ''
+			},
+			// the Content-Security-Policy of every page, as a meta tag with the hash of
+			// SvelteKit's start script (src/lib/csp.js). The end-to-end tests' build and
+			// `vite dev` dial a relay on this machine; a production build does not.
+			csp: {
+				mode: 'hash',
+				directives: /** @type {any} */ (
+					cspDirectives({ localRelay: process.env.VITE_E2E === 'true' || command === 'serve' })
+				)
 			}
 		}),
 		nodePolyfills({
@@ -76,4 +89,4 @@ export default defineConfig({
 		// unit tests that need a real browser run in Playwright (playwright.unit.config.js)
 		exclude: [...configDefaults.exclude, '**/*.browser.spec.js']
 	}
-});
+}));

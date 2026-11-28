@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import AxeBuilder from '@axe-core/playwright';
 import { newPerson } from './helpers/passkeys.js';
 import { DEVICES, size } from './helpers/devices.js';

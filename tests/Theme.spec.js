@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { newPerson } from './helpers/passkeys.js';
 import { checkEveryWidth } from './helpers/axe.js';
 
@@ -6,7 +6,7 @@ import { checkEveryWidth } from './helpers/axe.js';
 // the first paint on and whenever it changes; Settings can name a look instead, which stays
 // after a reload. The header has no theme switch any more.
 // 1. The first screen follows the system, light and dark, and the system's change at once.
-//    src/app.html sets the look before the app's own code runs (here it never does).
+//    static/theme.js (src/app.html) sets the look before the app's own code runs (here it never does).
 // The browser's bar (theme-color) has the header's colour: one per system setting, both the
 // chosen look's colour once Settings names one.
 // 2. Alice chooses Dark, then Light, then System again in Settings; the choice stays after a
