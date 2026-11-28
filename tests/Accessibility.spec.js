@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { newPerson } from './helpers/passkeys.js';
+import { addVirtualAuthenticator, newPerson, strayPasskey } from './helpers/passkeys.js';
 import { invitationLink, openLink } from './helpers/onboarding.js';
 
 // What a screen reader, a keyboard or weak eyes meet on each screen: axe-core with the rules
@@ -34,6 +34,31 @@ test('the first screen: the passkey screen, with the experimental note', async (
 		} finally {
 			await context.close();
 		}
+	}
+});
+
+test('the passkey screen with a kept vault, and when a passkey opens nothing (#110)', async ({ browser }) => {
+	test.setTimeout(240000);
+	const alice = await newPerson(browser, { first: 'Alice', last: 'Wolkenfabrik', city: 'Musterstadt' });
+	const context = await browser.newContext();
+	try {
+		// a reload: the vault is kept here, the screen offers to unlock it
+		await alice.page.reload();
+		await expect(alice.page.getByRole('button', { name: 'Unlock with passkey' })).toBeVisible();
+		await checkEveryWidth(alice.page, 'the passkey screen with a kept vault (en)');
+		await alice.page.getByTestId('gate-language-de').click();
+		await expect(alice.page.getByRole('button', { name: 'Mit Passkey entsperren' })).toBeVisible();
+		await checkEveryWidth(alice.page, 'the passkey screen with a kept vault (de)');
+
+		const page = await context.newPage();
+		await addVirtualAuthenticator(page);
+		await page.goto(process.env.PAGE_URL);
+		await strayPasskey(page);
+		await page.getByRole('button', { name: 'Sign in with an existing passkey' }).click();
+		await expect(page.getByTestId('ask-new')).toBeVisible({ timeout: 60000 });
+		await checkEveryWidth(page, 'the passkey screen: this passkey opens nothing (en)');
+	} finally {
+		await Promise.all([alice.close(), context.close()]);
 	}
 });
 

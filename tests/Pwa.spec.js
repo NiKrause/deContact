@@ -113,8 +113,10 @@ test('every screen says which build runs: version, publication, commit, source',
 	await expect(commit).toHaveAttribute('href', /^https:\/\/github\.com\/NiKrause\/deContact\/commit\/[0-9a-f]{40}$/);
 	expect((await commit.textContent()).trim()).toMatch(/^commit [0-9a-f]{7}$/);
 	await expect(info.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', 'https://github.com/NiKrause/deContact');
-	// the header names the app and what it is, no more "the cloud we are"
-	await expect(page.getByRole('link', { name: /deContact/ }).first()).toContainText('self-updating · local · peer-to-peer');
+	// the header names the app, no more (#110); the start screen says what it is
+	await expect(page.getByRole('link', { name: /deContact/ }).first()).toHaveText('deContact');
+	await expect(page.getByTestId('passkey-gate')).toContainText('self-updating · local · peer-to-peer');
+	await expect(page.getByTestId('gate-lead')).toContainText('An address book that keeps itself up to date');
 });
 
 test('the German page runs the app', async ({ browser }) => {

@@ -1,9 +1,6 @@
 // Deutsch (#89): dieselben Schlüssel wie en.js. Kurzes UI-Deutsch mit „du“; Passkey, QR-Code
 // und DID bleiben stehen (der Passkey, der Relay, der Token, das Secret).
 export default {
-	app: {
-		tagline: '– Selbstaktualisierend · Lokal · Peer-to-Peer'
-	},
 	// was Suchmaschinen und Link-Vorschauen lesen (seo.js), und das Bild der Vorschau
 	// (scripts/brand/og-image.html): die Seite jeder Sprache hat ihre eigenen
 	meta: {
@@ -338,6 +335,10 @@ export default {
 	},
 	gate: {
 		title: 'Dein deContact-Adressbuch',
+		tagline: 'selbstaktualisierend · lokal · Peer-to-Peer',
+		lead: 'Ein Adressbuch, das sich selbst aktuell hält: Du tauschst Karten per QR-Code direkt von Handy zu Handy, und deine Kontakte bekommen jede Änderung von dir von selbst.',
+		why: 'Ein Passkey öffnet es auf diesem Gerät: kein Konto, kein Passwort und kein Server, der deine Kontakte aufbewahrt.',
+		otherWays: 'Andere Wege, es zu öffnen',
 		legacySeedRemoved:
 			'deContact öffnet deine Identität jetzt mit einem Passkey. Die in diesem Browser gespeicherte Seed-Phrase wurde entfernt; ihre DID und ihr Adressbuch werden nicht übernommen.',
 		unsupported: 'Dieser Browser kann keine Passkeys verwenden.',
@@ -358,8 +359,7 @@ export default {
 		restoreWords: 'Mit Wiederherstellungswörtern öffnen',
 		wordsLabel: 'Deine 24 Wiederherstellungswörter',
 		openWithWords: 'Öffnen',
-		importFile: 'Oder importiere eine Tresordatei von einem anderen Gerät',
-		chooseFile: 'Tresordatei wählen',
+		chooseFile: 'Tresordatei von einem anderen Gerät öffnen',
 		experimental: 'deContact ist experimentelle Software: Verlass dich bei wichtigen Kontaktdaten noch nicht darauf.',
 		opening: 'Tresor wird geöffnet …',
 		noneCreated:

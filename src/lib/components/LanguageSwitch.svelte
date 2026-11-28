@@ -16,7 +16,7 @@
         {#each LOCALES as code (code)}
             <button
                 type="button"
-                class="bx--btn bx--btn--sm {$language === code ? 'bx--btn--primary' : 'bx--btn--ghost'}"
+                class="bx--btn bx--btn--sm {$language === code ? 'bx--btn--primary' : 'bx--btn--tertiary'}"
                 aria-pressed={$language === code}
                 lang={code}
                 onclick={() => setLocale(code)}
