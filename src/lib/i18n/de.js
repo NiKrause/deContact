@@ -335,9 +335,13 @@ export default {
 	},
 	gate: {
 		title: 'Dein deContact-Adressbuch',
-		tagline: 'selbstaktualisierend · lokal · Peer-to-Peer',
+		tagline: 'Selbstaktualisierend · Lokal · Peer-to-Peer',
 		lead: 'Ein Adressbuch, das sich selbst aktuell hält: Du tauschst Visitenkarten per QR-Code direkt von Handy zu Handy, und deine Kontakte bekommen jede Änderung von dir von selbst.',
-		why: 'Ein Passkey öffnet es auf diesem Gerät: kein Konto, kein Passwort und kein Server, der deine Kontakte aufbewahrt.',
+		useful: 'So erreichen sie dich auch nach einem Umzug oder Jobwechsel.',
+		why: 'Ein Passkey öffnet dein Adressbuch auf diesem Gerät: kein Konto, kein Passwort und kein Server, der deine Kontakte aufbewahrt.',
+		usefulTitle: 'Wozu ist das gut?',
+		usefulText:
+			'Mit Menschen, die du auf einer Konferenz, in der Ausbildung, im Studium oder im Beruf kennenlernst, reißt der Kontakt leicht ab: Du ziehst danach um, wechselst die Stelle, die Telefonnummer oder die E-Mail-Adresse, oder du verlässt ein soziales Netzwerk. Mit deContact bekommen sie deine neuen Daten von selbst, und du bekommst ihre.',
 		otherWays: 'Andere Wege, es zu öffnen',
 		legacySeedRemoved:
 			'deContact öffnet deine Identität jetzt mit einem Passkey. Die in diesem Browser gespeicherte Seed-Phrase wurde entfernt; ihre DID und ihr Adressbuch werden nicht übernommen.',

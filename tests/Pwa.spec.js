@@ -117,6 +117,8 @@ test('every screen says which build runs: version, publication, commit, source',
 	await expect(page.getByRole('link', { name: /deContact/ }).first()).toHaveText('deContact');
 	await expect(page.getByTestId('passkey-gate')).toContainText('self-updating · local · peer-to-peer');
 	await expect(page.getByTestId('gate-lead')).toContainText('An address book that keeps itself up to date');
+	await expect(page.getByTestId('gate-lead')).toContainText('So they can still reach you after you move or change jobs.');
+	await expect(page.getByRole('button', { name: 'Why is this useful?' })).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('the German page runs the app', async ({ browser }) => {

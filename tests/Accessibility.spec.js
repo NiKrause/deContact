@@ -31,6 +31,11 @@ test('the first screen: the passkey screen, with the experimental note', async (
 			await expect(page.getByTestId('experimental-note')).toBeVisible();
 			await expect(page.locator('#passkey-label')).toBeVisible();
 			await checkEveryWidth(page, `the passkey screen (${language})`);
+			// and with the examples unfolded (#110)
+			const useful = page.getByRole('button', { name: language === 'de' ? 'Wozu ist das gut?' : 'Why is this useful?' });
+			await useful.click();
+			await expect(useful).toHaveAttribute('aria-expanded', 'true');
+			await checkEveryWidth(page, `the passkey screen, why it is useful (${language})`);
 		} finally {
 			await context.close();
 		}

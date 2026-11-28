@@ -88,6 +88,28 @@ describe('the catalogues (#89)', () => {
 		expect(textIn('de', 'qr.summaryAsk')).toMatch(/^Nur in deContact scannbar: .* du entscheidest/);
 	});
 
+	it('the start screen says when a book that updates itself helps, and German capitalises the tagline (#110, #119)', () => {
+		// Nico (#119): in German each word of the tagline starts with a capital, as in the title
+		expect(textIn('de', 'gate.tagline')).toBe('Selbstaktualisierend · Lokal · Peer-to-Peer');
+		expect(textIn('de', 'meta.title')).toContain(textIn('de', 'gate.tagline'));
+		expect(textIn('en', 'gate.tagline')).toBe('self-updating · local · peer-to-peer');
+		// one short sentence in the lead
+		expect(textIn('de', 'gate.useful')).toBe('So erreichen sie dich auch nach einem Umzug oder Jobwechsel.');
+		expect(textIn('en', 'gate.useful')).toBe('So they can still reach you after you move or change jobs.');
+		// the examples, folded away under a question
+		expect(textIn('de', 'gate.usefulTitle')).toBe('Wozu ist das gut?');
+		expect(textIn('en', 'gate.usefulTitle')).toBe('Why is this useful?');
+		for (const example of ['Konferenz', 'Ausbildung', 'Studium', 'Beruf', 'ziehst', 'Stelle', 'soziales Netzwerk', 'du bekommst ihre']) {
+			expect(textIn('de', 'gate.usefulText')).toContain(example);
+		}
+		for (const example of ['conference', 'training', 'university', 'work', 'move', 'jobs', 'social network', 'you get theirs']) {
+			expect(textIn('en', 'gate.usefulText')).toContain(example);
+		}
+		// the words of the parallel change: business cards, not cards
+		expect(textIn('de', 'gate.lead')).toContain('Visitenkarten');
+		expect(textIn('en', 'gate.lead')).toContain('business cards');
+	});
+
 	it('switches at once and fills in the placeholders', () => {
 		expect(currentLocale()).toBe('en');
 		expect(t('onboarding.saveAndShare', { name: 'Alice' })).toBe('Save and share with Alice');

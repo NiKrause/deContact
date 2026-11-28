@@ -67,6 +67,15 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await page.goto(process.env.PAGE_URL);
 			await expect(page.getByTestId('passkey-gate')).toBeVisible();
 			await shoot(page, '02-passkey', 'First start: the passkey screen');
+			// when a book that updates itself helps: folded away until asked for (#110)
+			const useful = page.getByRole('button', { name: 'Why is this useful?' });
+			await useful.click();
+			await expect(page.getByTestId('gate-useful')).toContainText('you get theirs');
+			// the picture shows it at rest, without the focus frame of the click
+			await useful.blur();
+			await shoot(page, '02-passkey-useful', 'First start: why it is useful, unfolded');
+			await useful.click();
+			await expect(useful).toHaveAttribute('aria-expanded', 'false');
 			// the start screen is one column: on a wide screen in the middle, with room above (#110)
 			await page.setViewportSize({ width: 1280, height: 800 });
 			const column = await page.getByTestId('passkey-gate').boundingBox();
@@ -77,7 +86,16 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 			await page.setViewportSize(size(CLICK_AT));
 			await page.getByTestId('gate-language-de').click();
 			await expect(page.getByRole('button', { name: 'Neues Adressbuch anlegen' })).toBeVisible();
+			// the switch is at the bottom: back to the top, or the full-page picture draws the
+			// fixed header across the middle of the screen
+			await page.evaluate(() => window.scrollTo(0, 0));
 			await shoot(page, '02-passkey-de', 'First start: the passkey screen, in German');
+			const wozu = page.getByRole('button', { name: 'Wozu ist das gut?' });
+			await wozu.click();
+			await expect(page.getByTestId('gate-useful')).toContainText('du bekommst ihre');
+			await wozu.blur();
+			await shoot(page, '02-passkey-de-useful', 'First start: why it is useful, unfolded, in German');
+			await wozu.click();
 			await page.getByTestId('gate-language-en').click();
 
 			const did = await createAddressBook(page, people.alice.first);

@@ -36,6 +36,17 @@ test('a browser in German starts in German, with both notices', async ({ browser
 		const page = await context.newPage();
 		await page.goto(process.env.PAGE_URL);
 		await expect(page.getByRole('heading', { name: 'Dein deContact-Adressbuch' })).toBeVisible();
+		// German capitalises each word of the tagline (#119)
+		await expect(page.getByTestId('passkey-gate')).toContainText('Selbstaktualisierend · Lokal · Peer-to-Peer');
+		await expect(page.getByTestId('gate-lead')).toContainText('So erreichen sie dich auch nach einem Umzug oder Jobwechsel.');
+		// the examples are folded away until asked for (#110)
+		const useful = page.getByRole('button', { name: 'Wozu ist das gut?' });
+		await expect(useful).toHaveAttribute('aria-expanded', 'false');
+		await expect(page.getByText(/in der Ausbildung, im Studium oder im Beruf/)).toBeHidden();
+		await useful.click();
+		await expect(useful).toHaveAttribute('aria-expanded', 'true');
+		await expect(page.getByText(/in der Ausbildung, im Studium oder im Beruf/)).toBeVisible();
+		await expect(page.getByTestId('gate-useful')).toContainText('du verlässt ein soziales Netzwerk');
 		// no dialog to confirm first (#110): a line on the passkey screen
 		await expect(page.getByTestId('experimental-note')).toHaveText(
 			'deContact ist experimentelle Software: Verlass dich bei wichtigen Kontaktdaten noch nicht darauf.'
