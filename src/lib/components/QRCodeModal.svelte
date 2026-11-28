@@ -1,7 +1,9 @@
 <script>
-    import { Modal, Checkbox, RadioButtonGroup, RadioButton } from 'carbon-components-svelte';
+    import { untrack } from 'svelte';
+    import { Modal, Checkbox, RadioButtonGroup, RadioButton, Select, SelectItem } from 'carbon-components-svelte';
     import QrCodeImage from "./QrCodeImage.svelte"
-    import { dbMyAddressBook, libp2p, myAddressBook, networkState, orbitdb } from "../../stores.js";
+    import { circles, dbMyAddressBook, libp2p, myAddressBook, networkState, orbitdb } from "../../stores.js";
+    import { circleName } from "#lib/card/circles.js";
     import ReadinessList from "./ReadinessList.svelte";
     import { LATE_AFTER_MS, readinessOf } from "#lib/network/readiness.js";
     import { notify } from "../../utils/utils.js";
@@ -26,6 +28,18 @@
     let mode = $state('now')
     /** with 'now': whoever opens the link may share their card with us in return (#86) */
     let twoWay = $state(true)
+    /**
+     * with 'now': the circle whoever opens the link joins (#100), the default for a new code
+     * at first (from Settings; the whole card, '', unless one was chosen there). It stays on
+     * this device, not in the link.
+     */
+    let circle = $state($circles.defaultCircle)
+    // each time the dialog opens: the default, as Settings has it now
+    let wasOpen = false
+    $effect(() => {
+        if (qrCodeOpen && !wasOpen) circle = untrack(() => $circles.defaultCircle)
+        wasOpen = qrCodeOpen
+    })
     const shareNow = $derived(mode === 'now')
     /** one sentence that says what happens when somebody scans the code */
     const summary = $derived(!shareNow ? 'qr.summaryAsk' : twoWay ? 'qr.summaryBoth' : 'qr.summaryNow')
@@ -34,12 +48,12 @@
     // changes (it is signed in); the contact address needs none
     let issuing = 0
     $effect(() => {
-        if (qrCodeOpen && $orbitdb && shareNow) issueToken(twoWay)
+        if (qrCodeOpen && $orbitdb && shareNow) issueToken(twoWay, circle)
     })
-    function issueToken(twoWay) {
+    function issueToken(twoWay, circle) {
         const issue = ++issuing
         onBoardingToken = undefined
-        issueOnboardingToken({ twoWay })
+        issueOnboardingToken({ twoWay, circle })
             .then((token) => { if (issue === issuing) onBoardingToken = token })
             .catch((error) => console.log("could not create an invitation link:", error?.message))
     }
@@ -110,6 +124,11 @@
                     <Checkbox id="two-way-exchange" labelText={$_('qr.twoWay')} bind:checked={twoWay} />
                     <div class="bx--form__helper-text">{$_('qr.twoWayHelp')}</div>
                 </div>
+                <!-- which fields of our card they get (#100) -->
+                <Select labelText={$_('circles.codeFor')} helperText={$_('circles.codeForHelp')} bind:selected={circle}>
+                    <SelectItem value="" text={$_('circles.wholeCard')} />
+                    {#each $circles.circles as option (option.id)}<SelectItem value={option.id} text={circleName($_, option)} />{/each}
+                </Select>
             {/if}
         </div>
     </div>

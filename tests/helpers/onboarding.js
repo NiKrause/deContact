@@ -34,9 +34,10 @@ export const answerRequests = (page, answering) =>
 /**
  * The invitation link in the QR code of `page`, pointing at the app under test.
  * "Share right away" and "Also ask for their contact details" are on by default;
- * `twoWay: false` turns the second off first.
+ * `twoWay: false` turns the second off first. `circle`: the one whoever opens it joins
+ * (#100), '' for the whole card; else the default for a new code.
  */
-export async function invitationLink(page, { twoWay = true } = {}) {
+export async function invitationLink(page, { twoWay = true, circle } = {}) {
 	await page.getByRole('link', { name: 'Exchange' }).click();
 	await page.getByRole('button', { name: 'Show my code' }).click();
 	await expect(page.getByRole('radio', { name: 'Share right away' })).toBeChecked();
@@ -47,6 +48,14 @@ export async function invitationLink(page, { twoWay = true } = {}) {
 		await page.getByText('Also ask for their contact details', { exact: true }).click();
 		await expect(option).not.toBeChecked();
 		await expect(page.getByTestId('qr-summary')).toHaveText(QR_SUMMARY.now);
+	}
+	const circles = page.getByLabel('This code is for');
+	if (circle !== undefined && (await circles.inputValue()) !== circle) {
+		// a new choice issues a new token: the link to read is the one after it
+		await expect(page.locator('img.qrcode')).toHaveAttribute('alt', /onBoardingToken=/);
+		const before = await page.locator('img.qrcode').getAttribute('alt');
+		await circles.selectOption(circle);
+		await expect(page.locator('img.qrcode')).not.toHaveAttribute('alt', before);
 	}
 	// a token of 1.<nonce>.<expiry>.<two-way>.<signature>, issued again for the new choice
 	const qrCode = page.locator('img.qrcode');

@@ -34,9 +34,9 @@ const business = fieldsOf(DEFAULT_CIRCLES, 'business');
 const family = fieldsOf(DEFAULT_CIRCLES, 'family');
 
 describe('circles (#100)', () => {
-	it('a new address book has four, Business for a new code; Family sees every field', () => {
+	it('a new address book has four; a new code gives the whole card; Family sees every field', () => {
 		expect(DEFAULT_CIRCLES.circles.map((circle) => circle.id)).toEqual(['family', 'friends', 'acquaintances', 'business']);
-		expect(DEFAULT_CIRCLES.defaultCircle).toBe('business');
+		expect(DEFAULT_CIRCLES.defaultCircle).toBe('');
 		expect(family).toEqual(CIRCLE_FIELDS);
 		expect(Object.isFrozen(business)).toBe(true);
 	});
@@ -80,7 +80,7 @@ describe('circles (#100)', () => {
 		expect(card).not.toHaveProperty('category');
 	});
 
-	it('our document of circles is checked: unknown fields out, 3 to 6 circles, a default among them', () => {
+	it('our document of circles is checked: unknown fields out, 3 to 6 circles, a default among them or the whole card', () => {
 		const doc = {
 			circles: [
 				{ id: 'family', name: '  Familie Wolkenfabrik  ', fields: ['photo', 'emails.private', 'secret.field'] },
@@ -97,9 +97,12 @@ describe('circles (#100)', () => {
 				{ id: 'friends', fields: [] },
 				{ id: 'business', fields: ['emails.work'] }
 			],
-			defaultCircle: 'family'
+			defaultCircle: ''
 		});
+		expect(circlesOf({ ...doc, defaultCircle: 'business' }).defaultCircle).toBe('business');
 		expect(circlesOf(undefined)).toEqual(DEFAULT_CIRCLES);
+		// saved and read back, the defaults are the same, their fields in the same order
+		expect(JSON.stringify(circlesOf(JSON.parse(JSON.stringify(DEFAULT_CIRCLES))))).toBe(JSON.stringify(DEFAULT_CIRCLES));
 		expect(circlesOf({ circles: [{ id: 'a', fields: [] }] })).toEqual(DEFAULT_CIRCLES);
 		const many = { circles: Array.from({ length: MAX_CIRCLES + 1 }, (_, i) => ({ id: `c${i}`, fields: [] })) };
 		expect(circlesOf(many)).toEqual(DEFAULT_CIRCLES);

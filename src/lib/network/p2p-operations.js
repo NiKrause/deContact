@@ -407,6 +407,8 @@ async function answerRequest(request) {
         const redeemed = await redeemOnboardingToken(request.onBoardingToken, { inviter: me, invitee: sender, store: onboardingTokens() })
         if (redeemed.ok) {
             console.log(`accepted the invitation link of ${sender}`)
+            // the circle chosen for the code (#100), before our card goes to them
+            await circleForNewContact(sender, redeemed.circle)
             // two-way exchange (#86): the invitation they asked for, in case they share their card
             if (request.twoWay && redeemed.twoWay) await sendInvitation(sender, request.onBoardingToken)
             await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { to: request.from });
@@ -702,13 +704,15 @@ function onboardingTokens() {
  * A one-time token for our invitation link (QR code): the first person who opens the link
  * gets our contact data without us confirming; later or after 24 hours we are asked.
  *
- * @param {{ twoWay?: boolean }} options whether they may share their contact data with us
- *   in return (#86): then we send them an invitation without asking, when they ask for one
+ * @param {{ twoWay?: boolean, circle?: string }} options twoWay: whether they may share
+ *   their contact data with us in return (#86): then we send them an invitation without
+ *   asking, when they ask for one; circle: the one whoever opens it joins (#100), '' for the
+ *   whole card; kept on this device, not in the link
  * @returns {Promise<string>}
  */
-export async function issueOnboardingToken({ twoWay = true } = {}) {
+export async function issueOnboardingToken({ twoWay = true, circle } = {}) {
     const token = await createOnboardingToken(await signer(), { twoWay })
-    onboardingTokens().issued(token)
+    onboardingTokens().issued({ ...token, circle })
     return token.text
 }
 
@@ -1149,6 +1153,38 @@ export async function saveNote(did, text) {
     }
     await getAddressRecords()
     notify(t('notify.noteSaved'))
+}
+
+/**
+ * The circle of somebody who opened our code (#100): the one chosen for it, else the default
+ * for a new code from Settings; '' (the default of a new book): no circle, the whole card. A
+ * circle they already have stays.
+ *
+ * @param {string} did
+ * @param {string} [circle]
+ */
+async function circleForNewContact(did, circle) {
+    const about = _aboutContact?.get(did)
+    if (about?.circle !== undefined || circle === '') return
+    const chosen = circle ?? _circles?.defaultCircle
+    if (!fieldsOf(_circles, chosen)) return
+    await _dbMyAddressBook.put(withCircle(about, did, chosen))
+    await getAddressRecords()
+    console.log(`${did} joins the circle ${chosen}`)
+}
+
+/**
+ * Our circles (#100), saved in our book, sealed to us, for all our devices: then our card
+ * goes into every contact's book again, with what their circle shows now.
+ *
+ * @param {any} next the circles as Settings edited them
+ */
+export async function saveCircles(next) {
+    await _dbMyAddressBook.put({ _id: CIRCLES_KEY, ...circlesOf(next), changedAt: Date.now() })
+    await getAddressRecords()
+    notify(t('notify.circlesSaved'))
+    const card = ownCard()
+    if (card?.own) await writeMyCardIntoFollowedBooks(card)
 }
 
 /**

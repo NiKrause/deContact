@@ -33,6 +33,8 @@ export const CIRCLE_FIELDS = Object.freeze([
     ...NETWORKS.map((network) => `social.${network}`)
 ])
 
+/** fields in the order of CIRCLE_FIELDS: a saved circle has them so (circlesOf) */
+const inOrder = (fields) => CIRCLE_FIELDS.filter((field) => fields.includes(field))
 const PROFESSIONAL = ['social.linkedin', 'social.github', 'social.mastodon', 'social.bluesky', 'social.website']
 const ALL_SOCIAL = NETWORKS.map((network) => `social.${network}`)
 
@@ -42,21 +44,25 @@ const frozen = (value) => {
     return Object.freeze(value)
 }
 
-/** the circles of a new address book; Business is the default for a new code: a conference */
+/**
+ * The circles of a new address book. A new code gives the whole card (`defaultCircle` ''):
+ * circles are chosen, per code in the QR dialog or as the default in Settings (decided with
+ * Nico, 2026-11-28; #100 had proposed Business).
+ */
 export const DEFAULT_CIRCLES = frozen({
     circles: [
         { id: 'family', fields: [...CIRCLE_FIELDS] },
         {
             id: 'friends',
-            fields: ['photo', 'organization', 'phones.mobile', 'phones.home', 'phones.other', 'emails.private', 'emails.other', 'addresses.home', 'addresses.other', ...ALL_SOCIAL]
+            fields: inOrder(['photo', 'organization', 'phones.mobile', 'phones.home', 'phones.other', 'emails.private', 'emails.other', 'addresses.home', 'addresses.other', ...ALL_SOCIAL])
         },
-        { id: 'acquaintances', fields: ['photo', 'phones.mobile', 'emails.private', 'emails.work', 'emails.other', ...ALL_SOCIAL] },
+        { id: 'acquaintances', fields: inOrder(['photo', 'phones.mobile', 'emails.private', 'emails.work', 'emails.other', ...ALL_SOCIAL]) },
         {
             id: 'business',
-            fields: ['photo', 'organization', 'phones.mobile', 'phones.work', 'emails.work', 'emails.other', 'addresses.work', ...PROFESSIONAL]
+            fields: inOrder(['photo', 'organization', 'phones.mobile', 'phones.work', 'emails.work', 'emails.other', 'addresses.work', ...PROFESSIONAL])
         }
     ],
-    defaultCircle: 'business'
+    defaultCircle: ''
 })
 
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -64,7 +70,7 @@ const ID = /^[a-z0-9-]{1,40}$/
 
 /**
  * The circles as our book holds them, checked: 3 to 6, each with an id, an optional name and
- * known fields; the default one of them. Without a document, or with one that does not
+ * known fields; the default for a new code one of them, or '' for the whole card. Without a document, or with one that does not
  * check out, the defaults.
  *
  * @param {any} doc the document `settings:circles`
@@ -79,7 +85,8 @@ export function circlesOf(doc) {
         circles.push(name ? { id: circle.id, name, fields } : { id: circle.id, fields })
     }
     if (circles.length < MIN_CIRCLES || circles.length > MAX_CIRCLES) return structuredClone(DEFAULT_CIRCLES)
-    const defaultCircle = circles.some((it) => it.id === doc.defaultCircle) ? doc.defaultCircle : circles[0].id
+    // '' is the whole card; a circle that is gone, too
+    const defaultCircle = circles.some((it) => it.id === doc.defaultCircle) ? doc.defaultCircle : ''
     return { circles, defaultCircle }
 }
 

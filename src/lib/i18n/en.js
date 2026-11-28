@@ -77,6 +77,24 @@ export default {
 	},
 	// circles (#100): which fields of our card a group of contacts sees
 	circles: {
+		title: 'Circles',
+		hint: 'Each contact can be in a circle, and gets only the fields of your card that their circle shows. Your name is always on it.',
+		newCircle: 'Circle {n}',
+		nameOf: 'Name of circle {n}',
+		remove: 'Remove the circle {name}',
+		add: 'Add circle',
+		matrix: 'What each circle sees',
+		field: 'Field',
+		name: 'Name',
+		photo: 'Photo',
+		organization: 'Organization',
+		shows: '{circle} sees {field}',
+		defaultCircle: 'A new code is for',
+		defaultCircleHelp: 'Who opens your code joins this circle. The code dialog lets you choose another.',
+		save: 'Save circles',
+		// the QR dialog
+		codeFor: 'This code is for',
+		codeForHelp: 'They get what this circle shows. Settings says what each circle sees.',
 		defaults: {
 			family: 'Family',
 			friends: 'Friends',
@@ -470,6 +488,7 @@ export default {
 		cardTooLong: 'Not saved: a field is too long. It is marked in the form.',
 		noteSaved: 'Note saved.',
 		circleChanged: 'Saved. They get what this circle shows.',
+		circlesSaved: 'Circles saved. Your contacts get what their circle shows.',
 		requestSent: 'Request sent. Their card arrives once they answer.',
 		requestNotDelivered: 'Not reached yet. The app keeps trying while it is open.',
 		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',

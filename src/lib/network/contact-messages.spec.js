@@ -423,6 +423,21 @@ describe('invitation link tokens', () => {
 		expect(await redeem(oneWay)).toEqual({ ok: true, twoWay: false });
 	});
 
+	it('remembers the circle chosen for a token on this device, not in the link (#100)', async () => {
+		const store = createOnboardingTokenStore(memoryStorage());
+		const forBusiness = await createOnboardingToken(alice.signer, { now });
+		const wholeCard = await createOnboardingToken(alice.signer, { now });
+		const unchosen = await createOnboardingToken(alice.signer, { now });
+		store.issued({ ...forBusiness, circle: 'business' }, now);
+		store.issued({ ...wholeCard, circle: '' }, now);
+		store.issued(unchosen, now);
+		expect(forBusiness.text).not.toContain('business');
+		const redeem = (token) => redeemOnboardingToken(token.text, { inviter: alice.did, invitee: bob.did, store, now });
+		expect(await redeem(forBusiness)).toEqual({ ok: true, twoWay: true, circle: 'business' });
+		expect(await redeem(wholeCard)).toEqual({ ok: true, twoWay: true, circle: '' });
+		expect((await redeem(unchosen)).circle).toBeUndefined();
+	});
+
 	it('expires an unused token', async () => {
 		const store = createOnboardingTokenStore(memoryStorage());
 		const token = await createOnboardingToken(alice.signer, { now });
