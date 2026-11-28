@@ -1,4 +1,5 @@
 import { createOrbitDBFor } from "#lib/identity/vault-directory.js";
+import { openingOnce } from "./open-once.js";
 
 let created // the OrbitDB being created or created for this identity and Helia node
 
@@ -15,7 +16,8 @@ export const getIdentityAndCreateOrbitDB = async (signer, helia) => {
     // when it opens a database we already hold open, which libp2p 3 refuses
     // ("Handler already registered").
     if (created?.did === signer.did && created?.helia === helia) return created.orbitdb
-    const orbitdb = createOrbitDBFor(helia, signer)
+    // one open at a time per database: the app opens a contact's book from more than one place (open-once.js)
+    const orbitdb = createOrbitDBFor(helia, signer).then(openingOnce)
     created = { did: signer.did, helia, orbitdb }
     orbitdb.catch(() => { if (created?.orbitdb === orbitdb) created = undefined })
     return orbitdb
