@@ -112,13 +112,11 @@
         </div>
     </div>
     <h1 class="title">{onboarding ? $_('onboarding.shared') : $_('gate.title')}</h1>
-    <p class="lead" data-testid="gate-lead">{$_('gate.lead')} {$_('gate.useful')} {$_('gate.why')}</p>
+    <p class="lead" data-testid="gate-lead">{$_('gate.lead')} {$_('gate.useful')} {$_('gate.private')} {$_('gate.why')}</p>
     <!-- when a book that updates itself helps: folded, for whoever has the time (#110) -->
     <Disclosure align="start" summary={$_('gate.usefulTitle')} data-testid="gate-useful">
         <p class="useful">{$_('gate.usefulText')}</p>
     </Disclosure>
-    <!-- once a blocking dialog on the first visit; now a line here, every time (#110) -->
-    <p class="experimental" data-testid="experimental-note">{$_('gate.experimental')}</p>
 
     {#if $legacySeedRemoved}
         <div class="bx--inline-notification bx--inline-notification--info" role="status" data-testid="legacy-reset">
@@ -220,8 +218,7 @@
         font-weight: 600;
         line-height: 1.2;
     }
-    .tagline,
-    .experimental {
+    .tagline {
         color: var(--cds-text-secondary, #c6c6c6);
         font-size: 0.875rem;
     }

@@ -19,7 +19,7 @@ const tabs = {
 	de: ['Austausch', 'Kontakte', 'Meine Visitenkarte', 'Einstellungen']
 };
 
-test('the first screen: the passkey screen, with the experimental note', async ({ browser }) => {
+test('the first screen: the passkey screen, with what deContact is', async ({ browser }) => {
 	test.setTimeout(300000);
 	for (const [language, locale] of [
 		['en', 'en-US'],
@@ -30,7 +30,7 @@ test('the first screen: the passkey screen, with the experimental note', async (
 			const page = await context.newPage();
 			await page.goto(process.env.PAGE_URL);
 			await expect(page.getByTestId('passkey-gate')).toBeVisible();
-			await expect(page.getByTestId('experimental-note')).toBeVisible();
+			await expect(page.getByTestId('gate-lead')).toBeVisible();
 			await expect(page.locator('#passkey-label')).toBeVisible();
 			await checkEveryWidth(page, `the passkey screen (${language})`);
 			// and with the examples unfolded (#110)

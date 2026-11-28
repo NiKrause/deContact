@@ -374,7 +374,9 @@ export default {
 		tagline: 'self-updating · local · peer-to-peer',
 		lead: 'An address book that keeps itself up to date: you exchange business cards by QR code, straight from phone to phone, and your contacts get every change of yours by themselves.',
 		useful: 'So they can still reach you after you move or change jobs.',
-		why: 'A passkey opens your address book on this device: no account, no password, and no server that keeps your contacts.',
+		private:
+			'No server and no cloud can read your contact details: they travel encrypted, peer to peer, from phone to phone, and only you and your contacts can open them.',
+		why: 'A passkey opens your address book on this device: no account, no password.',
 		usefulTitle: 'Why is this useful?',
 		usefulText:
 			'It is easy to lose touch with people you meet at a conference, in training, at university or at work: you move afterwards, change jobs, phone numbers or email addresses, or leave a social network. With deContact they get your new details by themselves, and you get theirs.',
@@ -399,7 +401,6 @@ export default {
 		wordsLabel: 'Your 24 recovery words',
 		openWithWords: 'Open with recovery words',
 		chooseFile: 'Open a vault file from another device',
-		experimental: 'deContact is experimental software: do not rely on it yet for contact details that matter.',
 		opening: 'Opening the vault…',
 		noneCreated:
 			'No address book was created. Open a device link, import a vault file or use your recovery words.',

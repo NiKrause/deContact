@@ -4,7 +4,7 @@ import { addVirtualAuthenticator, contactAddressOf, didOf, newPerson, names, rec
 // The app in English and German (#89). The suite runs its browsers in en-US
 // (playwright.config.js); here the language comes from the browser, from the switch in
 // Settings, and from the switch on the first screen.
-// 1. A browser in German starts in German: the experimental note and the seed-migration notice.
+// 1. A browser in German starts in German: the start screen's text and the seed-migration notice.
 // 2. Alice switches to German in Settings; it stays after a reload. Bob's request reaches her
 //    as a German dialog, and its German button sends her card.
 // 3. Carol opens Alice's invitation link and switches to German on the first screen, the
@@ -30,7 +30,7 @@ async function switchToGermanInSettings(page) {
 	expect(await htmlLang(page)).toBe('de');
 }
 
-test('a browser in German starts in German, with both notices', async ({ browser }) => {
+test('a browser in German starts in German: the text of the start screen and the seed-migration notice', async ({ browser }) => {
 	const context = await browser.newContext({ locale: 'de-DE' });
 	try {
 		const page = await context.newPage();
@@ -47,9 +47,9 @@ test('a browser in German starts in German, with both notices', async ({ browser
 		await expect(useful).toHaveAttribute('aria-expanded', 'true');
 		await expect(page.getByText(/in der Ausbildung, im Studium oder im Beruf/)).toBeVisible();
 		await expect(page.getByTestId('gate-useful')).toContainText('du verlässt ein soziales Netzwerk');
-		// no dialog to confirm first (#110): a line on the passkey screen
-		await expect(page.getByTestId('experimental-note')).toHaveText(
-			'deContact ist experimentelle Software: Verlass dich bei wichtigen Kontaktdaten noch nicht darauf.'
+		// what happens with the contact details, right on the first screen
+		await expect(page.getByTestId('gate-lead')).toContainText(
+			'Kein Server und keine Cloud kann deine Kontaktdaten lesen: Sie gehen verschlüsselt Peer-to-Peer von Handy zu Handy, und nur du und deine Kontakte können sie öffnen.'
 		);
 		await expect(page.getByRole('button', { name: 'Neues Adressbuch anlegen' })).toBeVisible();
 		expect(await htmlLang(page)).toBe('de');
