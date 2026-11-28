@@ -66,8 +66,8 @@ export function webManifest(locale, { root }) {
 		start_url: './',
 		scope: up,
 		display: 'standalone',
-		background_color: '#161616',
-		theme_color: '#161616',
+		background_color: '#262626',
+		theme_color: '#262626',
 		categories: ['productivity', 'social', 'utilities'],
 		icons: [
 			{ src: `${up}icons/icon-192.png`, sizes: '192x192', type: 'image/png', purpose: 'any' },

@@ -95,9 +95,10 @@ test("the installed app's shortcut opens Show my code once the address book is o
 	const alice = await newPerson(browser, { first: 'Alice', last: 'Wolkenfabrik' });
 	try {
 		const { page } = alice;
-		// as the installed app starts from its shortcut: a new page at the shortcut's address
+		// as the installed app starts from its shortcut: a fresh load of the shortcut's address
+		// (about:blank first: a change of the hash alone would reach the app that is open)
+		await page.goto('about:blank');
 		await page.goto(`${process.env.PAGE_URL}#/?open=code`);
-		await page.reload();
 		await page.getByRole('button', { name: 'Unlock with passkey' }).click();
 		await expect(page.getByTestId('qr-summary')).toBeVisible({ timeout: 60000 });
 		// the address drops the request: a reload does not open the code again
