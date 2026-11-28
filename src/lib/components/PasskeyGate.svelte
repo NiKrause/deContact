@@ -5,10 +5,12 @@
      * device link or a vault file. A passkey that opens nothing is never given a new
      * address book without asking.
      *
-     * Its look (#110, Phase 4): the name, the icon and what deContact is come first, with why
-     * it asks for a passkey; then one primary button (unlock, or create on a first start), and
-     * the other ways below it, quieter. One column: a tile in the middle of a wide screen,
-     * the screen's width on a phone (+layout.svelte puts the version line under it).
+     * Its look (#110, Phase 4): the name, the icon and what deContact is come first, what it is
+     * good for and why it asks for a passkey, with the examples folded away under "Why is this
+     * useful?" (a hurried first start at a conference need not read them); then one primary
+     * button (unlock, or create on a first start), and the other ways below it, quieter. One
+     * column: a tile in the middle of a wide screen, the screen's width on a phone
+     * (+layout.svelte puts the version line under it).
      */
     import {
         createAddressBook,
@@ -25,7 +27,7 @@
     import { notify } from '../../utils/utils.js'
     import { _, t } from '#lib/i18n/index.js'
     import LanguageSwitch from './LanguageSwitch.svelte'
-    import { FileUploaderButton } from 'carbon-components-svelte'
+    import { Disclosure, FileUploaderButton } from 'carbon-components-svelte'
     import { asset } from '$app/paths'
 
     /** onboarding: somebody opened an invitation link; handedOver: a device link brought a vault record */
@@ -42,6 +44,8 @@
     let wordsText = $state('')
     let label = $state('')
     let imported = $state(false)
+    /** the tagline's words, each kept whole: a narrow screen breaks it at a dot, never inside "peer-to-peer" */
+    const taglineParts = $derived($_('gate.tagline').split(' · '))
 
     async function run(action) {
         busy = true
@@ -102,11 +106,17 @@
         <img src={asset('favicon.svg')} alt="" width="56" height="56" />
         <div>
             <p class="name">deContact</p>
-            <p class="tagline">{$_('gate.tagline')}</p>
+            <p class="tagline">
+                {#each taglineParts as part, i (i)}{#if i}{' '}{/if}<span class="nowrap">{part}{#if i < taglineParts.length - 1}{' ·'}{/if}</span>{/each}
+            </p>
         </div>
     </div>
     <h1 class="title">{onboarding ? $_('onboarding.shared') : $_('gate.title')}</h1>
-    <p class="lead" data-testid="gate-lead">{$_('gate.lead')} {$_('gate.why')}</p>
+    <p class="lead" data-testid="gate-lead">{$_('gate.lead')} {$_('gate.useful')} {$_('gate.why')}</p>
+    <!-- when a book that updates itself helps: folded, for whoever has the time (#110) -->
+    <Disclosure align="start" summary={$_('gate.usefulTitle')} data-testid="gate-useful">
+        <p class="useful">{$_('gate.usefulText')}</p>
+    </Disclosure>
     <!-- once a blocking dialog on the first visit; now a line here, every time (#110) -->
     <p class="experimental" data-testid="experimental-note">{$_('gate.experimental')}</p>
 
@@ -215,6 +225,9 @@
         color: var(--cds-text-secondary, #c6c6c6);
         font-size: 0.875rem;
     }
+    .nowrap {
+        white-space: nowrap;
+    }
     .title {
         font-size: 1.75rem;
         line-height: 1.25;
@@ -223,8 +236,29 @@
     .choice-title {
         font-size: 1.25rem;
     }
-    .lead {
+    .lead,
+    .useful {
         line-height: 1.5;
+    }
+    /* the examples are for whoever has the time: as small as the question that opens them */
+    .useful {
+        font-size: 0.875rem;
+    }
+    /* "Why is this useful?" starts where the text does, like the quieter ways below, and its
+       text lines up with the words of the summary, not with the chevron */
+    .gate :global(.bx--disclosure--start .bx--disclosure__arrow) {
+        margin-left: 0;
+        /* Carbon fills it with g90's light grey, whatever the theme; the theme's own icon colour */
+        fill: var(--cds-icon-primary, #f4f4f4);
+    }
+    .gate :global(.bx--disclosure--start .bx--disclosure__summary) {
+        margin-left: 0.5rem;
+    }
+    .gate :global(.bx--disclosure--start .bx--disclosure__content) {
+        margin-left: 1.5rem;
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: 0;
     }
     .new,
     .words,

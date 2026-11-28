@@ -351,10 +351,15 @@ export default {
 	},
 	gate: {
 		title: 'Your deContact address book',
-		// the start screen says what deContact is and why it asks for a passkey (#110)
+		// the start screen says what deContact is, what it is good for, and why it asks for a
+		// passkey (#110); the examples are behind "Why is this useful?"
 		tagline: 'self-updating · local · peer-to-peer',
 		lead: 'An address book that keeps itself up to date: you exchange business cards by QR code, straight from phone to phone, and your contacts get every change of yours by themselves.',
-		why: 'A passkey opens it on this device: no account, no password, and no server that keeps your contacts.',
+		useful: 'So they can still reach you after you move or change jobs.',
+		why: 'A passkey opens your address book on this device: no account, no password, and no server that keeps your contacts.',
+		usefulTitle: 'Why is this useful?',
+		usefulText:
+			'It is easy to lose touch with people you meet at a conference, in training, at university or at work: you move afterwards, change jobs, phone numbers or email addresses, or leave a social network. With deContact they get your new details by themselves, and you get theirs.',
 		otherWays: 'Other ways to open it',
 		legacySeedRemoved:
 			'deContact now opens your identity with a passkey. The seed phrase stored in this browser was removed; its DID and address book are not carried over.',
