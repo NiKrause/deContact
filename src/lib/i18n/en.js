@@ -160,6 +160,13 @@ export default {
 		empty: 'No contacts yet. Show your code or scan theirs on Exchange.',
 		nameless: 'Somebody without a name on their card',
 		// a contact's page: the card in words, the technical parts collapsed (#110)
+		// my notes on a contact (#109): ours alone
+		notes: {
+			label: 'My notes',
+			hint: "Only you see them. They are not part of {name}'s card.",
+			hintNameless: 'Only you see them. They are not part of the card.',
+			save: 'Save note'
+		},
 		details: {
 			technical: 'Technical details',
 			did: 'DID',
@@ -447,6 +454,7 @@ export default {
 		addressCopied: 'Contact address copied.',
 		cardAddressCopied: 'Address copied.',
 		cardTooLong: 'Not saved: a field is too long. It is marked in the form.',
+		noteSaved: 'Note saved.',
 		requestSent: 'Request sent. Their card arrives once they answer.',
 		requestNotDelivered: 'Not reached yet. The app keeps trying while it is open.',
 		noDevice: 'This address names no device. Scan the QR code of the person you want to ask.',

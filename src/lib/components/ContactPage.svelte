@@ -9,6 +9,7 @@
     import { Accordion, AccordionItem, Button, ConfirmModal } from "carbon-components-svelte";
     import TrashCan from "carbon-icons-svelte/lib/TrashCan.svelte";
     import CardEntries from "./CardEntries.svelte";
+    import ContactNotes from "./ContactNotes.svelte";
     import ContactPhoto from "./ContactPhoto.svelte";
     import { entriesOf } from "#lib/card/entries.js";
     import { isPhoto } from "#lib/photo/photo.js";
@@ -44,6 +45,11 @@
     </header>
 
     <CardEntries {card} reach testid="contact-details" />
+
+    {#if text(card.owner)}
+        <!-- ours alone, never part of their card (#109) -->
+        <ContactNotes did={text(card.owner)} name={placeholder ? "" : text(card.firstName) || name} />
+    {/if}
 
     {#if text(card.owner) || text(card.sharedAddress)}
         <Accordion>
