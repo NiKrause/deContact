@@ -66,6 +66,37 @@ export default {
 			count: { one: '({count} Peer)', other: '({count} Peers)' }
 		}
 	},
+	peers: {
+		title: 'Verbundene Peers',
+		none: 'Noch kein Peer: deContact sucht weiter nach einem Relay.',
+		summary: '{peers}: {parts}',
+		total: { one: '{count} Peer', other: '{count} Peers' },
+		relays: { one: '{count} Relay', other: '{count} Relays' },
+		noRelay: 'kein Relay',
+		browsers: { one: '{count} Browser', other: '{count} Browser' },
+		browsersWays: '{browsers} ({ways})',
+		wayCount: '{count} {way}',
+		directWay: 'direkt, {transport}',
+		relayed: 'über ein Relay',
+		directOver: '{transport}, direkt',
+		relayedVia: 'über Relay {relay} ({transport})',
+		relayedOver: 'über ein Relay ({transport})',
+		also: 'außerdem offen: {ways}',
+		kind: { relay: 'Relay', browser: 'Browser' },
+		transport: {
+			webrtc: 'WebRTC',
+			webtransport: 'WebTransport',
+			wss: 'WebSocket Secure',
+			ws: 'WebSocket',
+			'webrtc-direct': 'WebRTC Direct',
+			quic: 'QUIC',
+			tcp: 'TCP',
+			other: 'anderer Transport'
+		},
+		copy: 'Vollständige Peer-ID von {id} kopieren',
+		copied: 'Peer-ID kopiert',
+		copyFailed: 'Kopieren fehlgeschlagen'
+	},
 	nav: {
 		label: 'Hauptnavigation',
 		exchange: 'Austausch',
@@ -481,9 +512,6 @@ export default {
 		dropFollowersText: 'Dieses Gerät vergisst seine Kopien der Adressbücher deiner Kontakte. Deine eigene Visitenkarte und deine Passkeys bleiben.',
 		dropAddressBookTitle: 'Dein Adressbuch auf diesem Gerät löschen?',
 		dropAddressBookText: 'Dieses Gerät vergisst dein Adressbuch: deine Visitenkarte und deine Kontakte. Was andere Geräte und Relays davon haben, bleibt.'
-	},
-	statistics: {
-		connected: 'Seed-Node verbunden / Schwarm verbunden'
 	},
 	notify: {
 		contactAdded: 'Im Adressbuch gespeichert.',

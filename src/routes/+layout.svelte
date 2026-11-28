@@ -4,8 +4,6 @@
     import "carbon-components-svelte/css/all.css";
     // the accent colour chosen in Settings, over Carbon's blue (lib/theme.js)
     import "#lib/accent.css";
-    import ConnectionSignalOff from "carbon-icons-svelte/lib/ConnectionSignalOff.svelte";
-    import ConnectionSignal from "carbon-icons-svelte/lib/ConnectionSignal.svelte";
     import { Header, HeaderUtilities } from "carbon-components-svelte";
     import { connectPasskeyStepDialog } from "@le-space/orbitdb-identity-provider-webauthn-did/elements";
     import { hash, query } from './router.js'
@@ -14,6 +12,7 @@
     import { keepInstallPrompt } from "#lib/pwa/install.js";
     import SecureOffer from "#lib/components/SecureOffer.svelte";
     import AppInfo from "#lib/components/AppInfo.svelte";
+    import PeersStatus from "#lib/components/PeersStatus.svelte";
     import { qrCodeOpen, qrCodeData, helia, orbitdb, myAddressBook } from "../stores.js";
 
     import { startNetwork, startAddressBook, close } from "../lib/network/p2p-operations.js"
@@ -30,21 +29,15 @@
     } from "#lib/identity/session.js"
     import { parseVaultRecord } from "#lib/identity/vault.js"
     import { somethingToLose, wantsSignIn } from "#lib/identity/temporary.js"
-
-    import { connectedPeers } from "../stores.js";
     import Home from './+page.svelte'
     import OnBoarding from "#lib/components/OnBoarding.svelte";
-    import { _, language, passkeyStepStrings, startLocale } from "#lib/i18n/index.js";
+    import { language, passkeyStepStrings, startLocale } from "#lib/i18n/index.js";
     import { followTheme } from "#lib/theme.js";
 
     // the language before the first screen: a choice made earlier, else the browser's (#89)
     startLocale()
     // light or dark: a choice made in Settings, else the system's, and its changes (#110)
     onDestroy(followTheme())
-
-    /** what the peer icon's colour says, in words, with the number next to it */
-    const peersState = $derived($connectedPeers === 0 ? 'header.peers.none' : $connectedPeers === 1 ? 'header.peers.seed' : 'header.peers.swarm')
-    const peersText = $derived(`${$_(peersState)} ${$_('header.peers.count', { count: $connectedPeers })}`)
 
     // the vault comes first: the gate below asks it whether this browser keeps one
     let networkStarted
@@ -140,19 +133,9 @@
         href="./#/">
 
         <HeaderUtilities>
-            <!-- not in HeaderNav: that is a menu bar, which holds only menu items. The colour and
-                 the number are for the eye; the hidden text says both. Not a live region: the
-                 number changes too often to be read out each time. -->
-            <div class="peers" title={peersText} data-testid="peers">
-                 {#if $connectedPeers===0}
-                     <ConnectionSignalOff aria-hidden="true" class="statusRed" />
-                 {:else}
-                     <ConnectionSignal aria-hidden="true" class={$connectedPeers===1 ? 'statusYellow' : 'statusGreen'} />
-                 {/if}
-                 <span aria-hidden="true">&nbsp;{$connectedPeers}</span>
-                 <span class="bx--visually-hidden">{peersText}</span>
-            </div>
-    </HeaderUtilities>
+            <!-- the peers, and how each is connected, in a toggletip -->
+            <PeersStatus />
+        </HeaderUtilities>
 </Header>
 <QRCodeModal
         onclose={ () => $qrCodeOpen = false }
@@ -218,17 +201,5 @@
         color: var(--cds-status-green, #42be65);
         width: 16px;
         height: 16px;
-    }
-    .peers {
-        display: flex;
-        align-items: center;
-        padding: 0 1rem;
-        color: var(--cds-text-secondary, #c6c6c6);
-    }
-    /* where Carbon hid the header navigation it stood in, so phones look as before */
-    @media (max-width: 65.98rem) {
-        .peers {
-            display: none;
-        }
     }
 </style>

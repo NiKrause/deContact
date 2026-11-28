@@ -226,6 +226,19 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 				.toContain(fullName(people.carol));
 		});
 
+		await test.step("the header's network toggletip: the relay and the other browsers", async () => {
+			await openTab(page, 'Exchange');
+			const button = page.getByTestId('peers-button');
+			await button.click();
+			const tip = page.getByTestId('peers-toggletip');
+			await expect(tip).toBeVisible();
+			await expect(tip.locator('[data-testid="peer"][data-kind="relay"]')).toHaveCount(1, { timeout: 60000 });
+			await expect(tip.locator('[data-testid="peer"][data-kind="browser"]').first()).toBeVisible({ timeout: 60000 });
+			await shoot(page, '06b-peers', "The header's network toggletip", { dialog: true });
+			await button.click();
+			await expect(tip).toBeHidden();
+		});
+
 		await test.step('Contacts with contacts, a contact expanded and opened', async () => {
 			await openTab(page, 'Contacts');
 			const row = page.getByTestId('contact-row').filter({ hasText: people.bob.last });
