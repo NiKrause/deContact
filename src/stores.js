@@ -81,6 +81,7 @@ const contact = Object.freeze({
     _id:"",
     firstName: "",
     lastName: "",
+    organization: "",
     street: "",
     postalCode: "",
     city: "",
@@ -90,12 +91,14 @@ const contact = Object.freeze({
     ipns: "",
     owner:"",
     own:true,
-    category: 'business',
     sharedAddress:""
 })
 
-/** an empty card for the form: our own before its first save (own), or a contact added by hand */
-export const blankCard = (own) => ({ ...contact, own })
+/**
+ * An empty card for the form: our own before its first save (own), or a contact added by
+ * hand. Its entries (#109) are new arrays each time: the template's would be shared.
+ */
+export const blankCard = (own) => ({ ...contact, phones: [], emails: [], addresses: [], social: [], own })
 // a copy: the first card typed into the form once went into the template itself, so every
 // later "Add contact" started with our own name and its _id, and offered Update and Delete
 export const selectedAddr = writable(blankCard(true))

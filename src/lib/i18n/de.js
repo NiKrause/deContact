@@ -179,6 +179,46 @@ export default {
 		firstNamePlaceholder: 'Vorname eingeben …',
 		lastName: 'Nachname',
 		lastNamePlaceholder: 'Nachname eingeben …',
+		organization: 'Organisation (optional)',
+		kinds: {
+			phones: 'Telefon',
+			emails: 'E-Mail',
+			addresses: 'Adresse',
+			social: 'Soziale Medien'
+		},
+		labelOf: {
+			phone: 'Bezeichnung von Telefon {n}',
+			email: 'Bezeichnung von E-Mail {n}',
+			address: 'Bezeichnung von Adresse {n}'
+		},
+		networkOf: 'Netzwerk von Profil {n}',
+		entryOf: {
+			phone: 'Telefon {n}',
+			email: 'E-Mail {n}',
+			profile: 'Profil {n}'
+		},
+		removeEntry: {
+			phone: 'Telefon {n} entfernen',
+			email: 'E-Mail {n} entfernen',
+			address: 'Adresse {n} entfernen',
+			profile: 'Profil {n} entfernen'
+		},
+		more: {
+			phone: 'Telefon hinzufügen',
+			email: 'E-Mail hinzufügen',
+			address: 'Adresse hinzufügen',
+			profile: 'Profil hinzufügen'
+		},
+		phonePlaceholder: 'Telefonnummer',
+		emailPlaceholder: 'name@example.com',
+		handles: {
+			mastodon: '@name@server.example',
+			bluesky: 'name.bsky.social',
+			website: 'https://…',
+			other: 'Dein Name dort'
+		},
+		notALink: 'Erscheint als Text: Das ist kein Profilname bei {network}.',
+		tooLong: 'Höchstens {max} Zeichen.',
 		street: 'Straße',
 		streetPlaceholder: 'Straße eingeben …',
 		zipCode: 'PLZ',
@@ -187,19 +227,9 @@ export default {
 		cityPlaceholder: 'Ort eingeben …',
 		country: 'Land',
 		countryPlaceholder: 'Land eingeben …',
-		email: 'E-Mail',
-		emailPlaceholder: 'E-Mail',
-		category: 'Kategorie',
-		categories: {
-			private: 'Privat',
-			business: 'Geschäftlich',
-			other: 'Sonstiges'
-		},
-		own: 'Meine eigene Adresse',
 		update: 'Aktualisieren',
-		new: 'Neu',
 		delete: 'Löschen',
-		add: 'Hinzufügen',
+		save: 'Speichern',
 		removeTitle: '{name} entfernen?',
 		removeTitleNameless: 'Diesen Kontakt entfernen?',
 		removeText: 'Die Person bekommt keine Änderungen mehr von dir, und deine Karte verschwindet aus ihrem Adressbuch.',
@@ -258,6 +288,9 @@ export default {
 		country: 'Land',
 		countryPlaceholder: 'Land eingeben …',
 		addAddress: 'Adresse hinzufügen',
+		addPhone: 'Telefon hinzufügen',
+		phone: 'Telefon',
+		phonePlaceholder: 'Telefonnummer',
 		saveAndShare: 'Speichern und mit {name} teilen',
 		saveAndShareNameless: 'Speichern und teilen',
 		onTheWay: 'Die Karte der Person, die dich eingeladen hat, ist unterwegs …',
@@ -400,6 +433,7 @@ export default {
 		invitationCopied: 'Einladungslink kopiert.',
 		addressCopied: 'Kontaktadresse kopiert.',
 		cardAddressCopied: 'Adresse kopiert.',
+		cardTooLong: 'Nicht gespeichert: Ein Feld ist zu lang. Es ist im Formular markiert.',
 		requestSent: 'Anfrage gesendet. Die Karte kommt, sobald die Person antwortet.',
 		requestNotDelivered: 'Noch nicht erreicht. Die App versucht es weiter, solange sie offen ist.',
 		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',

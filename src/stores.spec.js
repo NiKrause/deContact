@@ -19,7 +19,10 @@ describe('the empty card', () => {
 		expect(stores.blankCard(true)).toMatchObject({ lastName: '', _id: '', own: true });
 	});
 
-	it('is a new object each time', () => {
+	it('is a new object each time, with entries of its own (#109)', () => {
 		expect(stores.blankCard(false)).not.toBe(stores.blankCard(false));
+		const first = stores.blankCard(true);
+		first.phones.push({ label: 'mobile', value: '0301' });
+		expect(stores.blankCard(true)).toMatchObject({ phones: [], emails: [], addresses: [], social: [] });
 	});
 });

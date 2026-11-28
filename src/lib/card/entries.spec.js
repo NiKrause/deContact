@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { MAX_ENTRIES, MAX_LENGTH, addressLines, emailLink, entriesOf, phoneLink, profileLink, subtitleOf } from './entries.js';
+import {
+	MAX_ENTRIES,
+	MAX_LENGTH,
+	addressLines,
+	editable,
+	emailLink,
+	entriesOf,
+	newEntry,
+	phoneLink,
+	problemsOf,
+	profileLink,
+	subtitleOf,
+	withEntries
+} from './entries.js';
 
 const alice = {
 	firstName: 'Alice',
@@ -204,5 +217,100 @@ describe('links (#109)', () => {
 		expect(emailLink('bob')).toBeUndefined();
 		expect(emailLink('a@b@example.com')).toBeUndefined();
 		expect(emailLink('bob @example.com')).toBeUndefined();
+	});
+});
+
+describe('the form (#109)', () => {
+	it('a new entry gets its default label: the first phone Mobile, a second Work, the first address Home', () => {
+		expect(newEntry('phones', 0)).toEqual({ label: 'mobile', value: '' });
+		expect(newEntry('phones', 1)).toEqual({ label: 'work', value: '' });
+		expect(newEntry('phones', 2)).toEqual({ label: 'other', value: '' });
+		expect(newEntry('emails', 0)).toEqual({ label: 'work', value: '' });
+		expect(newEntry('addresses', 0)).toEqual({ label: 'home', street: '', postalCode: '', city: '', countryRegion: '' });
+		expect(newEntry('social', 0)).toEqual({ network: 'mastodon', handle: '' });
+	});
+
+	it('edits a copy: typing into the form changes nothing in the card the book holds', () => {
+		const card = {
+			_id: 'abc',
+			firstName: 'Alice',
+			phones: [{ label: 'mobile', value: '0301' }],
+			addresses: [{ label: 'home', street: 'Wolkenweg 1', postalCode: '', city: 'Musterstadt', countryRegion: '' }]
+		};
+		const copy = editable(card);
+		copy.phones[0].value = '0999';
+		copy.addresses[0].city = 'Anderswo';
+		copy.phones.push({ label: 'work', value: '1' });
+		expect(card.phones).toEqual([{ label: 'mobile', value: '0301' }]);
+		expect(card.addresses[0].city).toBe('Musterstadt');
+		expect(copy._id).toBe('abc');
+	});
+
+	it('a card from before opens in the form with its email and address as entries', () => {
+		expect(editable(alice)).toMatchObject({
+			emails: [{ label: 'private', value: 'alice@example.com' }],
+			addresses: [{ label: 'home', city: 'Musterstadt' }],
+			phones: [],
+			social: []
+		});
+	});
+});
+
+describe('a card as it is saved (#109)', () => {
+	const typed = {
+		_id: 'abc',
+		own: true,
+		category: 'business',
+		firstName: ' Alice ',
+		lastName: 'Wolkenfabrik',
+		organization: '',
+		phones: [
+			{ label: 'mobile', value: ' +49 30 1 ' },
+			{ label: 'work', value: '   ' }
+		],
+		emails: [
+			{ label: 'work', value: '' },
+			{ label: 'private', value: 'alice@example.com' }
+		],
+		addresses: [{ label: 'home', street: '', postalCode: '', city: ' Musterstadt ', countryRegion: '' }],
+		social: [{ network: 'myspace', handle: 'alice' }],
+		email: 'stale@example.com',
+		street: 'Old Street 1'
+	};
+
+	it('trims, leaves out empty entries, and keeps the order', () => {
+		const card = withEntries(typed);
+		expect(card.firstName).toBe('Alice');
+		expect(card.phones).toEqual([{ label: 'mobile', value: '+49 30 1' }]);
+		expect(card.emails).toEqual([{ label: 'private', value: 'alice@example.com' }]);
+		expect(card.addresses).toEqual([{ label: 'home', street: '', postalCode: '', city: 'Musterstadt', countryRegion: '' }]);
+		expect(card.social).toEqual([{ network: 'other', handle: 'alice' }]);
+		expect(card._id).toBe('abc');
+		expect(card.own).toBe(true);
+	});
+
+	it('writes the first email and address into the flat fields, for older app versions; the category goes', () => {
+		const card = withEntries(typed);
+		expect(card).toMatchObject({ email: 'alice@example.com', street: '', postalCode: '', city: 'Musterstadt', countryRegion: '' });
+		expect(card).not.toHaveProperty('category');
+		expect(withEntries({ firstName: 'Bob' })).toMatchObject({ email: '', street: '', city: '', phones: [], emails: [], addresses: [], social: [] });
+	});
+
+	it('reads back as it was saved, and an older version sees the first email and address', () => {
+		const card = withEntries(typed);
+		expect(entriesOf(card)).toMatchObject({ phones: card.phones, emails: card.emails, addresses: card.addresses });
+	});
+
+	it('cuts nothing: problemsOf says what is over the limits', () => {
+		const long = withEntries({
+			firstName: 'A'.repeat(MAX_LENGTH.firstName + 1),
+			phones: [{ label: 'mobile', value: '1'.repeat(MAX_LENGTH.phone + 1) }],
+			addresses: [{ label: 'home', city: 'C'.repeat(MAX_LENGTH.city + 1) }],
+			social: Array.from({ length: MAX_ENTRIES + 1 }, () => ({ network: 'github', handle: 'bob' }))
+		});
+		expect(long.firstName).toHaveLength(MAX_LENGTH.firstName + 1);
+		expect(problemsOf(long)).toEqual(['firstName', 'phones.0.value', 'addresses.0.city', 'social']);
+		expect(problemsOf(withEntries(typed))).toEqual([]);
+		expect(problemsOf(withEntries({ firstName: 'A'.repeat(MAX_LENGTH.firstName) }))).toEqual([]);
 	});
 });
