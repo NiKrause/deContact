@@ -2,23 +2,25 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { addVirtualAuthenticator, newPerson, strayPasskey } from './helpers/passkeys.js';
 import { invitationLink, openLink } from './helpers/onboarding.js';
+import { DEVICES, LOOKS, size } from './helpers/devices.js';
 
 // What a screen reader, a keyboard or weak eyes meet on each screen: axe-core with the rules
-// of WCAG 2.1 A and AA, in English and German, at a desktop's width and a phone's. Each screen
-// is checked as it is shown; one finding fails the test, and all of them are listed. The
-// screens are the four places of #110 (Exchange, Contacts, My card, Settings).
+// of WCAG 2.1 A and AA, in English and German, at the width of each device of #110, light and
+// dark. Each screen is checked as it is shown; one finding fails the test, and all of them
+// are listed. The screens are the four places of #110 (Exchange, Contacts, My card, Settings).
 // Not covered: the camera (<qr-scanner>), which needs a camera, and the passkey step dialog
 // (<passkey-step-dialog>), which shows only during a passkey prompt.
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-const widths = { desktop: { width: 1280, height: 720 }, phone: { width: 390, height: 844 } };
+/** the width the test clicks at: a desktop's, with the places in a rail */
+const CLICK_AT = DEVICES.at(-1);
 const tabs = {
 	en: ['Exchange', 'Contacts', 'My business card', 'Settings'],
 	de: ['Austausch', 'Kontakte', 'Meine Visitenkarte', 'Einstellungen']
 };
 
 test('the first screen: the passkey screen, with the experimental note', async ({ browser }) => {
-	test.setTimeout(180000);
+	test.setTimeout(300000);
 	for (const [language, locale] of [
 		['en', 'en-US'],
 		['de', 'de-DE']
@@ -43,7 +45,7 @@ test('the first screen: the passkey screen, with the experimental note', async (
 });
 
 test('the passkey screen with a kept vault, and when a passkey opens nothing (#110)', async ({ browser }) => {
-	test.setTimeout(240000);
+	test.setTimeout(420000);
 	const alice = await newPerson(browser, { first: 'Alice', last: 'Wolkenfabrik', city: 'Musterstadt' });
 	const context = await browser.newContext();
 	try {
@@ -68,7 +70,7 @@ test('the passkey screen with a kept vault, and when a passkey opens nothing (#1
 });
 
 test("the app's screens, the QR code and the invitation form", async ({ browser }) => {
-	test.setTimeout(360000);
+	test.setTimeout(900000);
 	const alice = await newPerson(browser, { first: 'Alice', last: 'Wolkenfabrik', city: 'Musterstadt' });
 	let bob;
 	try {
@@ -110,17 +112,26 @@ test("the app's screens, the QR code and the invitation form", async ({ browser 
 	}
 });
 
-/** the screen as shown now, at each width: what axe finds, as "rule (impact): where" */
+/**
+ * The screen as shown now, at each width, light and dark (the system's setting, which the
+ * app follows at once): what axe finds, as "rule (impact): where". Back at the width the test
+ * clicks at, light, afterwards.
+ */
 async function checkEveryWidth(page, screen) {
-	for (const [width, size] of Object.entries(widths)) {
-		await page.setViewportSize(size);
-		// Carbon lays some parts out again after a resize (the tabs become a list on a phone)
-		await page.waitForTimeout(300);
-		const { violations } = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-		const found = violations.map(
-			(violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(' | ')}`
-		);
-		expect.soft(found, `${screen}, ${width}`).toEqual([]);
+	for (const look of LOOKS) {
+		await page.emulateMedia({ colorScheme: look });
+		await expect(page.locator('html')).toHaveAttribute('theme', look === 'dark' ? 'g90' : 'white');
+		for (const device of DEVICES) {
+			await page.setViewportSize(size(device));
+			// some parts lay out again after a resize (the navigation moves to the bottom on a phone)
+			await page.waitForTimeout(300);
+			const { violations } = await new AxeBuilder({ page }).withTags(WCAG).analyze();
+			const found = violations.map(
+				(violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(' | ')}`
+			);
+			expect.soft(found, `${screen}, ${device.width} px, ${look}`).toEqual([]);
+		}
 	}
-	await page.setViewportSize(widths.desktop);
+	await page.emulateMedia({ colorScheme: 'light' });
+	await page.setViewportSize(size(CLICK_AT));
 }

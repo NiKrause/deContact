@@ -4,7 +4,7 @@
     import "carbon-components-svelte/css/all.css";
     import ConnectionSignalOff from "carbon-icons-svelte/lib/ConnectionSignalOff.svelte";
     import ConnectionSignal from "carbon-icons-svelte/lib/ConnectionSignal.svelte";
-    import { Header, HeaderUtilities, Theme } from "carbon-components-svelte";
+    import { Header, HeaderUtilities } from "carbon-components-svelte";
     import { connectPasskeyStepDialog } from "@le-space/orbitdb-identity-provider-webauthn-did/elements";
     import { hash, query } from './router.js'
     import QRCodeModal from "#lib/components/QRCodeModal.svelte";
@@ -32,12 +32,12 @@
     import Home from './+page.svelte'
     import OnBoarding from "#lib/components/OnBoarding.svelte";
     import { _, language, passkeyStepStrings, startLocale } from "#lib/i18n/index.js";
+    import { followTheme } from "#lib/theme.js";
 
     // the language before the first screen: a choice made earlier, else the browser's (#89)
     startLocale()
-
-    /** @type {import('carbon-components-svelte/src/Theme/Theme.svelte').CarbonTheme} */
-    let theme = $state("g90");
+    // light or dark: a choice made in Settings, else the system's, and its changes (#110)
+    onDestroy(followTheme())
 
     /** what the peer icon's colour says, in words, with the number next to it */
     const peersState = $derived($connectedPeers === 0 ? 'header.peers.none' : $connectedPeers === 1 ? 'header.peers.seed' : 'header.peers.swarm')
@@ -149,20 +149,6 @@
                  <span aria-hidden="true">&nbsp;{$connectedPeers}</span>
                  <span class="bx--visually-hidden">{peersText}</span>
             </div>
-            <!-- the switch itself, not inside a header button: one control, named in the language on screen -->
-            <div class="theme-switch">
-                <Theme
-                        bind:theme
-                        render="toggle"
-                        toggle={{
-                                themes: ["g90", "g80"],
-                                labelA: "",
-                                labelB: "",
-                                labelText: $_('header.theme'),
-                                hideLabel: true,
-                                size: "sm",
-                  }}/>
-            </div>
     </HeaderUtilities>
 </Header>
 <QRCodeModal
@@ -213,18 +199,20 @@
             max-width: calc(100% - 2rem);
         }
     }
+    /* the peers' state, in the header and in Settings; Carbon's status colours, of which the
+       yellow is a darker one on a light background */
     :global(.statusRed) {
-        color: red;
+        color: var(--cds-status-red, #fa4d56);
         width: 16px;
         height: 16px;
     }
     :global(.statusYellow) {
-        color: yellow;
+        color: var(--cds-status-yellow-outline, #f1c21b);
         width: 16px;
         height: 16px;
     }
     :global(.statusGreen) {
-        color: green;
+        color: var(--cds-status-green, #42be65);
         width: 16px;
         height: 16px;
     }
@@ -232,17 +220,7 @@
         display: flex;
         align-items: center;
         padding: 0 1rem;
-        color: var(--cds-text-02, #c6c6c6);
-    }
-    .theme-switch {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 3rem;
-        height: 3rem;
-    }
-    .theme-switch :global(.bx--form-item) {
-        flex: none;
+        color: var(--cds-text-secondary, #c6c6c6);
     }
     /* where Carbon hid the header navigation it stood in, so phones look as before */
     @media (max-width: 65.98rem) {

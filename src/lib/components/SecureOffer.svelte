@@ -135,7 +135,7 @@
     .banner {
         margin: 1rem 3rem 0;
         padding: 1rem;
-        border-left: 3px solid #4589ff;
+        border-left: 3px solid var(--cds-border-interactive, #4589ff);
         background: rgba(69, 137, 255, 0.1);
     }
     .buttons {
@@ -147,6 +147,6 @@
         opacity: 0.75;
     }
     .problem {
-        color: #fa4d56;
+        color: var(--cds-text-error, #ff8389);
     }
 </style>

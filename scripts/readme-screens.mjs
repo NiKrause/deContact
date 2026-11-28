@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
  * The screens the README shows (#110): copies a few pictures of the screen tour
- * (tests/Screens.spec.js) at a phone's width into docs/screens/, and the install dialog's
- * screenshots (src/lib/web-manifest.js) into static/screenshots/. Run the tour first:
+ * (tests/Screens.spec.js) at a phone's width into docs/screens/, light (<name>.png) and
+ * dark (<name>-dark.png), of which the README shows the one of its reader's setting; and the
+ * install dialog's screenshots (src/lib/web-manifest.js) into static/screenshots/. Run the
+ * tour first:
  *
  *   pnpm exec playwright test tests/Screens.spec.js
  *   node scripts/readme-screens.mjs
@@ -32,13 +34,16 @@ const SCREENS = {
 mkdirSync(TO, { recursive: true });
 const missing = [];
 for (const [screen, name] of Object.entries(SCREENS)) {
-	const from = path.join(FROM, `${screen}-${WIDTH}.png`);
-	if (!existsSync(from)) {
-		missing.push(from);
-		continue;
+	for (const look of ['', '-dark']) {
+		const from = path.join(FROM, `${screen}-${WIDTH}${look}.png`);
+		if (!existsSync(from)) {
+			missing.push(from);
+			continue;
+		}
+		const to = path.join(TO, `${name}${look}.png`);
+		copyFileSync(from, to);
+		console.log(`${from} → ${to}`);
 	}
-	copyFileSync(from, path.join(TO, `${name}.png`));
-	console.log(`${from} → ${path.join(TO, `${name}.png`)}`);
 }
 // the install dialog's screenshots: the tour writes them under the same names
 mkdirSync(path.join('static', 'screenshots'), { recursive: true });

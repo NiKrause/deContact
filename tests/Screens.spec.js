@@ -17,26 +17,19 @@ import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboardi
 import { madeUpPortrait } from './helpers/portrait.js';
 import { qrVideo } from './helpers/qr-video.js';
 import { SCREENSHOTS, SCREENSHOT_SIZES, screenshotFile } from '../src/lib/web-manifest.js';
+import { DEVICES, LOOKS, size } from './helpers/devices.js';
 
-// A tour of every screen, saved as a screenshot at each reference width (#110), so a change
-// to the UI can be compared before and after: CI keeps them as the artifact "screens" of
-// the test job, and test-results/screens/index.html shows them side by side.
+// A tour of every screen, saved as a screenshot at each reference width of #110
+// (helpers/devices.js), light and dark, so a change to the UI can be compared before and
+// after: CI keeps them as the artifact "screens" of the test job, and
+// test-results/screens/index.html shows them side by side.
 // It asserts little: each screen opens, and no screen scrolls sideways at any of the widths
 // (#98). It is not a pixel diff.
 
 /**
- * The reference devices of #110, in CSS pixels, portrait. Until they are measured on the
- * devices themselves (innerWidth × innerHeight), the widths are the narrowest phone so far
- * (#98), a common Android phone, the open Fold's inner screen and a desktop; the heights are
- * those of similar devices. The measured values go here.
+ * where the pictures go; one file per screen, width and look: <screen>-<width>.png light,
+ * <screen>-<width>-dark.png dark
  */
-const DEVICES = [
-	{ name: 'Galaxy Z Fold 2, closed', width: 344, height: 882 },
-	{ name: 'Galaxy A57', width: 412, height: 915 },
-	{ name: 'Galaxy Z Fold 2, open', width: 884, height: 1104 },
-	{ name: 'Desktop', width: 1280, height: 800 }
-];
-/** where the pictures go; one file per screen and width: <screen>-<width>.png */
 const OUT = process.env.SCREENS_DIR || path.join('test-results', 'screens');
 /** the width the tour clicks at: a desktop's, with the places in a rail */
 const CLICK_AT = DEVICES.at(-1);
@@ -53,11 +46,11 @@ const portraits = {
 	carol: { sky: ['#c9b3e6', '#f6dcc8'], skin: '#8d5524', hair: '#1f1a17', shirt: '#a23b72' }
 };
 
-/** every picture taken, for the index: { screen, title, width, file, sideways } */
+/** every picture taken, for the index: { screen, title, width, look, file, sideways } */
 const shots = [];
 
 test('a screenshot of every screen at every reference width', async ({ browser }) => {
-	test.setTimeout(600000);
+	test.setTimeout(900000);
 	mkdirSync(OUT, { recursive: true });
 	shots.length = 0;
 	let alice, bob, carol, camera;
@@ -277,8 +270,6 @@ test('a screenshot of every screen at every reference width', async ({ browser }
 	}
 });
 
-const size = ({ width, height }) => ({ width, height });
-
 /** `locator` lies below Carbon's fixed header at every width (the header covers what is under it) */
 async function clearOfHeader(page, locator, what) {
 	for (const device of DEVICES) {
@@ -349,28 +340,33 @@ async function openTab(page, name) {
 }
 
 /**
- * The screen as shown now, at each width: the whole page, or only the window for a dialog.
- * Back at the width the tour clicks at afterwards. A page wider than the screen fails the
- * tour (#98), after the rest of it, and is marked in the index.
+ * The screen as shown now, at each width, light and dark (the system's setting, which the
+ * app follows at once): the whole page, or only the window for a dialog. Back at the width
+ * the tour clicks at, light, afterwards. A page wider than the screen fails the tour (#98),
+ * after the rest of it, and is marked in the index.
  */
 async function shoot(page, screen, title, { dialog = false } = {}) {
 	// the pointer out of the way: no row lit up, no tooltip
 	await page.mouse.move(0, 0);
-	for (const device of DEVICES) {
-		await page.setViewportSize(size(device));
-		// some parts lay out again after a resize (the navigation moves to the bottom on a phone)
-		await page.waitForTimeout(400);
-		const file = `${screen}-${device.width}.png`;
-		await page.screenshot({
-			path: path.join(OUT, file),
-			fullPage: !dialog,
-			animations: 'disabled'
-		});
-		const wide = await page.evaluate(() => document.documentElement.scrollWidth);
-		const sideways = wide > device.width ? wide : undefined;
-		shots.push({ screen, title, width: device.width, file, sideways });
-		// soft: the tour goes on, so every screen that is too wide is named
-		expect.soft(wide, `${screen} at ${device.width} px scrolls sideways`).toBeLessThanOrEqual(device.width);
+	for (const look of LOOKS) {
+		await page.emulateMedia({ colorScheme: look });
+		await expect(page.locator('html')).toHaveAttribute('theme', look === 'dark' ? 'g90' : 'white');
+		for (const device of DEVICES) {
+			await page.setViewportSize(size(device));
+			// some parts lay out again after a resize (the navigation moves to the bottom on a phone)
+			await page.waitForTimeout(400);
+			const file = `${screen}-${device.width}${look === 'dark' ? '-dark' : ''}.png`;
+			await page.screenshot({
+				path: path.join(OUT, file),
+				fullPage: !dialog,
+				animations: 'disabled'
+			});
+			const wide = await page.evaluate(() => document.documentElement.scrollWidth);
+			const sideways = wide > device.width ? wide : undefined;
+			shots.push({ screen, title, width: device.width, look, file, sideways });
+			// soft: the tour goes on, so every screen that is too wide is named
+			expect.soft(wide, `${screen} at ${device.width} px (${look}) scrolls sideways`).toBeLessThanOrEqual(device.width);
+		}
 	}
 	// the install dialog's screenshots (lib/web-manifest.js): the screen as a phone or a
 	// desktop shows it, no more than one window
@@ -379,10 +375,11 @@ async function shoot(page, screen, title, { dialog = false } = {}) {
 		await page.waitForTimeout(400);
 		await page.screenshot({ path: path.join(OUT, screenshotFile(shot)), animations: 'disabled' });
 	}
+	await page.emulateMedia({ colorScheme: 'light' });
 	await page.setViewportSize(size(CLICK_AT));
 }
 
-/** test-results/screens/index.html: one row per screen, one column per width */
+/** test-results/screens/index.html: one row per screen, one column per width and look */
 function writeIndex() {
 	const escape = (text) =>
 		String(text).replace(
@@ -390,17 +387,18 @@ function writeIndex() {
 			(c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
 		);
 	const screens = [...new Map(shots.map((shot) => [shot.screen, shot.title])).entries()];
-	const cell = (screen, width) => {
-		const shot = shots.find((it) => it.screen === screen && it.width === width);
+	const columns = LOOKS.flatMap((look) => DEVICES.map((device) => ({ look, device })));
+	const cell = (screen, { look, device: { width } }) => {
+		const shot = shots.find((it) => it.screen === screen && it.width === width && it.look === look);
 		if (!shot) return '<td></td>';
 		const note = shot.sideways
 			? `<p class="wide">scrolls sideways: ${shot.sideways} px wide</p>`
 			: '';
-		return `<td><a href="${shot.file}"><img src="${shot.file}" alt="${escape(shot.title)}, ${width} px" loading="lazy"></a>${note}</td>`;
+		return `<td><a href="${shot.file}"><img src="${shot.file}" alt="${escape(shot.title)}, ${width} px, ${look}" loading="lazy"></a>${note}</td>`;
 	};
 	const rows = screens.map(
 		([screen, title]) =>
-			`<tr><th scope="row">${escape(title)}<br><code>${screen}</code></th>${DEVICES.map((device) => cell(screen, device.width)).join('')}</tr>`
+			`<tr><th scope="row">${escape(title)}<br><code>${screen}</code></th>${columns.map((column) => cell(screen, column)).join('')}</tr>`
 	);
 	const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>deContact screens</title>
@@ -413,7 +411,7 @@ img { width: 240px; height: auto; display: block; }
 </style></head><body>
 <h1>deContact screens</h1>
 <p>Generated by tests/Screens.spec.js on ${new Date().toISOString()}.</p>
-<table><thead><tr><th></th>${DEVICES.map((device) => `<th scope="col">${escape(device.name)}<br>${device.width} × ${device.height}</th>`).join('')}</tr></thead>
+<table><thead><tr><th></th>${columns.map(({ look, device }) => `<th scope="col">${escape(device.name)}<br>${device.width} × ${device.height}, ${look}</th>`).join('')}</tr></thead>
 <tbody>${rows.join('\n')}</tbody></table>
 </body></html>
 `;

@@ -5,6 +5,7 @@
     import SecureOffer from "./SecureOffer.svelte";
     import { session } from "#lib/identity/session.js";
     import LanguageSwitch from "./LanguageSwitch.svelte";
+    import ThemeSwitch from "./ThemeSwitch.svelte";
     import Statistics from "./Statistics.svelte";
     import { _ } from "#lib/i18n/index.js";
     import {
@@ -55,12 +56,16 @@
 </script>
 
 <!--
- @component Settings: the language, the passkeys and recovery words, WebRTC; at the bottom,
+ @component Settings: the language and the theme, the passkeys and recovery words, WebRTC; at the bottom,
  collapsed, what only a developer needs (#110): the DID, the peer id and peers, and the two
  drop actions, each behind a confirmation.
 -->
 <div class="settings">
-    <section><LanguageSwitch /></section>
+    <section class="look">
+        <LanguageSwitch />
+        <!-- light or dark, else as the system is set (#110) -->
+        <ThemeSwitch />
+    </section>
 
     <!-- a temporary identity (#97) has no vault yet: securing it comes first -->
     <section>{#if $session?.temporary}<SecureOffer inSettings />{:else}<PasskeySettings />{/if}</section>
@@ -116,6 +121,11 @@
         max-width: 40rem;
         /* the passkeys' and the developer's long values wrap or scroll inside, not the page */
         min-width: 0;
+    }
+    .look {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
     }
     .section-title {
         font-size: 1.25rem;

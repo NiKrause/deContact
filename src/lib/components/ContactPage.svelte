@@ -99,7 +99,7 @@
         height: 6rem;
         flex: none;
         border-radius: 50%;
-        background: var(--cds-ui-03, #525252);
+        background: var(--cds-layer-accent-01, #525252);
         font-size: 2rem;
         font-weight: 600;
     }

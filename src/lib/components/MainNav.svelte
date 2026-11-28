@@ -66,7 +66,7 @@
     }
     .main-nav a.current {
         color: var(--cds-text-primary, #f4f4f4);
-        border-top-color: var(--cds-interactive-04, #4589ff);
+        border-top-color: var(--cds-border-interactive, #4589ff);
     }
     .main-nav a:focus-visible {
         outline: 2px solid var(--cds-focus, #ffffff);
@@ -80,8 +80,8 @@
             right: 0;
             bottom: 0;
             z-index: 6000;
-            background: var(--cds-ui-background, #262626);
-            border-top: 1px solid var(--cds-ui-03, #525252);
+            background: var(--cds-background, #262626);
+            border-top: 1px solid var(--cds-border-subtle-01, #6f6f6f);
             padding-bottom: env(safe-area-inset-bottom);
         }
     }
@@ -111,8 +111,8 @@
             border-left: 3px solid transparent;
         }
         .main-nav a.current {
-            border-left-color: var(--cds-interactive-04, #4589ff);
-            background: var(--cds-ui-01, #393939);
+            border-left-color: var(--cds-border-interactive, #4589ff);
+            background: var(--cds-layer-01, #393939);
         }
     }
 </style>

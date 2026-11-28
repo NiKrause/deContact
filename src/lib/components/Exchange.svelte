@@ -163,11 +163,14 @@
         width: 0.75rem;
         height: 0.75rem;
         border-radius: 50%;
-        background: var(--cds-support-03, #f1c21b);
+        background: var(--cds-status-yellow, #f1c21b);
+        /* a yellow dot needs its edge on a light background */
+        box-shadow: inset 0 0 0 1px var(--cds-status-yellow-outline, #f1c21b);
         flex: none;
     }
     .status.ready .dot {
-        background: var(--cds-support-02, #42be65);
+        background: var(--cds-status-green, #42be65);
+        box-shadow: none;
     }
     .waiting {
         overflow-wrap: anywhere;
