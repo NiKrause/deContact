@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+// as text: node:fs is polyfilled away under Vite
+import html from '../app.html?raw';
 import { BAR, CARBON, DARK_QUERY, THEME_KEY, initialTheme, lookOf } from './theme.js';
 
 describe('initialTheme', () => {
@@ -29,8 +30,6 @@ describe('lookOf', () => {
 });
 
 describe('the first paint (src/app.html)', () => {
-	const html = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
-
 	it('reads the same key and sets the same Carbon themes as the app', () => {
 		expect(html).toContain(`'${THEME_KEY}'`);
 		expect(html).toContain(`'${DARK_QUERY}'`);

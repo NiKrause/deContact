@@ -199,19 +199,20 @@
             max-width: calc(100% - 2rem);
         }
     }
-    /* the peers' state, in the header and in Settings */
+    /* the peers' state, in the header and in Settings; Carbon's status colours, of which the
+       yellow is a darker one on a light background */
     :global(.statusRed) {
-        color: var(--cds-support-error, #fa4d56);
+        color: var(--cds-status-red, #fa4d56);
         width: 16px;
         height: 16px;
     }
     :global(.statusYellow) {
-        color: var(--cds-support-warning, #f1c21b);
+        color: var(--cds-status-yellow-outline, #f1c21b);
         width: 16px;
         height: 16px;
     }
     :global(.statusGreen) {
-        color: var(--cds-support-success, #42be65);
+        color: var(--cds-status-green, #42be65);
         width: 16px;
         height: 16px;
     }
