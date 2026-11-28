@@ -73,6 +73,18 @@ export default {
 			problem: 'braucht dich'
 		}
 	},
+	circles: {
+		defaults: {
+			family: 'Familie',
+			friends: 'Freunde',
+			acquaintances: 'Bekannte',
+			business: 'Geschäftlich'
+		},
+		circleOf: 'Kreis',
+		wholeCard: 'Kein Kreis: deine ganze Karte',
+		narrower: 'Was {name} schon bekommen hat, bleibt dort. Ab jetzt kommt nur noch an, was dieser Kreis zeigt.',
+		narrowerNameless: 'Was schon angekommen ist, bleibt dort. Ab jetzt kommt nur noch an, was dieser Kreis zeigt.'
+	},
 	card: {
 		whyWhat: 'Das ist deine Karte: Sie bekommen Menschen, wenn ihr Codes tauscht.',
 		whyWho: 'Lesen können sie nur die Menschen, mit denen du tauschst. Sie ist für jeden von ihnen versiegelt.',
@@ -441,6 +453,7 @@ export default {
 		cardAddressCopied: 'Adresse kopiert.',
 		cardTooLong: 'Nicht gespeichert: Ein Feld ist zu lang. Es ist im Formular markiert.',
 		noteSaved: 'Notiz gespeichert.',
+		circleChanged: 'Gespeichert. Ab jetzt kommt an, was dieser Kreis zeigt.',
 		requestSent: 'Anfrage gesendet. Die Karte kommt, sobald die Person antwortet.',
 		requestNotDelivered: 'Noch nicht erreicht. Die App versucht es weiter, solange sie offen ist.',
 		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',

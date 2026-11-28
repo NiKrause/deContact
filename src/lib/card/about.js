@@ -43,6 +43,18 @@ export function aboutContacts(records) {
     return latest
 }
 
+/**
+ * The document about `did` with their circle (#100) in it; undefined: no circle, the whole
+ * card.
+ */
+export function withCircle(about, did, circle, { now = Date.now(), key = newAboutKey } = {}) {
+    if (typeof did !== 'string' || did === '') throw new TypeError('A circle is for a DID')
+    const next = { ...about, _id: about?._id ?? key(), about: did, changedAt: now }
+    if (circle) next.circle = circle
+    else delete next.circle
+    return next
+}
+
 /** our note about a contact, as the page shows it */
 export const noteOf = (about) => (typeof about?.note === 'string' ? about.note : '')
 

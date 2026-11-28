@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store'
+import { circlesOf } from '#lib/card/circles.js'
 
 /**
  * The libp2p node instance
@@ -30,6 +31,8 @@ export const networkState = writable({ started: false, relays: 0, reachable: fal
 export const myAddressBook = writable()
 /** what we keep about our contacts for ourselves (#109, lib/card/about.js): their DID → our document */
 export const aboutContact = writable(new Map())
+/** our circles (#100, lib/card/circles.js): the defaults until our book has its own */
+export const circles = writable(circlesOf(undefined))
 /** an orbitdb which will replace the myAddressBook store based on localstorage //TODO */
 export const dbMyAddressBook = writable([])
 
