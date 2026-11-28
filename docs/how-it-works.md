@@ -282,10 +282,11 @@ sequenceDiagram
     BB->>AB: stream /decontact/request/1.0.0 to Alice's peer (WebRTC or the relayed circuit):<br/>REQUEST_ADDRESS {Bob's book address, invitation for Alice, Bob's name},<br/>signed with Bob's did:key, sealed to Alice
     AB-->>BB: receipt: received
 
-    AB->>R: open Bob's book by its address
-    R-->>AB: manifest + entries (from the relay's replica or from Bob)
+    AB->>R: whose is Bob's book? its manifest and controller (two small blocks)
     AB->>Alice: "Bob Stromwerk wants your contact details."
     Alice->>AB: Share and ask for theirs
+    AB->>R: open Bob's book by its address
+    R-->>AB: entries (from the relay's replica or from Bob)
     AB->>AB: wait until the placeholder has synced
     AB->>BB: write card contact:did(Alice) + invitation into Bob's book,<br/>sealed to Bob (OrbitDB sync: directly or through the relay)
     Note over R: the relay checks the entry with the same<br/>access controller and keeps its replica (ciphertext)
@@ -307,7 +308,9 @@ Every request is signed with the sender's `did:key`, the identity of their vault
 - a request for somebody else, older or newer than 10 minutes, or seen before;
 - a request whose book is not the sender's own (the owner in the book's manifest) or whose invitation is not the sender's.
 
-From each sender only the newest request waits for an answer.
+Whose the book is, the app reads from two small blocks, the book's manifest and its controller's, without opening the book ([`book-owner.js`](../src/lib/network/book-owner.js)). It opens the sender's book only to write into it: once the person decided in the dialog (sharing, or declining, which marks their placeholder), or for a valid invitation link of its own. A request alone, from anybody who saw a QR code, opens and syncs nothing.
+
+From each sender only the newest request waits for an answer. At most 64 senders' requests wait, at most 3 from one device, and 3 are answered at once, each with at most one dialog: a request that does not fit gets no receipt, so the sender's app sends it again later.
 
 **The asker's photo** ([#110](https://github.com/NiKrause/deContact/issues/110)). When the sender's card has a [photo](#what-a-card-holds), the request carries a small copy of it, 64 × 64 pixels, WebP (JPEG where the browser makes no WebP), at most 6 KB ([`photo.js`](../src/lib/photo/photo.js) `thumbnailOf`). It is a field of its own at the top level of the signed request, `photo`, not part of the name (`from`): an app from before checks the name field by field and would drop the whole request for an unknown one, while it ignores an unknown top-level field. The request stays far below the 16 KB a signed request may have, so older apps still take it. The recipient shows the photo next to the name in the request dialog only when it is a WebP or JPEG data URL within the limit (`isThumbnail`), as an `<img>` like a card's photo; anything else is dropped, and the request still counts. Like the name, the photo is what the sender put on their own card: it says who they claim to be, not who they are.
 

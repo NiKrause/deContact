@@ -45,7 +45,13 @@ test('forged senders and used invitation links are rejected', async ({ browser }
 			await expect.poll(() => alice.saw(`asking to confirm the request of ${carol.did}`)).toBe(true);
 			const cancel = alice.page.getByRole('button', { name: 'Decline' });
 			await expect(cancel).toBeVisible();
+			// a request alone opens nothing: Carol's book is opened once Alice decided
+			const carolsBook = await carol.page.evaluate(() => window.mydb.address);
+			expect(await opensBook(alice.page, carolsBook)).toBe(false);
 			await cancel.click();
+			// declined: the placeholder Carol wrote for Alice says so
+			await expect.poll(() => names(carol.page), { timeout: 90000, message: "the declined request in Carol's book" })
+				.toContain(`request canceled ${alice.did}`);
 		});
 
 		await test.step("Carol sends a request in Bob's name: Alice drops it", async () => {
@@ -70,6 +76,16 @@ test('forged senders and used invitation links are rejected', async ({ browser }
 			await expect.poll(() => alice.saw(`dropped contact message from ${bob.did}: signature does not match the sender`), { timeout: 120000 })
 				.toBe(true);
 			expect(alice.saw(`asking to confirm the request of ${bob.did}`)).toBe(false);
+
+			// signed by Carol as Carol, naming a database that is not an address book of hers:
+			// Alice drops it without opening that database
+			const foreign = await carol.page.evaluate(async () => (await window.orbitdb.open('decontact-e2e-not-a-book', { type: 'events' })).address);
+			const notHers = await forgedRequest(signer, { claimedSender: carol.did, recipient: alice.did, sharedAddress: foreign });
+			await expect.poll(async () => (await carol.page.evaluate(({ peer, text }) => window.__decontactE2E.deliver(peer, text), { peer: alicesPeer, text: notHers })).delivered,
+				{ timeout: 60000, intervals: [2000] }).toBe(true);
+			await expect.poll(() => alice.saw(`dropped contact message from ${carol.did}: ${foreign} is not their address book`), { timeout: 120000 })
+				.toBe(true);
+			expect(await opensBook(alice.page, foreign)).toBe(false);
 		});
 	} finally {
 		await Promise.all([alice, bob, carol].filter(Boolean).map((person) => person.close()));
@@ -138,6 +154,13 @@ async function forgedRequest(signer, { claimedSender, recipient, sharedAddress }
 		context: `decontact/request/v1\n${recipient}`
 	});
 	return JSON.stringify({ v: 3, sealed });
+}
+
+/** whether this browser opened the database at `address`: OrbitDB keeps a database in IndexedDB per log */
+async function opensBook(page, address) {
+	const hash = address.replace('/orbitdb/', '');
+	const databases = await page.evaluate(async () => (await indexedDB.databases()).map((database) => database.name ?? ''));
+	return databases.some((name) => name.includes(hash));
 }
 
 /** names in this browser's own address book */

@@ -2,7 +2,7 @@ import { createHeliaLight } from "helia";
 import { withLibp2pLight } from "@helia/libp2p";
 import { withBitswap } from "@helia/bitswap";
 import * as dagCbor from "@ipld/dag-cbor";
-import { useAccessController} from '@orbitdb/core';
+import { IPFSBlockStorage, useAccessController } from '@orbitdb/core';
 import { LevelBlockstore } from "blockstore-level"
 import { LevelDatastore } from "datastore-level";
 import { get } from 'svelte/store';
@@ -53,6 +53,7 @@ import { liftRevocation, removedUs, revoke, withoutRevoked } from "./revocations
 import { answeredBefore } from "./answered.js";
 import { answerContactRequests, deliverContactRequest } from "./contact-protocol.js";
 import { devicesOf, withDevice } from "./devices.js";
+import { addressBookOwner } from "./book-owner.js";
 // localStorage, held in memory while the identity is temporary (#97)
 import { deviceStorage } from "#lib/identity/held-storage.js";
 import { thumbnailOf } from "#lib/photo/photo.js";
@@ -62,6 +63,17 @@ let datastore = new LevelDatastore("./helia-data")
 
 /** the newest verified request of each sender that we have not answered yet: sender -> { request, receivedAt } */
 const pendingRequests = new Map();
+/**
+ * At most this many senders' requests wait, and at most this many from one peer: anybody
+ * who knows our DID and device can send requests, each under a DID of their own making.
+ * A sender's app resends until it is answered, so one that does not fit comes again.
+ */
+const MAX_PENDING = 64;
+const MAX_PENDING_PER_PEER = 3;
+/** requests answered at once, each with at most one dialog */
+const MAX_ANSWERING = 3;
+/** how long the two blocks that say whose a book is may take to arrive */
+const BOOK_CHECK_TIMEOUT_MS = 30_000;
 /** senders whose request we are answering (at most one dialog per sender) */
 const answering = new Set();
 /** when we last answered each sender */
@@ -204,6 +216,7 @@ export async function startAddressBook(signer, keys) {
         // an app in the background answers nothing: no receipt (the end-to-end tests' pause)
         if (!answeringRequests) throw new Error('not answering requests')
         return handleMessage(text, from).catch((error) => {
+            if (error?.name === 'NoRoom') throw error
             console.log("could not handle a contact message:", error?.message)
             return false
         })
@@ -293,9 +306,22 @@ async function handleMessage(text, from) {
     // keep only the newest request of each sender
     const queued = pendingRequests.get(request.sender)
     if (queued && queued.request.timestamp > request.timestamp) return
-    pendingRequests.set(request.sender, { request, receivedAt: Date.now() })
+    if (!queued && !roomFor(from)) {
+        console.log(`dropped contact message from ${request.sender}: too many requests waiting`)
+        // no receipt: their app sends it again later
+        throw Object.assign(new Error('too many requests waiting'), { name: 'NoRoom' })
+    }
+    pendingRequests.set(request.sender, { request, from, receivedAt: Date.now() })
     processMessageQueue()
     return true
+}
+
+/** whether another sender's request may wait, from the peer `from` */
+function roomFor(from) {
+    if (pendingRequests.size >= MAX_PENDING) return false
+    let fromPeer = 0
+    for (const pending of pendingRequests.values()) if (pending.from === from) fromPeer++
+    return fromPeer < MAX_PENDING_PER_PEER
 }
 
 /** the relays we hold a connection to: a peer is dialled through them (contact-protocol.js) */
@@ -375,6 +401,7 @@ export async function ensureOwnDevice() {
  */
 function processMessageQueue() {
     for (const [sender, { request, receivedAt }] of pendingRequests) {
+        if (answering.size >= MAX_ANSWERING) break
         if (answering.has(sender)) continue
         pendingRequests.delete(sender)
         if (receivedAt <= (answeredAt.get(sender) ?? 0)) continue
@@ -410,24 +437,23 @@ async function answerRequest(request) {
     const me = _orbitdb.identity.id
     const { sender, data } = request
 
-    // opened by address: its manifest names the access controller
-    const opened = await _orbitdb.open(data.sharedAddress, { type: 'documents', sync: true })
-    logSyncErrors(opened)
-    // our card goes only into the sender's own address book
-    if (opened.access?.type !== AddressBookAccessController.type || opened.access?.owner !== sender) {
+    // our card goes only into the sender's own address book: whose it is, its manifest and
+    // its controller say, two small blocks, before anything is opened or synced
+    if ((await addressBookOwner(requestBlocks(), data.sharedAddress)) !== sender) {
         console.log(`dropped contact message from ${sender}: ${data.sharedAddress} is not their address book`)
         return
     }
-    // what we write into it is sealed to the sender, the book's owner
-    const requesterDB = bookOf(opened)
+    // their book is opened only to write into it: once we decided, or for our own valid
+    // invitation link. A request alone, from anybody, opens nothing
+    const requesterBook = once(() => openRequesterBook(data.sharedAddress, sender))
 
     // the inviter of a link we opened: we chose, or are about to, whether they get our card;
     // a token other than that link's can only be one of ours
     const exchange = exchanges().get(sender)
     const toOurLink = request.onBoardingToken !== undefined && request.onBoardingToken !== exchange?.token
     if (!toOurLink && (exchange || onboardingWith === sender)) {
-        if (await answerInviter(request, requesterDB, exchange)) return
-        return askToConfirm(request, requesterDB)
+        if (await answerInviter(request, requesterBook, exchange)) return
+        return askToConfirm(request, requesterBook)
     }
 
     if (request.onBoardingToken !== undefined) {
@@ -447,7 +473,7 @@ async function answerRequest(request) {
             // two-way exchange (#86): the invitation they asked for, in case they share their card
             if (twoWay) await sendInvitation(sender, request.onBoardingToken)
             // the notice is "<name> has your business card" (ExchangeNotices.svelte), once per link
-            if (await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { to: request.from, notice: false })) {
+            if (await writeMyAddressIntoRequesterDB(await requesterBook(), data.invitation, { to: request.from, notice: false })) {
                 if (linkOutcomes.given(request.onBoardingToken)) console.log(`${sender} has our card: the code did its job`)
                 showGiven()
             }
@@ -464,12 +490,44 @@ async function answerRequest(request) {
         notify(t(`notify.invitationLink.${LINK_PROBLEMS[redeemed.reason] ?? 'other'}`), 'warning');
     }
 
-    await askToConfirm(request, requesterDB)
+    await askToConfirm(request, requesterBook)
     if (request.onBoardingToken !== undefined) answeredLinks.add(`${sender} ${request.onBoardingToken}`)
 }
 
-/** the request dialog: send our card (and ask back), send it only, or cancel */
-async function askToConfirm(request, requesterDB) {
+/** the first call runs `fn`; every call gets its promise */
+const once = (fn) => {
+    let promise
+    return () => (promise ??= fn())
+}
+
+/** the blocks a request's book is checked by (book-owner.js), from peers or the relay */
+let _requestBlocks
+function requestBlocks() {
+    _requestBlocks ??= IPFSBlockStorage({ ipfs: _helia, pin: false, timeout: BOOK_CHECK_TIMEOUT_MS })
+    return { get: async (hash) => (await _requestBlocks).get(hash) }
+}
+
+/**
+ * The sender's book, opened to write into it, sealed to them. It was checked before
+ * (book-owner.js); its controller says the same, or it is closed again.
+ */
+async function openRequesterBook(address, sender) {
+    const opened = await _orbitdb.open(address, { type: 'documents', sync: true })
+    logSyncErrors(opened)
+    if (opened.access?.type !== AddressBookAccessController.type || opened.access?.owner !== sender) {
+        await opened.close().catch(() => {})
+        throw new Error(`${address} is not the address book of ${sender}`)
+    }
+    return bookOf(opened)
+}
+
+/**
+ * The request dialog: send our card (and ask back), send it only, or cancel. Their book
+ * is opened once the person decided.
+ *
+ * @param requesterBook resolves with the sender's book, opened on the first call
+ */
+async function askToConfirm(request, requesterBook) {
     const me = _orbitdb.identity.id
     const { sender, data } = request
     // their app resends until our card has arrived in their book: a resend of a request we answered asks nobody (answered.js)
@@ -484,6 +542,7 @@ async function askToConfirm(request, requesterDB) {
     linkOutcomes.asked(sender, request.onBoardingToken)
     const result = await confirm({ data: request });
     answeredRequests.set(sender, Math.max(request.timestamp, answeredRequests.get(sender) ?? 0))
+    const requesterDB = await requesterBook()
 
     if(result){
         if(result==='ONLY_HANDOUT'){
@@ -513,7 +572,8 @@ async function askToConfirm(request, requesterDB) {
 async function decline(requesterDB, invitation) {
     const me = _orbitdb.identity.id
     try {
-        const placeholder = await requesterDB.get(contactKey(me))
+        // their book may have been opened just now: their placeholder may still be on its way
+        const [placeholder] = await waitForOurEntries(requesterDB)
         if (placeholder && placeholder.value?.invitation === undefined) {
             const canceled = { _id: contactKey(me), owner: me, firstName: "request canceled", lastName: me, invitation }
             const hash = await requesterDB.put(canceled)
@@ -530,7 +590,7 @@ async function decline(requesterDB, invitation) {
  * onboarding view is open; then our choice answers it. False: ask in the dialog after all
  * (no choice was offered, or the view was left before choosing).
  */
-async function answerInviter(request, requesterDB, exchange) {
+async function answerInviter(request, requesterBook, exchange) {
     const me = _orbitdb.identity.id
     const { sender, data } = request
     if (onboardingWith === sender) {
@@ -542,12 +602,12 @@ async function answerInviter(request, requesterDB, exchange) {
     switch (exchange?.choice) {
         case 'only':
             console.log(`declined the request of ${sender}: we saved our card only`)
-            await decline(requesterDB, data.invitation)
+            await decline(await requesterBook(), data.invitation)
             return true
         case 'share': {
             // their answer to our link comes without a placeholder for us in their book
             const answersOurLink = request.onBoardingToken === exchange.token
-            if (await writeMyAddressIntoRequesterDB(requesterDB, data.invitation, { waitForPlaceholder: !answersOurLink, to: request.from })) {
+            if (await writeMyAddressIntoRequesterDB(await requesterBook(), data.invitation, { waitForPlaceholder: !answersOurLink, to: request.from })) {
                 exchanges().shared(sender)
                 console.log(`shared our card with ${sender}`)
                 initReplicationBackup(me)
