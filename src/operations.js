@@ -34,9 +34,13 @@ export async function loadContact(id) {
  * My card (#110): our own card, or before its first
  * save the empty form for it. A card the form already holds stays: our own with changes not
  * saved yet, the first one being typed, or a contact being added by hand.
+ *
+ * @param {string} [deleted] the `_id` of a card just deleted: the book still holds it until
+ *   the deletion reaches it, and My card is the empty form for a new card, not the deleted one
  */
-export function showMyCard() {
-    const mine = ownCardOf(_myAddressBook, _orbitdb?.identity?.id)
+export function showMyCard(deleted) {
+    const cards = deleted ? _myAddressBook?.filter((card) => card._id !== deleted) : _myAddressBook
+    const mine = ownCardOf(cards, _orbitdb?.identity?.id)
     const shown = _selectedAddr ?? {}
     if (mine && shown._id === mine._id) return
     if (!shown._id && (shown.own ? !mine : shown.own === false && typedIn(shown))) return
@@ -141,29 +145,33 @@ export async function deleteContact() {
     const owner = _selectedAddr.owner
     // a placeholder has their DID as its last name: no name for a notice
     const name = _selectedAddr.lastName === owner ? '' : [_selectedAddr.firstName, _selectedAddr.lastName].filter(Boolean).join(' ')
+    let deleted
     if (owner && owner !== _orbitdb?.identity?.id) {
         await removeContact(owner)
         console.log(`removed ${owner}`)
         notify(name ? t('notify.contactRemoved', { name }) : t('notify.contactRemovedNameless'))
     } else {
-        const hash = await _dbMyAddressBook.del(_selectedAddr._id)
+        deleted = _selectedAddr._id
+        const hash = await _dbMyAddressBook.del(deleted)
         console.log('deleted a card:', hash)
         notify(name ? t('notify.contactDeleted', { name }) : t('notify.contactDeletedNameless'))
     }
-    closeForm()
+    closeForm(deleted)
 }
 
 /**
  * Back to the list with an empty form. The row leaves the selection too: selecting the same
  * contact again (e.g. our own card, to change its photo) loads it into the form again.
+ *
+ * @param {string} [deleted] the `_id` of the card just deleted (showMyCard)
  */
-function closeForm() {
+function closeForm(deleted) {
     selectedAddr.set({})
     selectedRowIds.set([])
     addingContact.set(false)
     editingCard.set(false)
     // My card shows our card again; the form of a contact goes back to the list
-    if (location.hash.startsWith('#/card')) showMyCard()
+    if (location.hash.startsWith('#/card')) showMyCard(deleted)
 }
 
 export async function generateQRForAddress(contact) {

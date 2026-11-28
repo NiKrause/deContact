@@ -38,6 +38,8 @@ test('a contact added by hand never goes out as our card, also without a card of
 			await page.getByRole('button', { name: 'Delete', exact: true }).click();
 			await page.getByRole('alertdialog').getByRole('button', { name: 'Delete', exact: true }).click();
 			await expect.poll(() => names(page), { timeout: 30000 }).not.toContain(`${people.alice.first} ${people.alice.last}`);
+			// My card is the empty form for a new card again, not the deleted one
+			await expect(page.getByPlaceholder('Enter firstname...')).toHaveValue('');
 
 			const named = times(alice, 'our card names this device now');
 			await page.getByRole('link', { name: 'Contacts' }).click();
