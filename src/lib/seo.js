@@ -26,11 +26,12 @@ const escape = (text) =>
 	String(text).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 /**
- * @param {{ locale: 'en' | 'de', siteUrl: string }} options siteUrl: the app's public
- *   address (link previews need absolute addresses)
+ * @param {{ locale: 'en' | 'de', siteUrl: string, manifest?: string }} options siteUrl: the
+ *   app's public address (link previews need absolute addresses); manifest: the path of
+ *   this language's web app manifest (lib/web-manifest.js)
  * @returns {string} the tags, for the page's <head>
  */
-export function metaTags({ locale, siteUrl }) {
+export function metaTags({ locale, siteUrl, manifest }) {
 	const meta = CATALOGUES[locale].meta;
 	const root = siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`;
 	const url = root + LOCALE_PAGES[locale];
@@ -54,6 +55,7 @@ export function metaTags({ locale, siteUrl }) {
 	return [
 		`<title>${escape(meta.title)}</title>`,
 		tag('name', 'description', meta.description),
+		...(manifest ? [`<link rel="manifest" href="${escape(manifest)}" />`] : []),
 		`<link rel="canonical" href="${escape(url)}" />`,
 		...Object.entries(LOCALE_PAGES).map(([code, page]) => `<link rel="alternate" hreflang="${code}" href="${escape(root + page)}" />`),
 		`<link rel="alternate" hreflang="x-default" href="${escape(root)}" />`,
