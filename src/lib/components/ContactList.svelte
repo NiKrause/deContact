@@ -1,12 +1,14 @@
 <script>
     /**
-     * @component The contacts (#110): a list with a photo or initials, the name and the city.
+     * @component The contacts (#110): a list with a photo or initials, the name, and the
+     * organisation or the city of the first address (#109).
      * A tap opens the contact page. Search appears from SEARCH_FROM contacts on; no paging, no
      * radio buttons. Our own card is under My card, not here (#123); the records that only
      * remember somebody's book (`subscriber`) are no contacts.
      */
     import { Search } from "carbon-components-svelte";
     import ContactPhoto from "./ContactPhoto.svelte";
+    import { entriesOf, subtitleOf } from "#lib/card/entries.js";
     import { isPhoto } from "#lib/photo/photo.js";
     import { myAddressBook, orbitdb, selectedRowIds } from "../../stores.js";
     import { _ } from "#lib/i18n/index.js";
@@ -25,8 +27,13 @@
     };
     const initialsOf = (row) =>
         isPlaceholder(row) ? "?" : [row.firstName, row.lastName].map((part) => (typeof part === "string" ? part.trim()[0] ?? "" : "")).join("").toUpperCase() || "?";
-    /** the second line: the city, as long as there is no organisation on a card (#109) */
-    const subOf = (row) => (typeof row.city === "string" ? row.city : "");
+    /** the second line: the organisation, else the city of the first address (#109) */
+    const subOf = (row) => subtitleOf(row);
+    /** what a search finds a contact by: the name and every entry of their card */
+    const wordsOf = (row, tr) => {
+        const { organization, phones, emails, addresses, social } = entriesOf(row);
+        return [nameOf(row, tr), organization, ...phones.map((it) => it.value), ...emails.map((it) => it.value), ...addresses.flatMap((it) => [it.street, it.city]), ...social.map((it) => it.handle)];
+    };
 
     const contacts = $derived(
         ($myAddressBook ?? [])
@@ -37,7 +44,7 @@
         const words = query.trim().toLowerCase();
         if (!words) return contacts;
         return contacts.filter((row) =>
-            [nameOf(row, $_), row.email, row.city, row.street].some((text) => typeof text === "string" && text.toLowerCase().includes(words))
+            wordsOf(row, $_).some((text) => text.toLowerCase().includes(words))
         );
     });
 

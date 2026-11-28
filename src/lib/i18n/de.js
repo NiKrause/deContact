@@ -79,7 +79,32 @@ export default {
 		whyUpdates: 'Ändert sich etwas, bekommen sie die neue Fassung von selbst.',
 		later: 'Später',
 		asOthersSeeIt: 'So sehen deine Kontakte deine Karte.',
-		edit: 'Bearbeiten'
+		edit: 'Bearbeiten',
+		entryLabel: '{kind} · {label}',
+		kinds: {
+			phone: 'Telefon',
+			email: 'E-Mail',
+			address: 'Adresse',
+			social: 'Profil'
+		},
+		labels: {
+			mobile: 'Mobil',
+			home: 'Zuhause',
+			work: 'Arbeit',
+			private: 'Privat',
+			other: 'Sonstige'
+		},
+		networks: {
+			mastodon: 'Mastodon',
+			bluesky: 'Bluesky',
+			linkedin: 'LinkedIn',
+			github: 'GitHub',
+			instagram: 'Instagram',
+			x: 'X',
+			website: 'Website',
+			other: 'Sonstiges'
+		},
+		copyAddress: 'Adresse kopieren'
 	},
 	exchange: {
 		ready: 'Bereit zum Austausch',
@@ -129,9 +154,6 @@ export default {
 		empty: 'Noch keine Kontakte. Zeig unter Austausch deinen Code oder scanne ihren.',
 		nameless: 'Jemand ohne Namen auf der Karte',
 		details: {
-			email: 'E-Mail',
-			address: 'Adresse',
-			category: 'Kategorie',
 			technical: 'Technische Details',
 			did: 'DID',
 			book: 'Adressbuch'
@@ -377,6 +399,7 @@ export default {
 		contactDeletedNameless: 'Gelöscht.',
 		invitationCopied: 'Einladungslink kopiert.',
 		addressCopied: 'Kontaktadresse kopiert.',
+		cardAddressCopied: 'Adresse kopiert.',
 		requestSent: 'Anfrage gesendet. Die Karte kommt, sobald die Person antwortet.',
 		requestNotDelivered: 'Noch nicht erreicht. Die App versucht es weiter, solange sie offen ist.',
 		noDevice: 'Diese Adresse nennt kein Gerät. Scanne den QR-Code der Person, die du fragen willst.',

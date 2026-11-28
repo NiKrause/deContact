@@ -1,13 +1,16 @@
 <script>
     /**
-     * @component A contact's page (#110): their card as they share it, read-only. An email
-     * writes, an address reads in lines. Their DID and the address of their book sit under a
+     * @component A contact's page (#110): their card as they share it, read-only, with every
+     * entry of #109: a phone number calls, an email writes, an address reads in lines and can be
+     * copied (CardEntries.svelte). Their DID and the address of their book sit under a
      * collapsed "Technical details". "Remove contact" asks first, then removes them: our card
      * leaves their book and they get no more updates (operations.js deleteContact).
      */
     import { Accordion, AccordionItem, Button, ConfirmModal } from "carbon-components-svelte";
     import TrashCan from "carbon-icons-svelte/lib/TrashCan.svelte";
+    import CardEntries from "./CardEntries.svelte";
     import ContactPhoto from "./ContactPhoto.svelte";
+    import { entriesOf } from "#lib/card/entries.js";
     import { isPhoto } from "#lib/photo/photo.js";
     import { myAddressBook, selectedAddr, selectedRowIds } from "../../stores.js";
     import { deleteContact } from "../../operations.js";
@@ -20,8 +23,9 @@
     const placeholder = $derived(text(card.lastName) !== "" && card.lastName === card.owner);
     const name = $derived(placeholder ? "" : [text(card.firstName), text(card.lastName)].filter(Boolean).join(" "));
     const initials = $derived(placeholder ? "?" : [text(card.firstName)[0] ?? "", text(card.lastName)[0] ?? ""].join("").toUpperCase() || "?");
-    const address = $derived([text(card.street), [text(card.postalCode), text(card.city)].filter(Boolean).join(" "), text(card.countryRegion)].filter(Boolean));
-    const category = $derived(["private", "business", "other"].includes(card.category) ? $_(`form.categories.${card.category}`) : "");
+    /** under the name: their organisation and the city of their first address */
+    const entries = $derived(entriesOf(card));
+    const sub = $derived([entries.organization, entries.addresses[0]?.city].filter(Boolean).join(" · "));
 
     let confirmRemove = $state(false);
 </script>
@@ -35,24 +39,11 @@
         {/if}
         <div>
             <h3 class="name" data-testid="contact-name">{name || $_(placeholder ? "contacts.invited" : "contacts.nameless")}</h3>
-            {#if text(card.city)}<p class="sub">{text(card.city)}</p>{/if}
+            {#if sub}<p class="sub" data-testid="contact-sub">{sub}</p>{/if}
         </div>
     </header>
 
-    <dl data-testid="contact-details">
-        {#if text(card.email)}
-            <dt>{$_("contacts.details.email")}</dt>
-            <dd><a href="mailto:{text(card.email)}">{text(card.email)}</a></dd>
-        {/if}
-        {#if address.length}
-            <dt>{$_("contacts.details.address")}</dt>
-            <dd>{#each address as line, i (i)}<span class="line">{line}</span>{/each}</dd>
-        {/if}
-        {#if category}
-            <dt>{$_("contacts.details.category")}</dt>
-            <dd>{category}</dd>
-        {/if}
-    </dl>
+    <CardEntries {card} reach testid="contact-details" />
 
     {#if text(card.owner) || text(card.sharedAddress)}
         <Accordion>
@@ -123,9 +114,6 @@
         margin: 0;
         min-width: 0;
         overflow-wrap: anywhere;
-    }
-    .line {
-        display: block;
     }
     .actions :global(.bx--btn) {
         margin: 0;
