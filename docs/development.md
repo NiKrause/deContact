@@ -71,6 +71,16 @@ pnpm test:e2e:manual # E2E headed, with the Playwright inspector
 
 The E2E tests use a virtual authenticator with PRF (Chromium's CDP `WebAuthn` domain) and open the app on `localhost`: WebAuthn does not accept an IP address as relying party. They never contact Aleph or public relays: `tests/start-e2e-server.mjs` starts a fresh local relay and builds the app against it. CI runs the same suite on every push and pull request, and deploys to GitHub Pages only from `main` after the tests pass.
 
+### Alice and Bob on two networks
+
+`playwright.remote.config.js` runs `tests/remote/*.remote.js` the way simple-todo's remote replication does: Alice's browser on this machine, Bob's on an Aleph VM (relay-button's playwright-runner RootFS, over WSS with a per-run secret), both on the deployed app and Le Space's relays found through Aleph. Nothing of the suite's own relay or E2E build is used, so these tests read only what the app shows and `window.mydb`. They cover the link with both cards, Alice's moves (also while both apps were closed, so the address comes from a relay), and the offline inviter (`test.fail()`, as `tests/OfflineInvitation.spec.js`). Without a VM, Bob gets a second local browser:
+
+```bash
+REMOTE_PROVIDER=local pnpm exec playwright test -c playwright.remote.config.js
+```
+
+`REMOTE_APP_URL` points them at another deployment (default `https://nikrause.github.io/deContact/`). The workflow *Remote replication* (`.github/workflows/remote-replication.yml`) is started by hand: it deploys the VM, runs the tests with Bob there, and erases and forgets the VM at the end. It needs the secret `ALEPH_PLAYWRIGHT_PRIVATE_KEY`, the key of an Aleph account with credits.
+
 ## Project structure
 ```
 src/
