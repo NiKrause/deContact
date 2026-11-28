@@ -29,6 +29,8 @@
     import { withSignIn } from '#lib/identity/temporary.js'
     import { InlineLoading } from 'carbon-components-svelte'
     import ContactPhoto from './ContactPhoto.svelte'
+    import InstallApp from './InstallApp.svelte'
+    import VCardButton from './VCardButton.svelte'
     import LanguageSwitch from './LanguageSwitch.svelte'
     import { _, t } from '#lib/i18n/index.js'
 
@@ -165,6 +167,8 @@
                 {$_('onboarding.added', { name: [inviterCard.firstName, inviterCard.lastName].filter(Boolean).join(' ') || inviterCard.email || $_('onboarding.inviter') })}
             </h3>
         </div>
+        <!-- a copy for the phone's own address book, with the way back here (#146) -->
+        <VCardButton card={inviterCard} peer={inviterPeer} label={$_('vcard.save')} testid="save-inviter-vcard" />
     {:else}
         <!-- until their card is here, their name is not known: the line says whose card it is, without the DID -->
         <div class="arriving">
@@ -249,6 +253,8 @@
     {#if temporary}
         <button type="button" class="bx--btn bx--btn--ghost bx--btn--sm sign-in" data-testid="sign-in-instead" onclick={signIn}>{$_('secure.signIn')}</button>
     {/if}
+    <!-- keeping the app: Chrome's install dialog, or the guide on an iPhone (#146) -->
+    <InstallApp testid="onboarding-install" />
     <!-- the first screen of an invitation link (#89, #97): Settings is out of reach until the card is saved -->
     <LanguageSwitch testid="onboarding-language" />
 </div>

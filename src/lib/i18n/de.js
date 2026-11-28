@@ -512,5 +512,19 @@ export default {
 			alreadyUsed: 'Eine Anfrage kam mit einem schon benutzten Einladungslink, darum entscheidest du selbst.',
 			other: 'Eine Anfrage kam mit einem Einladungslink, der sich nicht verwenden lässt, darum entscheidest du selbst.'
 		}
+	},
+	// eine Visitenkarte als vCard für das Adressbuch des Handys (VCardButton.svelte, lib/card/vcard.js, #146)
+	vcard: {
+		save: 'In meine Kontakte übernehmen (vCard)',
+		export: 'Als vCard exportieren',
+		help: 'Eine Kopie für das Adressbuch deines Handys. Sie aktualisiert sich nicht selbst, deContact schon.',
+		note: 'Aus deContact übernommen. Dort immer aktuell: {link}',
+		noteNoLink: 'Aus deContact übernommen. Dort ist sie immer aktuell.'
+	},
+	// die App installieren (InstallApp.svelte, lib/pwa/install.js, #146)
+	install: {
+		button: 'deContact installieren',
+		why: 'Dann erreichen dich die Änderungen deiner Kontakte, auch wenn dieser Tab geschlossen ist.',
+		ios: 'Tippe in Safari auf „Teilen“ (das Quadrat mit dem Pfeil) und dann auf „Zum Home-Bildschirm“.'
 	}
 };

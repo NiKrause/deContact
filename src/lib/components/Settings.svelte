@@ -6,6 +6,7 @@
     import { session } from "#lib/identity/session.js";
     import LanguageSwitch from "./LanguageSwitch.svelte";
     import ThemeSwitch from "./ThemeSwitch.svelte";
+    import InstallApp from "./InstallApp.svelte";
     import Statistics from "./Statistics.svelte";
     import { _ } from "#lib/i18n/index.js";
     import {
@@ -71,6 +72,8 @@
         <!-- light or dark, else as the system is set (#110) -->
         <ThemeSwitch />
     </section>
+    <!-- until the app runs installed (#146) -->
+    <InstallApp testid="settings-install" />
 
     <!-- a temporary identity (#97) has no vault yet: securing it comes first -->
     <section>{#if $session?.temporary}<SecureOffer inSettings />{:else}<PasskeySettings />{/if}</section>
