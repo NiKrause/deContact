@@ -9,6 +9,7 @@
     import { hash, query } from './router.js'
     import QRCodeModal from "#lib/components/QRCodeModal.svelte";
     import PasskeyGate from "#lib/components/PasskeyGate.svelte";
+    import { keepInstallPrompt } from "#lib/pwa/install.js";
     import SecureOffer from "#lib/components/SecureOffer.svelte";
     import AppInfo from "#lib/components/AppInfo.svelte";
     import { qrCodeOpen, qrCodeData, helia, orbitdb, myAddressBook } from "../stores.js";
@@ -128,7 +129,7 @@
 
         //    const urlParams = new URLSearchParams(window.location.search); //TODO url params we need when we "onboard" a new user via scanning a URL
 </script>
-<svelte:window onbeforeinstallprompt={ () => { console.log("beforeinstallprompt") }} onbeforeunload={ warnBeforeLeaving } />
+<svelte:window onbeforeinstallprompt={ keepInstallPrompt } onbeforeunload={ warnBeforeLeaving } />
 
     <!-- the name only (#110): the start screen says what deContact is -->
     <Header

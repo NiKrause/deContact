@@ -12,6 +12,7 @@
     import ContactCircle from "./ContactCircle.svelte";
     import ContactNotes from "./ContactNotes.svelte";
     import ContactPhoto from "./ContactPhoto.svelte";
+    import VCardButton from "./VCardButton.svelte";
     import { entriesOf } from "#lib/card/entries.js";
     import { isPhoto } from "#lib/photo/photo.js";
     import { myAddressBook, selectedAddr, selectedRowIds } from "../../stores.js";
@@ -46,6 +47,11 @@
     </header>
 
     <CardEntries {card} reach testid="contact-details" />
+
+    {#if !placeholder && name}
+        <!-- a copy for the phone's own address book (#146) -->
+        <VCardButton {card} label={$_("vcard.export")} testid="export-vcard" />
+    {/if}
 
     {#if text(card.owner)}
         <!-- which fields of our card they get (#100) -->

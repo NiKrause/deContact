@@ -52,8 +52,9 @@
     }
 
     // the installed app's shortcuts (lib/web-manifest.js): #/?open=code or #/?open=scan opens
-    // the code or the camera once the address book is open, and the address drops the
-    // request, so that a reload does not open it again. Anything else is ignored.
+    // the code or the camera once the address book is open; #/?ask=<contact address> fills
+    // the paste field. The address drops the request, so that a reload does not open it
+    // again. Anything else is ignored.
     // A shortcut starts the app, so the address is read once, as Exchange is ready, and not
     // through router.js's `query`: a store this view keeps open would be read stale by the
     // next view when a scanned invitation link changes the hash (each store has its own
@@ -63,11 +64,19 @@
         if (shortcutTaken || !me || !scanner) return;
         shortcutTaken = true;
         const at = location.hash.indexOf("?");
-        const open = new URLSearchParams(at === -1 ? "" : location.hash.slice(at + 1)).get("open");
-        if (!open) return;
+        const params = new URLSearchParams(at === -1 ? "" : location.hash.slice(at + 1));
+        const open = params.get("open");
+        // the way back from a saved vCard (#146, lib/card/vcard.js): the contact address goes
+        // into the paste field, and the person decides with Ask; nothing is sent by itself
+        const ask = params.get("ask");
+        if (!open && !ask) return;
         history.replaceState(null, "", `${location.pathname}${location.search}#/`);
         if (open === SHORTCUTS.code) showCode();
         else if (open === SHORTCUTS.scan) scanner.open();
+        else if (ask && parseContactAddress(ask)) {
+            pasting = true;
+            pasted = ask;
+        }
     });
 
     /** what the camera read: an invitation link opens here, a contact address is asked */

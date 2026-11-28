@@ -534,5 +534,19 @@ export default {
 			alreadyUsed: 'A request came with an invitation link that was used already, so you decide yourself.',
 			other: 'A request came with an invitation link that cannot be used, so you decide yourself.'
 		}
+	},
+	// a card as a vCard for the phone's own address book (VCardButton.svelte, lib/card/vcard.js, #146)
+	vcard: {
+		save: 'Save to my contacts (vCard)',
+		export: 'Export as vCard',
+		help: "A copy for your phone's address book. It does not update itself: deContact does.",
+		note: 'Saved from deContact. Always up to date there: {link}',
+		noteNoLink: 'Saved from deContact. It is always up to date there.'
+	},
+	// installing the app (InstallApp.svelte, lib/pwa/install.js, #146)
+	install: {
+		button: 'Install deContact',
+		why: 'Then your contacts\' updates reach you, also after this tab is closed.',
+		ios: 'In Safari, tap Share (the square with the arrow), then "Add to Home Screen".'
 	}
 };
