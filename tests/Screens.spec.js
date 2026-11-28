@@ -15,6 +15,7 @@ import {
 import { fillOnboardingCard, invitationLink, openLink } from './helpers/onboarding.js';
 import { madeUpPortrait } from './helpers/portrait.js';
 import { qrVideo } from './helpers/qr-video.js';
+import { SCREENSHOTS, SCREENSHOT_SIZES, screenshotFile } from '../src/lib/web-manifest.js';
 
 // A tour of every screen, saved as a screenshot at each reference width (#110), so a change
 // to the UI can be compared before and after: CI keeps them as the artifact "screens" of
@@ -321,6 +322,13 @@ async function shoot(page, screen, title, { dialog = false } = {}) {
 		shots.push({ screen, title, width: device.width, file, sideways });
 		// soft: the tour goes on, so every screen that is too wide is named
 		expect.soft(wide, `${screen} at ${device.width} px scrolls sideways`).toBeLessThanOrEqual(device.width);
+	}
+	// the install dialog's screenshots (lib/web-manifest.js): the screen as a phone or a
+	// desktop shows it, no more than one window
+	for (const shot of SCREENSHOTS.filter((it) => it.screen === screen)) {
+		await page.setViewportSize(SCREENSHOT_SIZES[shot.form]);
+		await page.waitForTimeout(400);
+		await page.screenshot({ path: path.join(OUT, screenshotFile(shot)), animations: 'disabled' });
 	}
 	await page.setViewportSize(size(CLICK_AT));
 }

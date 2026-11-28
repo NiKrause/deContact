@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { newPerson } from './helpers/passkeys.js';
 
 // deContact as a PWA, and what search engines and link previews read.
 // 1. Chrome's own verdict: the app can be installed. The manifest's icons exist in the
@@ -35,6 +36,41 @@ test('installable, and it starts offline', async ({ browser }) => {
 			}
 		});
 
+		await test.step('one app wherever it is installed from, with shortcuts and screenshots', async () => {
+			const { url, data } = await cdp.send('Page.getAppManifest');
+			const manifest = JSON.parse(data);
+			// the app's own address, also in the German page's manifest below
+			expect(new URL(manifest.id, url).href).toBe(process.env.PAGE_URL);
+			expect(manifest.lang).toBe('en');
+			expect(manifest.shortcuts.map((it) => [it.name, new URL(it.url, url).href])).toEqual([
+				['Show my code', `${process.env.PAGE_URL}#/?open=code`],
+				['Scan a code', `${process.env.PAGE_URL}#/?open=scan`]
+			]);
+			// a narrow one for phones, a wide one for desktops, each in the size it names
+			expect(new Set(manifest.screenshots.map((it) => it.form_factor))).toEqual(new Set(['narrow', 'wide']));
+			for (const shot of manifest.screenshots) {
+				expect(shot.label, shot.src).toBeTruthy();
+				const response = await page.request.get(new URL(shot.src, url).href);
+				expect(response.status(), shot.src).toBe(200);
+				expect(pngSize(await response.body()), shot.src).toBe(shot.sizes);
+			}
+		});
+
+		await test.step('the German page names the same app, in German', async () => {
+			const german = await context.newPage();
+			await german.goto(`${process.env.PAGE_URL}de/`);
+			const cdpGerman = await context.newCDPSession(german);
+			const { url, errors, data } = await cdpGerman.send('Page.getAppManifest');
+			expect(errors).toEqual([]);
+			expect(url).toBe(`${process.env.PAGE_URL}de/manifest.json`);
+			const manifest = JSON.parse(data);
+			expect(manifest).toMatchObject({ name: 'deContact', lang: 'de' });
+			expect(new URL(manifest.start_url, url).href).toBe(`${process.env.PAGE_URL}de/`);
+			expect(manifest.shortcuts.map((it) => it.name)).toEqual(['Meinen Code zeigen', 'Code scannen']);
+			expect((await cdpGerman.send('Page.getAppId')).appId).toBe((await cdp.send('Page.getAppId')).appId);
+			await german.close();
+		});
+
 		await test.step("Chrome's verdict: installable", async () => {
 			// a context Playwright makes is incognito-like, which Chrome names as the only reason
 			const errors = async () =>
@@ -51,6 +87,28 @@ test('installable, and it starts offline', async ({ browser }) => {
 		});
 	} finally {
 		await context.close();
+	}
+});
+
+test("the installed app's shortcut opens Show my code once the address book is open, and only once", async ({ browser }) => {
+	test.setTimeout(180000);
+	const alice = await newPerson(browser, { first: 'Alice', last: 'Wolkenfabrik' });
+	try {
+		const { page } = alice;
+		// as the installed app starts from its shortcut: a fresh load of the shortcut's address
+		// (about:blank first: a change of the hash alone would reach the app that is open)
+		await page.goto('about:blank');
+		await page.goto(`${process.env.PAGE_URL}#/?open=code`);
+		await page.getByRole('button', { name: 'Unlock with passkey' }).click();
+		await expect(page.getByTestId('qr-summary')).toBeVisible({ timeout: 60000 });
+		// the address drops the request: a reload does not open the code again
+		expect(await page.evaluate(() => location.hash)).toBe('#/');
+		await page.reload();
+		await page.getByRole('button', { name: 'Unlock with passkey' }).click();
+		await expect(page.getByTestId('exchange')).toBeVisible({ timeout: 60000 });
+		await expect(page.getByTestId('qr-summary')).toBeHidden();
+	} finally {
+		await alice.close();
 	}
 });
 
@@ -86,6 +144,8 @@ for (const { locale, page, title, image, ogLocale } of pages) {
 		expect(html).toContain(`<link rel="canonical" href="${url}" />`);
 		expect(html).toContain(`<link rel="alternate" hreflang="en" href="${root}" />`);
 		expect(html).toContain(`<link rel="alternate" hreflang="de" href="${root}de/" />`);
+		// each page its own manifest (lib/web-manifest.js)
+		expect(html).toMatch(new RegExp(`<link rel="manifest" href="[^"]*/${page}manifest.json" />`));
 
 		// the picture is part of this build, in the size the tags name
 		const picture = await request.get(new URL(image, process.env.PAGE_URL).href);

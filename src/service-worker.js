@@ -13,8 +13,9 @@ const SHELL = new URL(self.registration.scope).pathname;
 
 const ASSETS = [
     ...immutable.map(({ path }) => resolve(`/${path}`)), // the app itself
-    // everything in `static`, but the pictures of the link previews, which the app never shows
-    ...assets.filter(({ path }) => !path.startsWith('og-image')).map(({ path }) => asset(path))
+    // everything in `static`, but the pictures of the link previews and the install dialog's
+    // screenshots, which the app never shows
+    ...assets.filter(({ path }) => !path.startsWith('og-image') && !path.startsWith('screenshots/')).map(({ path }) => asset(path))
 ];
 
 self.addEventListener('install', (event) => {

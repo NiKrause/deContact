@@ -36,6 +36,14 @@ describe('the tags of each language (seo.js)', () => {
 		expect(JSON.parse(data)).toMatchObject({ '@type': 'WebApplication', inLanguage: 'en' });
 	});
 
+	it("links the language's own manifest when given one (web-manifest.js)", () => {
+		expect(metaTags({ locale: 'de', siteUrl: site, manifest: '/deContact/de/manifest.json' })).toContain(
+			'<link rel="manifest" href="/deContact/de/manifest.json" />'
+		);
+		expect(metaTags({ locale: 'en', siteUrl: site })).not.toContain('rel="manifest"');
+		expect(metaTags({ locale: 'en', siteUrl: site, manifest: '/x/"><script>' })).not.toContain('"><script>');
+	});
+
 	it('the German route is German, every other route and the fallback English', () => {
 		expect(localeOfRoute('/de')).toBe('de');
 		expect(localeOfRoute('/')).toBe('en');

@@ -13,6 +13,15 @@ export default {
 		noscript: 'Das selbstaktualisierende, lokale Peer-to-Peer-Adressbuch. deContact läuft in deinem Browser und braucht JavaScript.',
 		source: 'Quellcode und Dokumentation auf GitHub'
 	},
+	// das Web-App-Manifest (lib/web-manifest.js): die Beschriftungen seiner Screenshots im Installationsdialog
+	manifest: {
+		screens: {
+			exchange: 'Austausch: deinen Code zeigen oder den der anderen Person scannen',
+			code: 'Dein Code und was die App dafür vorbereitet',
+			contacts: 'Deine Kontakte, die sich selbst aktuell halten',
+			card: 'Deine Visitenkarte, wie deine Kontakte sie sehen'
+		}
+	},
 	// was die App über ihren Build sagt (AppInfo.svelte)
 	about: {
 		version: 'Version {version}',

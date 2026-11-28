@@ -15,6 +15,7 @@
     import { requestAddress } from "#lib/network/p2p-operations.js";
     import { parseContactAddress } from "#lib/network/contact-address.js";
     import { notify } from "../../utils/utils.js";
+    import { SHORTCUTS } from "#lib/web-manifest.js";
     import { _ } from "#lib/i18n/index.js";
 
     /** @type {any} */
@@ -49,6 +50,25 @@
         $qrCodeData = $orbitdb?.identity?.id;
         $qrCodeOpen = true;
     }
+
+    // the installed app's shortcuts (lib/web-manifest.js): #/?open=code or #/?open=scan opens
+    // the code or the camera once the address book is open, and the address drops the
+    // request, so that a reload does not open it again. Anything else is ignored.
+    // A shortcut starts the app, so the address is read once, as Exchange is ready, and not
+    // through router.js's `query`: a store this view keeps open would be read stale by the
+    // next view when a scanned invitation link changes the hash (each store has its own
+    // listener, and the view changes between them).
+    let shortcutTaken = false;
+    $effect(() => {
+        if (shortcutTaken || !me || !scanner) return;
+        shortcutTaken = true;
+        const at = location.hash.indexOf("?");
+        const open = new URLSearchParams(at === -1 ? "" : location.hash.slice(at + 1)).get("open");
+        if (!open) return;
+        history.replaceState(null, "", `${location.pathname}${location.search}#/`);
+        if (open === SHORTCUTS.code) showCode();
+        else if (open === SHORTCUTS.scan) scanner.open();
+    });
 
     /** what the camera read: an invitation link opens here, a contact address is asked */
     function scanned(target) {
