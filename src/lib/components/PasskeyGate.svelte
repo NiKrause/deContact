@@ -218,7 +218,10 @@
         font-weight: 600;
         line-height: 1.2;
     }
-    .tagline,
+    .tagline {
+        color: var(--cds-text-secondary, #c6c6c6);
+        font-size: 0.875rem;
+    }
     .nowrap {
         white-space: nowrap;
     }
