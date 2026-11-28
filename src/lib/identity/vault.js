@@ -30,7 +30,9 @@
 import {
     VaultError,
     createVaultKeeper,
+    deriveAesKey,
     deriveSubkey,
+    openVault,
     rootOf,
     rootPayload,
     slotIdFor
@@ -87,6 +89,27 @@ export const wordsSecret = (seed) => deriveSubkey(seed, WORDS_SECRET_INFO)
  */
 export async function lookupIdOf(slotSecret) {
     return toHex(await deriveSubkey(slotSecret, LOOKUP_INFO, { length: 16 }))
+}
+
+/**
+ * Whether a record opens with this slot: the slot's secret (a passkey's PRF output, or
+ * `wordsSecret`) and its credential id (`WORDS_SLOT_ID` for the words). A record found
+ * over the network counts only if it does (vault-directory.js `recordsIn`): anybody may
+ * append to a slot's log, so a record that merely has the shape of one says nothing.
+ *
+ * @returns {Promise<(record: object) => Promise<boolean>>} never throws
+ */
+export async function opensWith(slotSecret, rawCredentialId) {
+    const slotKey = await deriveAesKey(slotSecret, SLOT_INFO)
+    return async (record) => {
+        try {
+            const { payload } = await openVault(record.vault, { slotKey, rawCredentialId })
+            payload.fill?.(0)
+            return true
+        } catch {
+            return false
+        }
+    }
 }
 
 /**

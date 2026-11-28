@@ -33,6 +33,7 @@ import {
     knownPasskeys,
     lookupIdOf,
     openWithPasskey,
+    opensWith,
     openWithWords,
     removeLegacySeed,
     removeSlot,
@@ -121,15 +122,19 @@ export function handRecord(record) {
     handed.push(record)
 }
 
-/** where `find` looks for the slot with this secret */
-async function finderFor(slotSecret, { kept }) {
+/**
+ * Where `find` looks for the slot with this secret and credential id. From the network
+ * only records that open with the slot count: anybody may append to its log.
+ */
+async function finderFor(slotSecret, { kept, rawCredentialId }) {
     const lookupId = await lookupIdOf(slotSecret)
+    const opens = await opensWith(slotSecret, rawCredentialId)
     const network = async () => {
         try {
             const helia = await heliaReady
             if (!helia) return []
             // with a vault kept here only a quick look, for a vault renewed elsewhere
-            return await lookUpRecords(helia, lookupId, kept ? { timeoutMs: 3_000, graceMs: 1_000 } : {})
+            return await lookUpRecords(helia, lookupId, kept ? { timeoutMs: 3_000, graceMs: 1_000, opens } : { opens })
         } catch (error) {
             console.log('could not look up the vault record:', error?.message)
             return []
@@ -175,7 +180,7 @@ export async function attachOrbitDB(instance) {
 
 async function openPasskey({ rawCredentialId, prfOutput }, { mayCreate = false, label } = {}) {
     const kept = (await keeper.status(rawCredentialId)).here
-    const { lookupId, find } = await finderFor(prfOutput, { kept })
+    const { lookupId, find } = await finderFor(prfOutput, { kept, rawCredentialId })
     try {
         const next = await openWithPasskey(keeper, { prfOutput, rawCredentialId, label, find, mayCreate })
         pending = undefined
@@ -314,7 +319,7 @@ export async function unlockWithWords(text) {
     const secret = await wordsSecret(seed)
     try {
         const kept = (await keeper.status(WORDS_SLOT_ID)).here
-        const { lookupId, find } = await finderFor(secret, { kept })
+        const { lookupId, find } = await finderFor(secret, { kept, rawCredentialId: WORDS_SLOT_ID })
         return await begin(await openWithWords(keeper, { seed, find }), lookupId)
     } finally {
         seed.fill(0)

@@ -8,9 +8,12 @@
  *   passkey or the words - or the device that gave it its slot - can name it.
  * - Anybody may append (IPFSAccessController, write '*'): before the vault is open the
  *   reader knows no DID to check a writer against. What protects the vault is the vault
- *   itself: a record that does not open with the slot's key is passed over by the keeper,
- *   and one that opens was made by a holder of the vault key.
- * - The newest records come first; the keeper takes the latest generation that opens.
+ *   itself: a record that does not open with the slot's key is passed over, and one that
+ *   opens was made by a holder of the vault key.
+ * - So a lookup counts only the records that open with the slot (vault.js `opensWith`),
+ *   newest first, and looks at many more entries than it keeps: entries that merely have
+ *   the shape of a record cannot crowd out the one that opens. The keeper takes the
+ *   latest generation among them.
  *
  * Before the vault is open there is no identity to run OrbitDB with, so a lookup runs on
  * an OrbitDB of its own, with a throwaway identity in memory, and stops it before the
@@ -27,8 +30,12 @@ import { isVaultRecord, parseVaultRecord, serializeVaultRecord } from './vault.j
 
 /** the OrbitDB directory the app uses, so that what a lookup fetched is there for the app */
 export const ORBITDB_DIRECTORY = './deContact'
-/** newest records read from a log */
+/** records a lookup keeps, newest first */
 const MAX_RECORDS = 20
+/** entries a lookup looks at, at most: anybody may append, so a log may hold any number */
+export const MAX_SCANNED = 5_000
+/** a published record holds a few slots, about a kilobyte; anything much longer is not one */
+export const MAX_ENTRY_LENGTH = 16 * 1024
 
 export const directoryName = (lookupId) => `decontact-vault/${lookupId}`
 
@@ -39,12 +46,24 @@ const open = (orbitdb, lookupId) =>
         AccessController: IPFSAccessController({ write: ['*'] })
     })
 
-/** the records in a log, newest first; anything that is not a record is left out */
-export async function recordsIn(db, max = MAX_RECORDS) {
+/**
+ * The records in a log, newest first, each once; anything that is not a record is left
+ * out, and with `opens` anything that does not open with the slot.
+ *
+ * @param {{ max?: number, scan?: number, opens?: (record: object) => Promise<boolean> }} options
+ *   max: records kept; scan: entries looked at; opens: from vault.js `opensWith`
+ */
+export async function recordsIn(db, { max = MAX_RECORDS, scan = MAX_SCANNED, opens } = {}) {
     const records = []
-    for await (const { value } of db.iterator({ amount: max })) {
-        const record = typeof value === 'string' ? parseVaultRecord(value) : null
-        if (record) records.push(record)
+    const seen = new Set()
+    if (max < 1) return records
+    for await (const { value } of db.iterator({ amount: scan })) {
+        if (typeof value !== 'string' || value.length > MAX_ENTRY_LENGTH || seen.has(value)) continue
+        seen.add(value)
+        const record = parseVaultRecord(value)
+        if (!record || (opens && !(await opens(record)))) continue
+        records.push(record)
+        if (records.length >= max) break
     }
     return records
 }
@@ -53,7 +72,7 @@ export async function recordsIn(db, max = MAX_RECORDS) {
  * Waits for what the network has of this log: at most `timeoutMs` while nothing is here,
  * at most `graceMs` once something is.
  */
-function settle(db, { timeoutMs, graceMs }) {
+function settle(db, { timeoutMs, graceMs, opens }) {
     return new Promise((resolve) => {
         let timer
         const done = () => {
@@ -74,7 +93,7 @@ function settle(db, { timeoutMs, graceMs }) {
         }
         db.events.on('update', onUpdate)
         db.events.on('join', onJoin)
-        recordsIn(db, 1).then((here) => {
+        recordsIn(db, { max: 1, opens }).then((here) => {
             clearTimeout(timer)
             timer = setTimeout(done, here.length > 0 ? graceMs : timeoutMs)
         })
@@ -106,17 +125,18 @@ export async function createOrbitDBFor(helia, signer, directory = ORBITDB_DIRECT
  *
  * @param {import('helia').Helia} helia a started node
  * @param {string} lookupId from `lookupIdOf`
- * @param {{ timeoutMs?: number, graceMs?: number }} options how long to wait for the
- *   network when nothing is here yet, and once something is
+ * @param {{ timeoutMs?: number, graceMs?: number, opens?: (record: object) => Promise<boolean> }} options
+ *   how long to wait for the network when nothing is here yet, and once something is;
+ *   opens: only records that open with the slot count (vault.js `opensWith`)
  */
-export async function lookUpRecords(helia, lookupId, { timeoutMs = 20_000, graceMs = 2_000 } = {}) {
+export async function lookUpRecords(helia, lookupId, { timeoutMs = 20_000, graceMs = 2_000, opens } = {}) {
     const reader = await createSecretSigner(crypto.getRandomValues(new Uint8Array(32)), { info: 'decontact/vault-lookup/v1' })
     const orbitdb = await createOrbitDBFor(helia, reader)
     try {
         const db = await open(orbitdb, lookupId)
         try {
-            await settle(db, { timeoutMs, graceMs })
-            return await recordsIn(db)
+            await settle(db, { timeoutMs, graceMs, opens })
+            return await recordsIn(db, { opens })
         } finally {
             await db.close()
         }
@@ -147,7 +167,7 @@ export async function publishRecord(orbitdb, lookupIds, record, opened = new Map
             db.events.on('error', (error) => console.log(`sync error on the vault directory:`, error?.message))
             opened.set(lookupId, db)
         }
-        const [latest] = await recordsIn(db, 1)
+        const [latest] = await recordsIn(db, { max: 1 })
         if (latest && published(latest) === text) continue
         await db.add(text)
         console.log(`published the vault record in ${db.address}`)
