@@ -2,6 +2,7 @@ import {notify, sha256} from "./utils/utils.js";
 import { ensureOwnDevice, removeContact, writeMyCardIntoFollowedBooks } from "./lib/network/p2p-operations.js";
 import { t } from "#lib/i18n/index.js";
 import { editable, entriesOf, problemsOf, withEntries } from "#lib/card/entries.js";
+import { ownCardOf } from "#lib/card/own.js";
 import {
     myAddressBook,
     selectedAddr,
@@ -35,8 +36,7 @@ export async function loadContact(id) {
  * saved yet, the first one being typed, or a contact being added by hand.
  */
 export function showMyCard() {
-    const me = _orbitdb?.identity?.id
-    const mine = me ? _myAddressBook?.find((it) => it.owner === me && it.own) : undefined
+    const mine = ownCardOf(_myAddressBook, _orbitdb?.identity?.id)
     const shown = _selectedAddr ?? {}
     if (mine && shown._id === mine._id) return
     if (!shown._id && (shown.own ? !mine : shown.own === false && typedIn(shown))) return

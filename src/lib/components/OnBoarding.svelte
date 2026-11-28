@@ -24,6 +24,7 @@
     } from '#lib/network/p2p-operations.js'
     import { sha256 } from '../../utils/utils.js'
     import { entriesOf, newEntry, withEntries } from '#lib/card/entries.js'
+    import { ownCardOf } from '#lib/card/own.js'
     import { session, startTemporary, temporaryAhead } from '#lib/identity/session.js'
     import { withSignIn } from '#lib/identity/temporary.js'
     import { InlineLoading } from 'carbon-components-svelte'
@@ -85,7 +86,7 @@
         $myAddressBook?.find((it) => it.owner === inviter && !(it.firstName === 'invited' && it.lastName === inviter))
     )
     /** an address book that already has a card of ours: it is shown to be checked */
-    const ownCard = $derived(me ? $myAddressBook?.find((it) => it.owner === me && it.own) : undefined)
+    const ownCard = $derived(ownCardOf($myAddressBook, me))
     /** the inviter's first name once their card is here; until then nobody's: the DID is no name (#110) */
     const inviterName = $derived(inviterCard?.firstName || inviterCard?.lastName || inviterCard?.email || '')
     /** what is being done after a click on save: shown while it lasts @type {'share' | 'only' | 'save' | undefined} */

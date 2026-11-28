@@ -28,4 +28,4 @@ Set at build time through Vite (see [`.env.example`](../.env.example)):
 
 In **Settings**, *WebRTC* can be switched off. After a reload, other browsers are then reached only through the relay.
 
-At the bottom of **Settings**, the collapsed section **Developer** shows the DID, this device's peer id and the number of connected peers, and offers two drop actions, each behind a confirmation: *Drop Followed & Follower DBs* (this device's copies of the contacts' books) and *Drop AddressDB* (this device's copy of the own book).
+At the bottom of **Settings**, the collapsed section **Developer** shows the DID, this device's peer id and the number of connected peers, and offers two drop actions, each behind a confirmation: *Drop Followed & Follower DBs* (this device's copies of the contacts' books; the own book stays, also when a contact added by hand names it) and *Drop AddressDB* (this device's copy of the own book).

@@ -11,6 +11,7 @@
     import ContactForm from "./ContactForm.svelte";
     import ContactPhoto from "./ContactPhoto.svelte";
     import { entriesOf } from "#lib/card/entries.js";
+    import { ownCardOf } from "#lib/card/own.js";
     import { isPhoto } from "#lib/photo/photo.js";
     import { editingCard, myAddressBook, orbitdb } from "../../stores.js";
     import { cancelCardEdit, editMyCard } from "../../operations.js";
@@ -18,7 +19,7 @@
 
     const me = $derived($orbitdb?.identity?.id);
     /** our card as the book has it now */
-    const card = $derived(me ? ($myAddressBook ?? []).find((row) => row.owner === me && row.own) : undefined);
+    const card = $derived(ownCardOf($myAddressBook, me));
     const text = (value) => (typeof value === "string" ? value.trim() : "");
     const name = $derived([text(card?.firstName), text(card?.lastName)].filter(Boolean).join(" "));
     const initials = $derived([text(card?.firstName)[0] ?? "", text(card?.lastName)[0] ?? ""].join("").toUpperCase() || "?");

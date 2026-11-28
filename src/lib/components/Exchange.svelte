@@ -16,6 +16,7 @@
     import { parseContactAddress } from "#lib/network/contact-address.js";
     import { notify } from "../../utils/utils.js";
     import { SHORTCUTS } from "#lib/web-manifest.js";
+    import { ownCardOf } from "#lib/card/own.js";
     import { _ } from "#lib/i18n/index.js";
 
     /** @type {any} */
@@ -34,7 +35,7 @@
     const readiness = $derived(readinessOf({
         bookOpen: Boolean(me && $dbMyAddressBook?.address),
         network: $networkState,
-        ownCard: me ? $myAddressBook?.find((card) => card.owner === me && card.own) : undefined,
+        ownCard: ownCardOf($myAddressBook, me),
         late
     }));
     const ready = $derived(readiness.allDone);
