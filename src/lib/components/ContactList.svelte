@@ -2,8 +2,8 @@
     /**
      * @component The contacts (#110): a list with a photo or initials, the name, and the
      * organisation or the city of the first address (#109).
-     * A tap opens the contact page; the contact open is marked (`aria-current`), for the desktop,
-     * where the page shows beside the list. Search appears from SEARCH_FROM contacts on; no
+     * A tap opens the contact page; the contact open is marked (`aria-current`), for the open
+     * Fold and the desktop, where the page shows beside the list. Search appears from SEARCH_FROM contacts on; no
      * paging, no radio buttons. Our own card is under My card, not here (#123); the records that only
      * remember somebody's book (`subscriber`) are no contacts.
      */
@@ -149,7 +149,8 @@
         color: var(--cds-text-secondary, #c6c6c6);
         font-size: 0.875rem;
     }
-    /* the contact open beside the list (a desktop): a layer, so the initials' circle still shows */
+    /* the contact open beside the list (the open Fold, a desktop): a layer, so the initials'
+       circle still shows */
     .contact.current {
         background: var(--cds-layer-01, #393939);
         box-shadow: inset 3px 0 0 var(--cds-border-interactive, #4589ff);

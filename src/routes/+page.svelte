@@ -59,7 +59,7 @@
         {#if place === "exchange"}
             <Exchange />
         {:else if place === "contacts"}
-            <!-- a phone and the open Fold: the list, or a contact's page instead of it; a
+            <!-- a phone: the list, or a contact's page instead of it; the open Fold and a
                  desktop: the list on the left and the contact's page beside it (#110) -->
             <div class="contacts" class:open={contactOpen} data-testid="contacts">
                 <div class="list-pane" data-testid="contacts-list-pane">
@@ -123,8 +123,8 @@
     .place :global(.app-info) {
         margin: 2rem 0 1rem;
     }
-    /* a phone and the open Fold: one pane at a time */
-    @media (max-width: 65.98rem) {
+    /* a phone: one pane at a time */
+    @media (max-width: 52.49rem) {
         .contacts.open .list-pane,
         .contacts:not(.open) .contact-pane {
             display: none;
@@ -133,19 +133,20 @@
     .choose {
         color: var(--cds-text-secondary, #c6c6c6);
     }
-    /* a desktop: the list on the left, kept in view while the page beside it scrolls; the
-       contact's page beside it, as wide as it is elsewhere */
-    @media (min-width: 66rem) {
+    /* from the open Fold on (840 px, where Material's "expanded" width starts): the list on
+       the left, kept in view while the page beside it scrolls (above the navigation at the
+       bottom on the Fold); the contact's page beside it, as wide as it is elsewhere */
+    @media (min-width: 52.5rem) {
         .contacts {
             display: flex;
             align-items: flex-start;
-            gap: 2rem;
+            gap: 1.5rem;
         }
         .list-pane {
-            flex: 0 0 20rem;
+            flex: 0 0 18rem;
             position: sticky;
-            top: 4.5rem;
-            max-height: calc(100dvh - 6rem);
+            top: 4rem;
+            max-height: calc(100dvh - 9.5rem - env(safe-area-inset-bottom));
             overflow-y: auto;
         }
         .contact-pane {
@@ -157,6 +158,17 @@
         }
         .back {
             display: none;
+        }
+    }
+    /* a desktop: the rail on the left instead of the navigation at the bottom */
+    @media (min-width: 66rem) {
+        .contacts {
+            gap: 2rem;
+        }
+        .list-pane {
+            flex-basis: 20rem;
+            top: 4.5rem;
+            max-height: calc(100dvh - 6rem);
         }
     }
     .place-head {
@@ -189,6 +201,19 @@
         }
         :global(body:has(.main-nav)) {
             padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+        }
+    }
+    /* the open Fold: wide like a tablet, held like a phone (#110). The navigation stays at the
+       bottom, under the thumbs; a place is a column in the middle, Contacts its two panes
+       across the screen */
+    @media (min-width: 52.5rem) and (max-width: 65.98rem) {
+        .place {
+            max-width: 40rem;
+            margin: 1.5rem auto;
+        }
+        .place.wide {
+            max-width: none;
+            margin: 1.5rem;
         }
     }
 </style>
