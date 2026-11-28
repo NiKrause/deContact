@@ -1,7 +1,8 @@
 // Light and dark (#110): the app follows the system's setting (`prefers-color-scheme`),
 // unless Settings names one. Carbon's themes paint it (carbon-components-svelte/css/all.css,
 // as `<html theme="…">`): White for light, Gray 90 for dark, the header included. The
-// browser's own bar (`<meta name="theme-color">`) takes the header's colour.
+// browser's own bar takes the header's colour: src/app.html has a `theme-color` for each
+// system setting, and a choice in Settings gives both its colour.
 //
 // src/app.html sets the theme once more before the first paint, from the same key, so a
 // dark device does not flash white while the app loads. The two must agree (theme.spec.js).
@@ -72,7 +73,10 @@ function show() {
 	const look = lookOf(current, media?.matches ?? false);
 	document.documentElement.setAttribute('theme', CARBON[look]);
 	document.documentElement.style.colorScheme = look;
-	document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BAR[look]);
+	for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+		const own = /dark/.test(meta.getAttribute('media') ?? '') ? 'dark' : 'light';
+		meta.setAttribute('content', BAR[current === 'system' ? own : look]);
+	}
 }
 
 /**

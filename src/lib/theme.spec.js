@@ -36,4 +36,13 @@ describe('the first paint (src/app.html)', () => {
 		expect(html).toContain(`dark ? '${CARBON.dark}' : '${CARBON.light}'`);
 		expect(html).toContain(`dark ? '${BAR.dark}' : '${BAR.light}'`);
 	});
+
+	it("has the browser's bar in the colour of each system setting", () => {
+		expect(html).toContain(
+			`<meta name="theme-color" media="(prefers-color-scheme: light)" content="${BAR.light}" />`
+		);
+		expect(html).toContain(
+			`<meta name="theme-color" media="(prefers-color-scheme: dark)" content="${BAR.dark}" />`
+		);
+	});
 });
