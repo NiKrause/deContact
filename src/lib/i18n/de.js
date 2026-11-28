@@ -130,6 +130,13 @@ export default {
 		nameOf: 'Name von Kreis {n}',
 		remove: 'Kreis {name} entfernen',
 		add: 'Kreis hinzufügen',
+		removeMembers: {
+			one: '{count} Kontakt ist in {name}. Wähle, wohin der Kontakt kommt, bevor der Kreis entfernt wird.',
+			other: '{count} Kontakte sind in {name}. Wähle, wohin sie kommen, bevor der Kreis entfernt wird.'
+		},
+		removeDefault: 'Neue Codes sind für {name}. Künftig sind sie für den Kreis, den du hier wählst.',
+		moveTo: 'Verschieben nach',
+		removeConfirm: 'Kreis entfernen',
 		matrix: 'Was jeder Kreis sieht',
 		field: 'Feld',
 		name: 'Name',
@@ -150,7 +157,8 @@ export default {
 		circleOf: 'Kreis',
 		wholeCard: 'Kein Kreis: deine ganze Visitenkarte',
 		narrower: 'Was {name} schon bekommen hat, bleibt dort. Ab jetzt kommt nur noch an, was dieser Kreis zeigt.',
-		narrowerNameless: 'Was schon angekommen ist, bleibt dort. Ab jetzt kommt nur noch an, was dieser Kreis zeigt.'
+		narrowerNameless: 'Was schon angekommen ist, bleibt dort. Ab jetzt kommt nur noch an, was dieser Kreis zeigt.',
+		gone: 'Ein Kreis, den es nicht mehr gibt: nur dein Name'
 	},
 	card: {
 		whyWhat: 'Das ist deine Visitenkarte: Sie bekommen Menschen, wenn ihr Codes tauscht.',

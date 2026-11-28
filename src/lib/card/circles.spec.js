@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { CIRCLE_FIELDS, DEFAULT_CIRCLES, MAX_CIRCLES, cardForCircle, circleName, circlesOf, fieldName, fieldsOf, newCircle, showsLess } from './circles.js';
+import { CIRCLE_FIELDS, DEFAULT_CIRCLES, MAX_CIRCLES, NAME_ONLY, cardForCircle, circleName, circlesOf, fieldName, fieldsOf, hasCircle, membersOf, movedMembers, newCircle, showsLess } from './circles.js';
+import { FROM_FIELDS } from '../network/contact-messages.js';
 import { entriesOf, withEntries } from './entries.js';
 
 const alice = withEntries({
@@ -129,5 +130,74 @@ describe('circles (#100)', () => {
 		expect(fieldName(tr, 'phones.work')).toBe('card.entryLabel{"kind":"card.kinds.phone","label":"card.labels.work"}');
 		expect(fieldName(tr, 'social.other')).toBe('card.entryLabel{"kind":"card.kinds.social","label":"card.labels.other"}');
 		expect(newCircle([{ id: 'family' }, { id: 'circle-2' }], 'Kreis')).toEqual({ id: 'circle-3', name: 'Kreis', fields: ['photo'] });
+	});
+});
+
+describe('in doubt, less (#100)', () => {
+	const custom = circlesOf({ circles: [...DEFAULT_CIRCLES.circles, { id: 'circle-5', name: 'Club', fields: ['photo', 'emails.private'] }], defaultCircle: '' });
+	/** what a request carries of a card: its name and city (contact-messages.js FROM_FIELDS) */
+	const fromOf = (card) => Object.fromEntries(FROM_FIELDS.filter((field) => card[field]).map((field) => [field, card[field]]));
+
+	it('no circle is the whole card; a circle we do not have is the name only', () => {
+		expect(fieldsOf(DEFAULT_CIRCLES, undefined)).toBeUndefined();
+		expect(fieldsOf(DEFAULT_CIRCLES, '')).toBeUndefined();
+		expect(fieldsOf(DEFAULT_CIRCLES, 'circle-9')).toBe(NAME_ONLY);
+		// circles not read yet, or not readable
+		expect(fieldsOf(undefined, 'business')).toBe(NAME_ONLY);
+		expect(hasCircle(DEFAULT_CIRCLES, 'business')).toBe(true);
+		expect(hasCircle(DEFAULT_CIRCLES, 'circle-9')).toBe(false);
+		expect(hasCircle(DEFAULT_CIRCLES, '')).toBe(false);
+	});
+
+	it('the name only: no entry, photo, organisation or city, also not in the flat fields', () => {
+		const card = cardForCircle(alice, NAME_ONLY);
+		expect(card).toMatchObject({ firstName: 'Alice', lastName: 'Wolkenfabrik', organization: '', email: '', street: '', city: '' });
+		expect(card.photo).toBeUndefined();
+		const { phones, emails, addresses, social } = entriesOf(card);
+		expect([phones, emails, addresses, social].flat()).toEqual([]);
+		// what the app needs to work stays
+		expect(card).toMatchObject({ sharedAddress: alice.sharedAddress, devices: alice.devices, owner: alice.owner });
+	});
+
+	it('a custom circle whose circles cannot be read any more gives the name only, not the whole card', () => {
+		expect(fieldsOf(custom, 'circle-5')).toEqual(['photo', 'emails.private']);
+		// another device saved what this version cannot read: the defaults stand in, the custom circle is gone
+		const unreadable = circlesOf({ circles: custom.circles.slice(0, 2), defaultCircle: '' });
+		expect(fieldsOf(unreadable, 'circle-5')).toBe(NAME_ONLY);
+	});
+
+	it('a request carries only the name and city its circle shows, and the photo only where it is shown', () => {
+		expect(fromOf(cardForCircle(alice, undefined))).toEqual({ firstName: 'Alice', lastName: 'Wolkenfabrik', city: 'Musterstadt' });
+		// Business sees the work address: its city comes along
+		expect(fromOf(cardForCircle(alice, business))).toEqual({ firstName: 'Alice', lastName: 'Wolkenfabrik', city: 'Musterstadt' });
+		// Club sees no address: no city
+		const club = cardForCircle(alice, fieldsOf(custom, 'circle-5'));
+		expect(fromOf(club)).toEqual({ firstName: 'Alice', lastName: 'Wolkenfabrik' });
+		expect(club.photo).toBe(alice.photo);
+		const nameOnly = cardForCircle(alice, NAME_ONLY);
+		expect(fromOf(nameOnly)).toEqual({ firstName: 'Alice', lastName: 'Wolkenfabrik' });
+		expect(nameOnly.photo).toBeUndefined();
+	});
+
+	it('the members of a removed circle go where the person chose, also through a circle removed after them', () => {
+		const abouts = new Map([
+			['did:key:z6MkBob', { _id: 'about:1', about: 'did:key:z6MkBob', circle: 'business' }],
+			['did:key:z6MkCarol', { _id: 'about:2', about: 'did:key:z6MkCarol', circle: 'circle-5', note: 'met at the stand' }],
+			['did:key:z6MkDave', { _id: 'about:3', about: 'did:key:z6MkDave', circle: 'family' }],
+			['did:key:z6MkErin', { _id: 'about:4', about: 'did:key:z6MkErin', note: 'no circle' }]
+		]);
+		expect(membersOf(abouts, 'business')).toBe(1);
+		expect(membersOf(abouts, 'friends')).toBe(0);
+		const moved = movedMembers(abouts, { 'circle-5': 'business', business: 'acquaintances' });
+		expect(moved.map(({ did, circle }) => [did, circle])).toEqual([
+			['did:key:z6MkBob', 'acquaintances'],
+			['did:key:z6MkCarol', 'acquaintances']
+		]);
+		// their document keeps the rest (the note)
+		expect(moved[1].about.note).toBe('met at the stand');
+		// '' is no circle: the whole card, as chosen
+		expect(movedMembers(abouts, { family: '' })).toEqual([{ did: 'did:key:z6MkDave', about: abouts.get('did:key:z6MkDave'), circle: undefined }]);
+		// a loop ends
+		expect(movedMembers(abouts, { business: 'circle-5', 'circle-5': 'business' })).toHaveLength(2);
 	});
 });

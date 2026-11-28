@@ -137,6 +137,14 @@ export default {
 		nameOf: 'Name of circle {n}',
 		remove: 'Remove the circle {name}',
 		add: 'Add circle',
+		// removing a circle that has members, or is the one new codes are for
+		removeMembers: {
+			one: '{count} contact is in {name}. Choose where they go before the circle is removed.',
+			other: '{count} contacts are in {name}. Choose where they go before the circle is removed.'
+		},
+		removeDefault: 'New codes are for {name}. They will be for the circle you choose here.',
+		moveTo: 'Move to',
+		removeConfirm: 'Remove the circle',
 		matrix: 'What each circle sees',
 		field: 'Field',
 		name: 'Name',
@@ -159,7 +167,9 @@ export default {
 		circleOf: 'Circle',
 		wholeCard: 'No circle: your whole business card',
 		narrower: 'What {name} already received stays with them. From now on they get only what this circle shows.',
-		narrowerNameless: 'What they already received stays with them. From now on they get only what this circle shows.'
+		narrowerNameless: 'What they already received stays with them. From now on they get only what this circle shows.',
+		// a contact whose circle we no longer have (removed on another device, or our circles unreadable)
+		gone: 'A circle you no longer have: only your name'
 	},
 	// the start screen (#110)
 	// My card (MyCard.svelte, #110): the card as others see it; before the first save, why

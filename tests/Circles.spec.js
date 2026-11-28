@@ -138,6 +138,31 @@ test('Settings: the circle for a new code, and what a circle sees', async ({ bro
 				.poll(async () => (await cardOf(carol.page, alice.did))?.city, { timeout: 120000, message: 'her home address for Business' })
 				.toBe(people.alice.city);
 		});
+
+		await test.step('Alice removes Business: Settings asks where Carol and new codes go; Carol gets what that circle shows', async () => {
+			const { page } = alice;
+			const settings = page.getByTestId('circle-settings');
+			await settings.getByRole('button', { name: 'Remove the circle Business' }).click();
+			const removing = settings.getByTestId('circle-removing');
+			await expect(removing).toContainText('1 contact is in Business.');
+			await expect(removing).toContainText('New codes are for Business.');
+			// the circle that shows the fewest fields is offered first
+			await expect(removing.getByLabel('Move to')).toHaveValue('acquaintances');
+			// nothing is removed before she says so
+			await expect(settings.getByRole('columnheader')).toHaveText(['Field', 'Family', 'Friends', 'Acquaintances', 'Business']);
+			await removing.getByRole('button', { name: 'Remove the circle', exact: true }).click();
+			await expect(settings.getByRole('columnheader')).toHaveText(['Field', 'Family', 'Friends', 'Acquaintances']);
+			await expect(settings.getByLabel('A new code is for')).toHaveValue('acquaintances');
+			await settings.getByRole('button', { name: 'Save circles' }).click();
+			await expect(page.getByText('Circles saved.')).toBeVisible();
+			// Acquaintances sees no address: the city goes, the email stays
+			await expect
+				.poll(async () => (await cardOf(carol.page, alice.did))?.city, { timeout: 120000, message: 'her card for Acquaintances' })
+				.toBe('');
+			expect(await cardOf(carol.page, alice.did)).toMatchObject({ email: 'alice@example.com', addresses: [] });
+			await openContact(page, 'Beispiel');
+			await expect(page.getByTestId('contact-circle').getByLabel('Circle')).toHaveValue('acquaintances');
+		});
 	} finally {
 		await Promise.all([alice.close(), carol?.close()]);
 	}

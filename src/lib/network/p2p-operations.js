@@ -35,7 +35,7 @@ import { getIdentityAndCreateOrbitDB } from "#lib/network/getIdendityAndCreateOr
 import AddressBookAccessController, { contactKey, createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 import { sealedBook } from "../encryption/sealed-book.js";
 import { aboutContacts, isAbout, withCircle, withNote } from "#lib/card/about.js";
-import { CIRCLES_KEY, cardForCircle, circlesOf, fieldsOf } from "#lib/card/circles.js";
+import { CIRCLES_KEY, cardForCircle, circlesOf, fieldsOf, movedMembers } from "#lib/card/circles.js";
 import { ownCardOf, withOneOwnCard } from "#lib/card/own.js";
 import {
     REQUEST_ADDRESS,
@@ -706,10 +706,13 @@ async function signer() {
 /**
  * A signed address request for `recipient`, sealed to them, carrying our address book, an
  * invitation to write into it and our name (they cannot read our book to see who asks).
+ * The name, the city and the photo it carries are what their circle shows of our card
+ * (#100), as our card in their book is.
  */
 async function addressRequest(recipient, { onBoardingToken, nopingpong, twoWay, resentOf, now = Date.now() } = {}) {
     const data = { sharedAddress: _dbMyAddressBook.address, invitation: await invite(recipient) }
-    const from = ownCard()
+    const card = ownCard()
+    const from = card && cardForCircle(card, fieldsOf(_circles, _aboutContact?.get(recipient)?.circle))
     const photo = await requestPhotoOf(from)
     return sealMessage(await signer(), { command: REQUEST_ADDRESS, recipient, data, from, photo, onBoardingToken, nopingpong, twoWay, resentOf }, { now })
 }
@@ -1222,7 +1225,9 @@ async function circleForNewContact(did, circle) {
     const about = _aboutContact?.get(did)
     if (about?.circle !== undefined || circle === '') return
     const chosen = circle ?? _circles?.defaultCircle
-    if (!fieldsOf(_circles, chosen)) return
+    // no circle: the whole card. A circle chosen for the code that we no longer have: they
+    // join it all the same, and get the name only until given another (circles.js fieldsOf)
+    if (!chosen) return
     await _dbMyAddressBook.put(withCircle(about, did, chosen))
     await getAddressRecords()
     console.log(`${did} joins the circle ${chosen}`)
@@ -1233,8 +1238,14 @@ async function circleForNewContact(did, circle) {
  * goes into every contact's book again, with what their circle shows now.
  *
  * @param {any} next the circles as Settings edited them
+ * @param {{ moves?: Record<string, string> }} options moves: where the members of each
+ *   removed circle go ('' for no circle), as the person chose in Settings. They move
+ *   before the circle goes, so no card is written for a circle that is gone
  */
-export async function saveCircles(next) {
+export async function saveCircles(next, { moves = {} } = {}) {
+    for (const { did, about, circle } of movedMembers(_aboutContact, moves)) {
+        await _dbMyAddressBook.put(withCircle(about, did, circle))
+    }
     await _dbMyAddressBook.put({ _id: CIRCLES_KEY, ...circlesOf(next), changedAt: Date.now() })
     await getAddressRecords()
     notify(t('notify.circlesSaved'))

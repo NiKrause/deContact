@@ -85,14 +85,56 @@ export function circlesOf(doc) {
         circles.push(name ? { id: circle.id, name, fields } : { id: circle.id, fields })
     }
     if (circles.length < MIN_CIRCLES || circles.length > MAX_CIRCLES) return structuredClone(DEFAULT_CIRCLES)
-    // '' is the whole card; a circle that is gone, too
+    // '' is the whole card; so is a default that is gone (Settings moves the default along with the members)
     const defaultCircle = circles.some((it) => it.id === doc.defaultCircle) ? doc.defaultCircle : ''
     return { circles, defaultCircle }
 }
 
-/** the fields a contact in `circleId` sees; undefined: the whole card (no circle, or one that is gone) */
+/** what a contact in a circle we do not have gets: the name, nothing else */
+export const NAME_ONLY = Object.freeze([])
+
+/** whether `circleId` is one of these circles */
+export function hasCircle(circles, circleId) {
+    return Boolean(circleId) && (circles?.circles ?? []).some((circle) => circle.id === circleId)
+}
+
+/**
+ * The fields a contact in `circleId` sees; undefined: no circle, the whole card. A circle
+ * that is not among ours (removed on another device, or our circles could not be read and
+ * the defaults stand in) shows the name only: in doubt, less, until the contact is given a
+ * circle again. Settings asks where the members of a circle go before it is removed.
+ */
 export function fieldsOf(circles, circleId) {
-    return circles.circles.find((circle) => circle.id === circleId)?.fields
+    if (circleId === undefined || circleId === '') return undefined
+    return (circles?.circles ?? []).find((circle) => circle.id === circleId)?.fields ?? NAME_ONLY
+}
+
+/** how many of our contacts are in `circleId` (about.js aboutContacts) */
+export function membersOf(abouts, circleId) {
+    return [...(abouts?.values() ?? [])].filter((about) => about.circle === circleId).length
+}
+
+/**
+ * Where the members of removed circles go: `moves` maps a removed circle to the one its
+ * members join ('' for no circle, the whole card). A circle removed after its members were
+ * moved into it passes them on.
+ *
+ * @param {Map<string, { circle?: string }>} abouts from about.js aboutContacts
+ * @param {Record<string, string>} moves
+ * @returns {{ did: string, about: object, circle: string | undefined }[]}
+ */
+export function movedMembers(abouts, moves) {
+    const destination = (circle) => {
+        const seen = new Set()
+        while (Object.hasOwn(moves, circle) && !seen.has(circle)) {
+            seen.add(circle)
+            circle = moves[circle]
+        }
+        return circle || undefined
+    }
+    return [...(abouts?.entries() ?? [])]
+        .filter(([, about]) => typeof about.circle === 'string' && Object.hasOwn(moves, about.circle))
+        .map(([did, about]) => ({ did, about, circle: destination(about.circle) }))
 }
 
 /**
