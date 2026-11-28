@@ -9,9 +9,9 @@
 // both themes. The installed app's icon and manifest keep the default: they cannot follow a
 // choice made in one browser.
 //
-// src/app.html sets the theme and the accent once more before the first paint, from the same
-// keys, so a dark device does not flash white while the app loads. The two must agree
-// (theme.spec.js).
+// static/theme.js, which src/app.html loads, sets the theme and the accent once more before
+// the first paint, from the same keys, so a dark device does not flash white while the app
+// loads. The two must agree (theme.spec.js).
 import { writable } from 'svelte/store';
 
 /** what Settings offers: follow the system, or always light, or always dark */

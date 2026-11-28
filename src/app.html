@@ -3,42 +3,26 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!-- first: the Content-Security-Policy (src/lib/csp.js), which holds only what comes
+		     after it, then the app's scripts and stylesheets -->
+		%sveltekit.head%
 		<!-- the header's colour, for the browser's bar: as the system is set; a choice in Settings
 		     sets both (below, and src/lib/theme.js) -->
 		<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
 		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#262626" />
 		<meta name="color-scheme" content="light dark" />
-		<script>
-			// light or dark, and the accent colour, before the first paint, as src/lib/theme.js
-			// decides them once the app runs
-			var choice = null;
-			var accent = null;
-			try {
-				choice = localStorage.getItem('decontact.theme');
-				accent = localStorage.getItem('decontact.accent');
-			} catch (e) {
-				// storage blocked: the system's setting, Carbon's blue
-			}
-			var dark = choice === 'dark' || (choice !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
-			document.documentElement.setAttribute('theme', dark ? 'g90' : 'white');
-			document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-			document.documentElement.setAttribute('data-accent', accent === 'teal' || accent === 'purple' ? accent : 'blue');
-			if (choice === 'light' || choice === 'dark') {
-				document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
-					meta.setAttribute('content', dark ? '#262626' : '#ffffff');
-				});
-			}
-		</script>
+		<!-- light or dark, and the accent colour, before the first paint: a file, since the
+		     policy runs no inline script -->
+		<script src="%sveltekit.assets%/theme.js"></script>
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" sizes="48x48" type="image/png" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/apple-touch-icon.png" />
 		<meta name="apple-mobile-web-app-title" content="deContact" />
 		<!-- title, description, Open Graph, in the page's language: written at build time (hooks.server.js, lib/seo.js) -->
 		<!--decontact:meta-->
-		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<!--decontact:noscript-->
-		<div style="display: contents">%sveltekit.body%</div>
+		<div class="app">%sveltekit.body%</div>
 	</body>
 </html>

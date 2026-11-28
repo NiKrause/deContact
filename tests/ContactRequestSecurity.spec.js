@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { createSecretSigner } from '@le-space/orbitdb-identity-provider-webauthn-did';
 import { createInvitation } from '@le-space/orbitdb-access-controller-decontact';
 import { base64url } from 'multiformats/bases/base64';

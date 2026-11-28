@@ -26,6 +26,9 @@ overrides:
   ws@>=8.0.0 <8.21.0: ^8.21.0
 
 patchedDependencies:
+  '@le-space/orbitdb-identity-provider-webauthn-did@0.14.0':
+    hash: 7b78c8df609b18c43367da975244387b902dedd67ca30a8b328becd1e531ff9e
+    path: patches/@le-space__orbitdb-identity-provider-webauthn-did@0.14.0.patch
   '@orbitdb/core@4.0.0':
     hash: c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa
     path: patches/@orbitdb__core@4.0.0.patch
@@ -60,7 +63,7 @@ importers:
         version: link:packages/orbitdb-access-controller-decontact
       '@le-space/orbitdb-identity-provider-webauthn-did':
         specifier: 0.14.0
-        version: 0.14.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))
+        version: 0.14.0(patch_hash=7b78c8df609b18c43367da975244387b902dedd67ca30a8b328becd1e531ff9e)(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))
       '@libp2p/autonat':
         specifier: 3.0.33
         version: 3.0.33
@@ -3955,7 +3958,7 @@ snapshots:
       '@orbitdb/core': 4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa)
       multiformats: 14.0.7
 
-  '@le-space/orbitdb-identity-provider-webauthn-did@0.14.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))':
+  '@le-space/orbitdb-identity-provider-webauthn-did@0.14.0(patch_hash=7b78c8df609b18c43367da975244387b902dedd67ca30a8b328becd1e531ff9e)(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))':
     dependencies:
       '@ipld/dag-cbor': 10.0.2
       '@ipld/dag-ucan': 3.4.5
@@ -6681,7 +6684,7 @@ snapshots:
       '@ipld/dag-json': 11.0.1
       '@ipshipyard/libp2p-auto-tls': 2.0.2
       '@le-space/orbitdb-access-controller-decontact': 0.1.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))
-      '@le-space/orbitdb-identity-provider-webauthn-did': 0.14.0(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))
+      '@le-space/orbitdb-identity-provider-webauthn-did': 0.14.0(patch_hash=7b78c8df609b18c43367da975244387b902dedd67ca30a8b328becd1e531ff9e)(@orbitdb/core@4.0.0(patch_hash=c30f2aadd69ef44fc1fc1b9952758e526723e5da37fbfd20d033b946988278aa))
       '@libp2p/autonat': 3.0.33
       '@libp2p/bootstrap': 12.0.37
       '@libp2p/circuit-relay-v2': 4.2.18

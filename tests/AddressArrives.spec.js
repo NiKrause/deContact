@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { addVirtualAuthenticator, contactAddressOf, createAddressBook, askByAddress } from './helpers/passkeys.js';
 
 // The other specs only click through the dialogs. This one checks that each address

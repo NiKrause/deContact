@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { addVirtualAuthenticator, newPerson, strayPasskey } from './helpers/passkeys.js';
 import { invitationLink, openLink } from './helpers/onboarding.js';
 import { checkEveryWidth } from './helpers/axe.js';

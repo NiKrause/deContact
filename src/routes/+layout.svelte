@@ -2,6 +2,8 @@
     import { onDestroy, onMount } from "svelte";
     import { get } from "svelte/store";
     import "carbon-components-svelte/css/all.css";
+    // IBM Plex from the app's own files: Carbon's @font-face rules are taken out (lib/fonts.css)
+    import "#lib/fonts.css";
     // the accent colour chosen in Settings, over Carbon's blue (lib/theme.js)
     import "#lib/accent.css";
     import { Header, HeaderUtilities } from "carbon-components-svelte";
@@ -157,6 +159,11 @@
 {/if}
 <passkey-step-dialog bind:this={ stepDialog } lang={ $language }></passkey-step-dialog>
 <style>
+    /* the element the app is rendered into (src/app.html): in the layout as if it were not
+       there. Here, not in a style attribute, which the Content-Security-Policy refuses. */
+    :global(body > .app) {
+        display: contents;
+    }
     .start-screen {
         padding: clamp(4.5rem, 12vh, 8rem) 1rem 0;
     }

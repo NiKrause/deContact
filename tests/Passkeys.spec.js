@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { readFileSync } from 'node:fs';
 import { deriveAesKey, deriveSubkey, openVault, rootOf } from '@le-space/orbitdb-identity-provider-webauthn-did/vault';
 import { ed25519 } from '@noble/curves/ed25519.js';

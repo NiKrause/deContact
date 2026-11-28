@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 // as text: node:fs is polyfilled away under Vite
 import html from '../app.html?raw';
+import firstPaintSource from '../../static/theme.js?raw';
+
+/** the script as one line, however it is wrapped */
+const firstPaint = firstPaintSource.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')');
 import {
 	ACCENTS,
 	ACCENT_KEY,
@@ -51,18 +55,24 @@ describe('initialAccent', () => {
 	});
 });
 
-describe('the first paint (src/app.html)', () => {
+describe('the first paint (static/theme.js, loaded by src/app.html)', () => {
+	it('is a file src/app.html loads in <head>, before the page is painted: no inline script', () => {
+		const head = html.slice(0, html.indexOf('</head>'));
+		expect(head).toContain('<script src="%sveltekit.assets%/theme.js"></script>');
+		expect(html.match(/<script\b[^>]*>/g)).toEqual(['<script src="%sveltekit.assets%/theme.js">']);
+	});
+
 	it('reads the same key and sets the same Carbon themes as the app', () => {
-		expect(html).toContain(`'${THEME_KEY}'`);
-		expect(html).toContain(`'${DARK_QUERY}'`);
-		expect(html).toContain(`dark ? '${CARBON.dark}' : '${CARBON.light}'`);
-		expect(html).toContain(`dark ? '${BAR.dark}' : '${BAR.light}'`);
+		expect(firstPaint).toContain(`'${THEME_KEY}'`);
+		expect(firstPaint).toContain(`'${DARK_QUERY}'`);
+		expect(firstPaint).toContain(`dark ? '${CARBON.dark}' : '${CARBON.light}'`);
+		expect(firstPaint).toContain(`dark ? '${BAR.dark}' : '${BAR.light}'`);
 	});
 
 	it('sets the accent kept here, else blue', () => {
-		expect(html).toContain(`'${ACCENT_KEY}'`);
+		expect(firstPaint).toContain(`'${ACCENT_KEY}'`);
 		const others = ACCENTS.filter((it) => it !== 'blue');
-		expect(html).toContain(
+		expect(firstPaint).toContain(
 			`setAttribute('data-accent', ${others.map((it) => `accent === '${it}'`).join(' || ')} ? accent : 'blue')`
 		);
 	});

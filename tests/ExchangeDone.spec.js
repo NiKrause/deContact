@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { writeFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { askByAddress, contactAddressOf, newPerson } from './helpers/passkeys.js';

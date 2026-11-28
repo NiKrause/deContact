@@ -1,0 +1,89 @@
+diff --git a/src/elements/passkey-step-dialog.js b/src/elements/passkey-step-dialog.js
+index 6ff1d84a5c62c23d4e917307d087c04610364ed9..b2e9c5d63d9282db89d7d5c610aff61b410a38a8 100644
+--- a/src/elements/passkey-step-dialog.js
++++ b/src/elements/passkey-step-dialog.js
+@@ -194,6 +194,40 @@ const fill = (template, values) =>
+     key in values ? String(values[key]) : whole
+   );
+ 
++/**
++ * @param {string} tag
++ * @param {Record<string, string>} attributes
++ */
++const element = (tag, attributes) => {
++  const node = document.createElement(tag);
++  for (const [name, value] of Object.entries(attributes)) {
++    node.setAttribute(name, value);
++  }
++  return node;
++};
++
++/**
++ * The dialog's style, as a constructed style sheet; a `<style>` element only
++ * where the browser has none.
++ *
++ * @param {ShadowRoot} root
++ * @param {string} css
++ */
++const adoptStyle = (root, css) => {
++  if (
++    'adoptedStyleSheets' in root &&
++    typeof CSSStyleSheet.prototype.replaceSync === 'function'
++  ) {
++    const sheet = new CSSStyleSheet();
++    sheet.replaceSync(css);
++    root.adoptedStyleSheets = [sheet];
++    return;
++  }
++  const style = document.createElement('style');
++  style.textContent = css;
++  root.append(style);
++};
++
+ /**
+  * Where there is no DOM — a server-side render importing ./elements — the
+  * class is still defined, on a stand-in, so that the import does not throw.
+@@ -221,20 +255,31 @@ export class PasskeyStepDialogElement extends Base {
+   constructor() {
+     super();
+     const root = this.attachShadow({ mode: 'open' });
+-    root.innerHTML = `<style>${STYLE}</style>
+-      <dialog part="dialog" aria-labelledby="title" aria-describedby="why">
+-        <p class="count" part="count"></p>
+-        <h2 id="title" part="title"></h2>
+-        <p id="why" class="why" part="why"></p>
+-        <p class="loop" part="loop"></p>
+-        <div class="actions">
+-          <button type="button" part="cancel"></button>
+-          <button type="button" part="continue" autofocus></button>
+-        </div>
+-      </dialog>`;
++    // Built with DOM calls, not a string of markup: a page that requires
++    // Trusted Types (`require-trusted-types-for 'script'`) refuses `innerHTML`,
++    // and a Content-Security-Policy without `'unsafe-inline'` refuses a
++    // `<style>` element. A constructed style sheet is neither.
++    adoptStyle(root, STYLE);
++    const actions = element('div', { class: 'actions' });
++    actions.append(
++      element('button', { type: 'button', part: 'cancel' }),
++      element('button', { type: 'button', part: 'continue', autofocus: '' })
++    );
+     this.dialog = /** @type {HTMLDialogElement} */ (
+-      root.querySelector('dialog')
++      element('dialog', {
++        part: 'dialog',
++        'aria-labelledby': 'title',
++        'aria-describedby': 'why',
++      })
++    );
++    this.dialog.append(
++      element('p', { class: 'count', part: 'count' }),
++      element('h2', { id: 'title', part: 'title' }),
++      element('p', { id: 'why', class: 'why', part: 'why' }),
++      element('p', { class: 'loop', part: 'loop' }),
++      actions
+     );
++    root.append(this.dialog);
+     root.querySelector('[part=continue]').addEventListener('click', () => {
+       if (performance.now() - this.#shownAt < CONTINUE_DELAY_MS) return;
+       this.#settle(null);

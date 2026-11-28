@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/policy.js';
 import { readFileSync } from 'node:fs';
 import { newPerson } from './helpers/passkeys.js';
 
